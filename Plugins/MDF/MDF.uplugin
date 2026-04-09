@@ -19,6 +19,26 @@
 			"Name": "MDF",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "MDFFrameworkCore",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "MDFFrameworkEntity",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "MDFFrameworkProgression",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "MDFFrameworkEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
 		}
 	]
 }
