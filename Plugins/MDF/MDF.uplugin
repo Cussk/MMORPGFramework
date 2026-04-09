@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "MDF",
+	"Description": "MMORPG Framework",
+	"Category": "Other",
+	"CreatedBy": "Kyle Cuss",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "MDF",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
