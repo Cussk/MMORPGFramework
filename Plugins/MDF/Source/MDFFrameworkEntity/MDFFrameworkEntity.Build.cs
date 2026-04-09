@@ -18,8 +18,6 @@ public class MDFFrameworkEntity : ModuleRules
             {
                 "CoreUObject",
                 "Engine",
-                "Slate",
-                "SlateCore"
             }
         );
     }

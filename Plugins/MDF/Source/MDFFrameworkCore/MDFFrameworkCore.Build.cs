@@ -10,16 +10,16 @@ public class MDFFrameworkCore : ModuleRules
             new string[]
             {
                 "Core",
+                "CoreUObject",
+                "Engine",
+                "GameplayTags"
             }
         );
 
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                "CoreUObject",
-                "Engine",
-                "Slate",
-                "SlateCore"
+                
             }
         );
     }
