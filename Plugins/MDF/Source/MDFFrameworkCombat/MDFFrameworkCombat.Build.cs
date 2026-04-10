@@ -11,6 +11,7 @@ public class MDFFrameworkCombat : ModuleRules
             {
                 "Core",
                 "CoreUObject",
+                "Engine",
                 "GameplayTags",
                 "MDFFrameworkCore"
             }
@@ -19,7 +20,7 @@ public class MDFFrameworkCombat : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                "Engine",
+                
             }
         );
     }

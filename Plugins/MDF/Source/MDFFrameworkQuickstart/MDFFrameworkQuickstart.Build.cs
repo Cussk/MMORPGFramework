@@ -1,8 +1,8 @@
 ﻿using UnrealBuildTool;
 
-public class MDFFrameworkEntity : ModuleRules
+public class MDFFrameworkQuickstart : ModuleRules
 {
-    public MDFFrameworkEntity(ReadOnlyTargetRules Target) : base(Target)
+    public MDFFrameworkQuickstart(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -12,16 +12,16 @@ public class MDFFrameworkEntity : ModuleRules
                 "Core",
                 "CoreUObject",
                 "Engine",
-                "GameplayTags",
                 "MDFFrameworkCore",
-                "MDFFrameworkProgression"
+                "MDFFrameworkEntity",
+                "MDFFrameworkCombat"
             }
         );
 
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                
+               
             }
         );
     }

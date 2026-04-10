@@ -44,6 +44,11 @@
 			"Name": "MDFFrameworkCombat",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "MDFFrameworkQuickstart",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
 		}
 	]
 }
