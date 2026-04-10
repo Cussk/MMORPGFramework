@@ -39,6 +39,11 @@
 			"Name": "MDFFrameworkEditor",
 			"Type": "Editor",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "MDFFrameworkCombat",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
 		}
 	]
 }

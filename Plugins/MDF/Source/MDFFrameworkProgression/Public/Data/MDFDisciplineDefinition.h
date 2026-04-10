@@ -28,10 +28,16 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline", meta = (ClampMin = "0"))
 	int32 MaxMasteryRank;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline|Skills")
 	FGameplayTagContainer CompatibleSkillFamilies;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline|Skills")
+	FGameplayTagContainer StartingSkillTags;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline|Skills")
+	FGameplayTagContainer UnlockableSkillTags;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline|Skills")
 	FGameplayTagContainer GrantedPassiveTags;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline")

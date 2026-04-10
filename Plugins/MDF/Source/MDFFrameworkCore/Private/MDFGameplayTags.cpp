@@ -14,11 +14,11 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Discipline_Combat_Mage, "Discipline.Combat.Mage");
 	
 	UE_DEFINE_GAMEPLAY_TAG(Discipline_Gathering, "Discipline.Gathering");
-	UE_DEFINE_GAMEPLAY_TAG(Discipline_Gathering_Miner, "Discipline.Gathering.Miner");
-	UE_DEFINE_GAMEPLAY_TAG(Discipline_Gathering_Fisher, "Discipline.Gathering.Fisher");
+	UE_DEFINE_GAMEPLAY_TAG(Discipline_Gathering_Mining, "Discipline.Gathering.Mining");
+	UE_DEFINE_GAMEPLAY_TAG(Discipline_Gathering_Fishing, "Discipline.Gathering.Fishing");
 	
 	UE_DEFINE_GAMEPLAY_TAG(Discipline_Crafting, "Discipline.Crafting");
-	UE_DEFINE_GAMEPLAY_TAG(Discipline_Crafting_Blacksmith, "Discipline.Crafting.Blacksmith");
+	UE_DEFINE_GAMEPLAY_TAG(Discipline_Crafting_Blacksmithing, "Discipline.Crafting.Blacksmithing");
 	UE_DEFINE_GAMEPLAY_TAG(Discipline_Crafting_Alchemy, "Discipline.Crafting.Alchemy");
 	
 	UE_DEFINE_GAMEPLAY_TAG(Discipline_Social, "Discipline.Social");
@@ -38,6 +38,9 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Skill_Family_Ranged, "Skill.Family.Ranged");
 	UE_DEFINE_GAMEPLAY_TAG(Skill_Family_Magic, "Skill.Family.Magic");
 	UE_DEFINE_GAMEPLAY_TAG(Skill_Family_Utility, "Skill.Family.Utility");
+	
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Warrior_BasicStrike, "Skill.Warrior.BasicStrike");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Warrior_Guard, "Skill.Warrior.Guard");
 	
 	// --------------------
 	// Equipment / Tools
@@ -63,6 +66,7 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Stat_Primary_Dexterity, "Stat.Primary.Dexterity");
 	
 	UE_DEFINE_GAMEPLAY_TAG(Stat_Secondary_Crit, "Stat.Secondary.Crit");
+	UE_DEFINE_GAMEPLAY_TAG(Stat_Secondary_Defense, "Stat.Secondary.Defense");
 	UE_DEFINE_GAMEPLAY_TAG(Stat_Secondary_Haste, "Stat.Secondary.Haste");
 
 	// --------------------
