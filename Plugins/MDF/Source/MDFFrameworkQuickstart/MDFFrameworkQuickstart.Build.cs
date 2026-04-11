@@ -12,6 +12,9 @@ public class MDFFrameworkQuickstart : ModuleRules
                 "Core",
                 "CoreUObject",
                 "Engine",
+                "InputCore",
+                "EnhancedInput",
+                "GameplayTags",
                 "MDFFrameworkCore",
                 "MDFFrameworkEntity",
                 "MDFFrameworkCombat"
@@ -21,7 +24,7 @@ public class MDFFrameworkQuickstart : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-               
+                
             }
         );
     }

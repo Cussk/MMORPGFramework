@@ -5,8 +5,7 @@
 #include "Components/MDFPlayerProgressionComponent.h"
 #include "Components/MDFPlayerSkillComponent.h"
 
-AMDFPlayerState::AMDFPlayerState(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+AMDFPlayerState::AMDFPlayerState()
 {
 	MDFProgressionComponent = CreateDefaultSubobject<UMDFPlayerProgressionComponent>(TEXT("MDFProgressionComponent"));
 	MDFSkillComponent = CreateDefaultSubobject<UMDFPlayerSkillComponent>(TEXT("MDFSkillComponent"));

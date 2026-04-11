@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "MDFPlayerController.generated.h"
 
+class UInputMappingContext;
 class AMDFPlayerState;
 class UMDFPlayerProgressionComponent;
 class UMDFPlayerSkillComponent;
@@ -28,6 +29,9 @@ class MDFFRAMEWORKQUICKSTART_API AMDFPlayerController : public APlayerController
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditAnywhere, Category ="Input|Input Mappings")
+	TArray<UInputMappingContext*> DefaultMappingContexts;
+	
 	UFUNCTION(BlueprintPure, Category = "MDF")
 	AMDFPlayerState* GetMDFPlayerState() const;
 
@@ -36,4 +40,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "MDF")
 	UMDFPlayerSkillComponent* GetMDFSkillComponent() const;
+	
+	virtual void SetupInputComponent() override;
 };

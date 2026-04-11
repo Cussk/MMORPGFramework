@@ -7,10 +7,7 @@
 		{
 			"Name": "MMORPGFramework",
 			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"AdditionalDependencies": [
-				
-			]
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [

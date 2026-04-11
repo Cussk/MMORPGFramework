@@ -2,6 +2,7 @@
 
 #include "GameFramework/MDFPlayerController.h"
 
+#include "EnhancedInputSubsystems.h"
 #include "GameFramework/MDFPlayerState.h"
 
 AMDFPlayerState* AMDFPlayerController::GetMDFPlayerState() const
@@ -27,4 +28,20 @@ UMDFPlayerSkillComponent* AMDFPlayerController::GetMDFSkillComponent() const
 	}
 
 	return nullptr;
+}
+
+void AMDFPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+	
+	if (IsLocalPlayerController())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+		{
+			for (UInputMappingContext* CurrentContext : DefaultMappingContexts)
+			{
+				Subsystem->AddMappingContext(CurrentContext, 0);
+			}
+		}
+	}
 }

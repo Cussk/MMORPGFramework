@@ -32,7 +32,7 @@ class MDFFRAMEWORKQUICKSTART_API AMDFPlayerState : public APlayerState
 	GENERATED_BODY()
 
 public:
-	AMDFPlayerState(const FObjectInitializer& ObjectInitializer);
+	AMDFPlayerState();
 
 	UFUNCTION(BlueprintPure, Category = "MDF")
 	UMDFPlayerProgressionComponent* GetMDFProgressionComponent() const;
