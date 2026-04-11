@@ -3,6 +3,7 @@
 #include "GameFramework/MDFGameMode.h"
 
 #include "GameFramework/MDFCharacter.h"
+#include "GameFramework/MDFDebugHUD.h"
 #include "GameFramework/MDFGameState.h"
 #include "GameFramework/MDFPlayerController.h"
 #include "GameFramework/MDFPlayerState.h"
@@ -13,4 +14,5 @@ AMDFGameMode::AMDFGameMode()
 	PlayerStateClass = AMDFPlayerState::StaticClass();
 	DefaultPawnClass = AMDFCharacter::StaticClass();
 	GameStateClass = AMDFGameState::StaticClass();
+	HUDClass = AMDFDebugHUD::StaticClass();
 }

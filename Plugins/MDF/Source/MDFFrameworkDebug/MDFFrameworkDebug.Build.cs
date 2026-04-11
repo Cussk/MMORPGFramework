@@ -1,8 +1,8 @@
 ﻿using UnrealBuildTool;
 
-public class MDFFrameworkQuickstart : ModuleRules
+public class MDFFrameworkDebug : ModuleRules
 {
-    public MDFFrameworkQuickstart(ReadOnlyTargetRules Target) : base(Target)
+    public MDFFrameworkDebug(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -12,19 +12,17 @@ public class MDFFrameworkQuickstart : ModuleRules
                 "Core",
                 "CoreUObject",
                 "Engine",
-                "InputCore",
-                "EnhancedInput",
+                "GameplayTags",
                 "MDFFrameworkCore",
                 "MDFFrameworkEntity",
-                "MDFFrameworkCombat"
+                "MDFFrameworkCombat",
+                "MDFFrameworkProgression"
             }
         );
 
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                "GameplayTags",
-                "MDFFrameworkDebug"
             }
         );
     }

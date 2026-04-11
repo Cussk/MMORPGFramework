@@ -49,6 +49,11 @@
 			"Name": "MDFFrameworkQuickstart",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "MDFFrameworkDebug",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
 		}
 	]
 }

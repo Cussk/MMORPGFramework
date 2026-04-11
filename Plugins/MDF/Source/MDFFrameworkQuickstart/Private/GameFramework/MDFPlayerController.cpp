@@ -3,7 +3,25 @@
 #include "GameFramework/MDFPlayerController.h"
 
 #include "EnhancedInputSubsystems.h"
+#include "Components/MDFPCDebugComponent.h"
 #include "GameFramework/MDFPlayerState.h"
+
+AMDFPlayerController::AMDFPlayerController()
+{
+	MDFDebugComponent = CreateDefaultSubobject<UMDFPCDebugComponent>(TEXT("MDFDebugComponent"));
+}
+
+bool AMDFPlayerController::ProcessConsoleExec(const TCHAR* Cmd, FOutputDevice& Ar, UObject* Executor)
+{
+	bool bHandled = Super::ProcessConsoleExec(Cmd, Ar, Executor);
+
+	if (!bHandled && MDFDebugComponent)
+	{
+		bHandled = MDFDebugComponent->ProcessConsoleExec(Cmd, Ar, Executor);
+	}
+
+	return bHandled;
+}
 
 AMDFPlayerState* AMDFPlayerController::GetMDFPlayerState() const
 {
@@ -28,6 +46,11 @@ UMDFPlayerSkillComponent* AMDFPlayerController::GetMDFSkillComponent() const
 	}
 
 	return nullptr;
+}
+
+UMDFPCDebugComponent* AMDFPlayerController::GetMDFDebugComponent() const
+{
+	return MDFDebugComponent;
 }
 
 void AMDFPlayerController::SetupInputComponent()
