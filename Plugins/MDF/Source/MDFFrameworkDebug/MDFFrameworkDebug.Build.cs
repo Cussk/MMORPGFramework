@@ -13,16 +13,16 @@ public class MDFFrameworkDebug : ModuleRules
                 "CoreUObject",
                 "Engine",
                 "GameplayTags",
-                "MDFFrameworkCore",
-                "MDFFrameworkEntity",
-                "MDFFrameworkCombat",
-                "MDFFrameworkProgression"
             }
         );
 
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
+                "MDFFrameworkCore",
+                "MDFFrameworkEntity",
+                "MDFFrameworkCombat",
+                "MDFFrameworkProgression"
             }
         );
     }

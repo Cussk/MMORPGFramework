@@ -1,4 +1,5 @@
-﻿#include "MDFFrameworkProgression.h"
+// Kyle Cuss and Cuss Programming 2026
+#include "MDFFrameworkProgression.h"
 
 #define LOCTEXT_NAMESPACE "FMDFFrameworkProgressionModule"
 

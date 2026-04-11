@@ -1,4 +1,5 @@
-﻿#include "MDFFrameworkQuickstart.h"
+// Kyle Cuss and Cuss Programming 2026
+#include "MDFFrameworkQuickstart.h"
 
 #define LOCTEXT_NAMESPACE "FMDFFrameworkQuickstartModule"
 

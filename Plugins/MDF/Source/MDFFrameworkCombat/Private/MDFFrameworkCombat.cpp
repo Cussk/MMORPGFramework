@@ -1,4 +1,5 @@
-﻿#include "MDFFrameworkCombat.h"
+// Kyle Cuss and Cuss Programming 2026
+#include "MDFFrameworkCombat.h"
 
 #define LOCTEXT_NAMESPACE "FMDFFrameworkCombatModule"
 

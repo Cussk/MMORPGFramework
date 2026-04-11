@@ -1,4 +1,5 @@
-﻿#include "MDFFrameworkEntity.h"
+// Kyle Cuss and Cuss Programming 2026
+#include "MDFFrameworkEntity.h"
 
 #define LOCTEXT_NAMESPACE "FMDFFrameworkEntityModule"
 

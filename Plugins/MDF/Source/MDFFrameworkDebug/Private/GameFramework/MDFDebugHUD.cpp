@@ -1,4 +1,4 @@
-//Copyright Kyle Cuss and Cuss Programming 2026.
+// Kyle Cuss and Cuss Programming 2026
 
 #include "GameFramework/MDFDebugHUD.h"
 

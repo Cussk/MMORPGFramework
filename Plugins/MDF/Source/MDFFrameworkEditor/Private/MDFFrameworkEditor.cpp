@@ -1,4 +1,5 @@
-﻿#include "MDFFrameworkEditor.h"
+// Kyle Cuss and Cuss Programming 2026
+#include "MDFFrameworkEditor.h"
 
 #define LOCTEXT_NAMESPACE "FMDFFrameworkEditorModule"
 

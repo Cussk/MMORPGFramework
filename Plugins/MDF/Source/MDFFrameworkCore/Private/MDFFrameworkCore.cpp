@@ -1,4 +1,5 @@
-﻿#include "MDFFrameworkCore.h"
+// Kyle Cuss and Cuss Programming 2026
+#include "MDFFrameworkCore.h"
 
 #define LOCTEXT_NAMESPACE "FMDFFrameworkCoreModule"
 

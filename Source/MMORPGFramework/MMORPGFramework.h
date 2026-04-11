@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Kyle Cuss and Cuss Programming 2026
 
 #pragma once
 
