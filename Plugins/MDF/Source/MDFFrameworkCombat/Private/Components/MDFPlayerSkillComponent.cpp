@@ -150,6 +150,11 @@ void UMDFPlayerSkillComponent::SetEquippedSkillSlots(const TArray<FMDFEquippedSk
 
 void UMDFPlayerSkillComponent::SetCombatDeckSlots(const TArray<FMDFCombatDeckSlotRuntime>& InCombatDeckSlots)
 {
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	
 	CombatDeckSlots = InCombatDeckSlots;
 	OnRep_CombatDeckSlots();
 
