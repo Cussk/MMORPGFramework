@@ -24,6 +24,7 @@ enum class EMDFDisciplineCategory : uint8
  * - This lets future systems express unlock chains like:
  *   "Blacksmithing requires Mining level 10"
  *   "Knight requires Warrior mastery 5"
+ *   "Hidden discipline requires quest/exploration/teacher gates later"
  */
 USTRUCT(BlueprintType)
 struct MDFFRAMEWORKPROGRESSION_API FMDFDisciplineUnlockRule
@@ -53,7 +54,11 @@ public:
  * Why this exists:
  * - This is the mutable, player-owned counterpart to UMDFDisciplineDefinition.
  * - It stores only runtime/player-specific values, not authored design data.
- * - This is the shape that will later live inside replicated player-owned state.
+ * - It represents what the player has earned in that discipline over time.
+ *
+ * Important separation:
+ * - This struct does NOT store current live combat selection/loadout state.
+ * - Active combat discipline is owned by the player skill/combat runtime on PlayerState.
  */
 USTRUCT(BlueprintType)
 struct MDFFRAMEWORKPROGRESSION_API FMDFPlayerDisciplineProgress
@@ -101,45 +106,5 @@ public:
 	bool HasReachedMastery(const int32 InMasteryRank) const
 	{
 		return MasteryRank >= InMasteryRank;
-	}
-};
-
-/**
- * Runtime state for the player's currently active discipline.
- *
- * Why this is separate from FMDFPlayerDisciplineProgress:
- * - Progression describes everything the player has earned in a discipline.
- * - Active state describes the one discipline currently selected for gameplay.
- * - Keeping them separate prevents "current loadout/selection" state from
- *   polluting long-term progression records.
- */
-USTRUCT(BlueprintType)
-struct MDFFRAMEWORKPROGRESSION_API FMDFActiveDisciplineState
-{
-	GENERATED_BODY()
-
-public:
-	FMDFActiveDisciplineState()
-		: bHasActiveDiscipline(false)
-	{
-	}
-
-	/** The currently selected discipline, such as Discipline.Combat.Warrior. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Active Discipline")
-	FGameplayTag ActiveDisciplineTag;
-
-	/** Whether the player currently has a valid active discipline selected. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Active Discipline")
-	bool bHasActiveDiscipline;
-
-	bool IsValid() const
-	{
-		return bHasActiveDiscipline && ActiveDisciplineTag.IsValid();
-	}
-
-	void Clear()
-	{
-		ActiveDisciplineTag = FGameplayTag();
-		bHasActiveDiscipline = false;
 	}
 };

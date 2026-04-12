@@ -55,4 +55,16 @@ public:
 	/** Human-readable equipped slot lines for display. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Debug")
 	TArray<FString> EquippedSkillLines;
+	
+	UPROPERTY(BlueprintReadOnly, Category="Debug")
+	FString ActiveArchetypeText;
+
+	UPROPERTY(BlueprintReadOnly, Category="Debug")
+	float RemainingSwapCooldown = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category="Debug")
+	FString LastSwapDecisionText;
+
+	UPROPERTY(BlueprintReadOnly, Category="Debug")
+	TArray<FString> CombatDeckLines;
 };

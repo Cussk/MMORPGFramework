@@ -15,6 +15,9 @@ class MDFFRAMEWORKPROGRESSION_API UMDFDisciplineDefinition : public UMDFDefiniti
 
 public:
 	UMDFDisciplineDefinition();
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Discipline")
+	FGameplayTag ArchetypeTag;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline")
 	FGameplayTag DisciplineTag;

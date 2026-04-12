@@ -15,7 +15,7 @@ public class MDFFrameworkQuickstart : ModuleRules
                 "InputCore",
                 "EnhancedInput",
                 "MDFFrameworkCore",
-                "MDFFrameworkEntity",
+                "MDFFrameworkProgression",
                 "MDFFrameworkCombat"
             }
         );

@@ -7,33 +7,32 @@
 #include "Types/MDFDisciplineTypes.h"
 #include "MDFPlayerProgressionComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMDFPlayerProgressionChanged);
+
 /**
  * Player-owned runtime progression container intended to live on PlayerState.
  *
  * Architectural role:
- * - Owns mutable progression data for the local player identity.
- * - Keeps long-lived progression state off the pawn.
- * - Serves as the first replicated ownership shell for discipline progression.
+ * - Owns mutable long-lived progression data for the player identity.
+ * - Keeps persistent progression state off the pawn.
+ * - Serves as the replicated runtime counterpart to authored discipline definitions.
  *
  * Why a component instead of a PlayerState subclass:
  * - Matches the framework goal of composition over inheritance.
  * - Makes the system easier to attach to different projects and sample layers.
  * - Avoids forcing game code into a custom framework-specific PlayerState base.
  *
- * Phase 0 scope:
+ * Current scope:
  * - Stores discipline progression entries.
- * - Stores the currently active discipline.
- * - Exposes simple query helpers.
- * - Exposes light mutation helpers for early testing.
+ * - Exposes progression-focused query helpers.
+ * - Exposes lightweight mutation helpers for early testing/bootstrap.
  *
- * Later phases can expand this component with:
- * - stricter server-authoritative mutation entry points
- * - save/load integration
- * - events/delegates for UI and debug
- * - quest/faction/currency ownership siblings
+ * Important separation:
+ * - This component owns what the player has earned/unlocked.
+ * - Live combat-active discipline selection is owned by the player skill/combat component.
  */
 UCLASS(ClassGroup=(MDF), BlueprintType, Blueprintable, meta=(BlueprintSpawnableComponent))
-class MDFFRAMEWORKENTITY_API UMDFPlayerProgressionComponent : public UActorComponent
+class MDFFRAMEWORKPROGRESSION_API UMDFPlayerProgressionComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
@@ -46,18 +45,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "MDF|Progression")
 	const TArray<FMDFPlayerDisciplineProgress>& GetDisciplineProgressList() const;
 
-	/** Returns the currently active discipline state. */
-	UFUNCTION(BlueprintPure, Category = "MDF|Progression")
-	const FMDFActiveDisciplineState& GetActiveDisciplineState() const;
-
-	/** Returns true if the player currently has a valid active discipline selected. */
-	UFUNCTION(BlueprintPure, Category = "MDF|Progression")
-	bool HasActiveDiscipline() const;
-
-	/** Returns the active discipline tag, or an invalid tag if none is active. */
-	UFUNCTION(BlueprintPure, Category = "MDF|Progression")
-	FGameplayTag GetActiveDisciplineTag() const;
-
 	/** Returns true if the player has unlocked the supplied discipline. */
 	UFUNCTION(BlueprintPure, Category = "MDF|Progression")
 	bool HasUnlockedDiscipline(FGameplayTag DisciplineTag) const;
@@ -66,32 +53,18 @@ public:
 	 * Blueprint-friendly lookup helper.
 	 *
 	 * Why this exists:
-	 * - Returning raw struct pointers is nice in C++, but awkward for Blueprint.
+	 * - Returning raw struct pointers is convenient in C++, but awkward for Blueprint.
 	 * - This keeps read access simple for early UI/debug/testing work.
 	 */
 	UFUNCTION(BlueprintPure, Category = "MDF|Progression")
 	bool GetDisciplineProgress(FGameplayTag DisciplineTag, FMDFPlayerDisciplineProgress& OutProgress) const;
 
 	/**
-	 * Early test/helper mutation for selecting the active discipline.
-	 *
-	 * Phase 0 note:
-	 * - This is a lightweight shell method for early wiring and testing.
-	 * - Later phases should route authoritative mutations through stricter gameplay flows.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "MDF|Progression")
-	bool SetActiveDiscipline(FGameplayTag DisciplineTag);
-
-	/** Clears the currently active discipline selection. */
-	UFUNCTION(BlueprintCallable, Category = "MDF|Progression")
-	void ClearActiveDiscipline();
-
-	/**
 	 * Early test/helper mutation for replacing the progression list.
 	 *
-	 * Phase 0 note:
-	 * - This exists so the framework can be exercised before full progression
-	 *   grant/unlock systems are implemented.
+	 * Why this still exists:
+	 * - Lets the framework be exercised before full progression grant/unlock systems are implemented.
+	 * - Keeps quickstart/debug/bootstrap flows simple during early phases.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "MDF|Progression")
 	void SetDisciplineProgressList(const TArray<FMDFPlayerDisciplineProgress>& InDisciplineProgressList);
@@ -99,19 +72,17 @@ public:
 	/** C++-friendly lookup helper. Returns nullptr if no entry exists for the tag. */
 	const FMDFPlayerDisciplineProgress* FindDisciplineProgress(FGameplayTag DisciplineTag) const;
 
+public:
+	/** Broadcast whenever replicated or authoritative progression data changes. */
+	UPROPERTY(BlueprintAssignable, Category = "MDF|Events")
+	FMDFPlayerProgressionChanged OnDisciplineProgressChanged;
+
 protected:
 	/** Replicated list of player-owned discipline progression entries. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_DisciplineProgressList, Category = "MDF|Progression", meta=(AllowPrivateAccess="true"))
 	TArray<FMDFPlayerDisciplineProgress> DisciplineProgressList;
 
-	/** Replicated currently active discipline state. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_ActiveDisciplineState, Category = "MDF|Progression", meta=(AllowPrivateAccess="true"))
-	FMDFActiveDisciplineState ActiveDisciplineState;
-
 protected:
 	UFUNCTION()
 	void OnRep_DisciplineProgressList();
-
-	UFUNCTION()
-	void OnRep_ActiveDisciplineState();
 };

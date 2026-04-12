@@ -14,27 +14,11 @@ void UMDFPlayerProgressionComponent::GetLifetimeReplicatedProps(TArray<FLifetime
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UMDFPlayerProgressionComponent, DisciplineProgressList);
-	DOREPLIFETIME(UMDFPlayerProgressionComponent, ActiveDisciplineState);
 }
 
 const TArray<FMDFPlayerDisciplineProgress>& UMDFPlayerProgressionComponent::GetDisciplineProgressList() const
 {
 	return DisciplineProgressList;
-}
-
-const FMDFActiveDisciplineState& UMDFPlayerProgressionComponent::GetActiveDisciplineState() const
-{
-	return ActiveDisciplineState;
-}
-
-bool UMDFPlayerProgressionComponent::HasActiveDiscipline() const
-{
-	return ActiveDisciplineState.IsValid();
-}
-
-FGameplayTag UMDFPlayerProgressionComponent::GetActiveDisciplineTag() const
-{
-	return ActiveDisciplineState.ActiveDisciplineTag;
 }
 
 bool UMDFPlayerProgressionComponent::HasUnlockedDiscipline(const FGameplayTag DisciplineTag) const
@@ -55,32 +39,10 @@ bool UMDFPlayerProgressionComponent::GetDisciplineProgress(const FGameplayTag Di
 	return true;
 }
 
-bool UMDFPlayerProgressionComponent::SetActiveDiscipline(const FGameplayTag DisciplineTag)
-{
-	if (!DisciplineTag.IsValid())
-	{
-		return false;
-	}
-
-	const FMDFPlayerDisciplineProgress* FoundProgress = FindDisciplineProgress(DisciplineTag);
-	if (!FoundProgress || !FoundProgress->bUnlocked)
-	{
-		return false;
-	}
-
-	ActiveDisciplineState.ActiveDisciplineTag = DisciplineTag;
-	ActiveDisciplineState.bHasActiveDiscipline = true;
-	return true;
-}
-
-void UMDFPlayerProgressionComponent::ClearActiveDiscipline()
-{
-	ActiveDisciplineState.Clear();
-}
-
 void UMDFPlayerProgressionComponent::SetDisciplineProgressList(const TArray<FMDFPlayerDisciplineProgress>& InDisciplineProgressList)
 {
 	DisciplineProgressList = InDisciplineProgressList;
+	OnRep_DisciplineProgressList();
 }
 
 const FMDFPlayerDisciplineProgress* UMDFPlayerProgressionComponent::FindDisciplineProgress(const FGameplayTag DisciplineTag) const
@@ -103,8 +65,5 @@ const FMDFPlayerDisciplineProgress* UMDFPlayerProgressionComponent::FindDiscipli
 
 void UMDFPlayerProgressionComponent::OnRep_DisciplineProgressList()
 {
-}
-
-void UMDFPlayerProgressionComponent::OnRep_ActiveDisciplineState()
-{
+	OnDisciplineProgressChanged.Broadcast();
 }

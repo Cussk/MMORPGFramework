@@ -6,6 +6,8 @@
 #include "Components/MDFPlayerProgressionComponent.h"
 #include "Components/MDFPlayerSkillComponent.h"
 #include "Helpers/MDFComponentHelpers.h"
+#include "Types/MDFCombatDeckTypes.h"
+#include "Types/MDFDebugTypes.h"
 #include "Types/MDFDisciplineTypes.h"
 #include "Types/MDFSkillRuntimeTypes.h"
 
@@ -53,8 +55,6 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 	}
 	else
 	{
-		OutSnapshot.ActiveDisciplineText = TagToDebugString(ProgressionComponent->GetActiveDisciplineTag());
-
 		for (const FMDFPlayerDisciplineProgress& Entry : ProgressionComponent->GetDisciplineProgressList())
 		{
 			if (Entry.bUnlocked)
@@ -70,6 +70,20 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 	}
 	else
 	{
+		OutSnapshot.ActiveDisciplineText = TagToDebugString(SkillComponent->GetActiveDisciplineTag());
+		OutSnapshot.ActiveArchetypeText = TagToDebugString(SkillComponent->GetActiveArchetypeTag());
+		OutSnapshot.RemainingSwapCooldown = SkillComponent->GetRemainingSwapCooldown();
+
+		const FMDFDisciplineSwapDecision& LastSwapDecision = SkillComponent->GetLastSwapDecision();
+		if (const UEnum* SwapResultEnum = StaticEnum<EMDFDisciplineSwapResult>())
+		{
+			OutSnapshot.LastSwapDecisionText = SwapResultEnum->GetNameStringByValue(static_cast<int64>(LastSwapDecision.Result));
+		}
+		else
+		{
+			OutSnapshot.LastSwapDecisionText = TEXT("<Unknown>");
+		}
+
 		for (const FMDFPlayerSkillEntry& Entry : SkillComponent->GetLearnedSkills())
 		{
 			if (Entry.bUnlocked)
@@ -94,11 +108,50 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 		{
 			OutSnapshot.EquippedSkillLines.Add(TEXT("[None]"));
 		}
+
+		TArray<FMDFCombatDeckSlotRuntime> SortedDeckSlots = SkillComponent->GetCombatDeckSlots();
+		Algo::Sort(SortedDeckSlots, [](const FMDFCombatDeckSlotRuntime& A, const FMDFCombatDeckSlotRuntime& B)
+		{
+			return A.ArchetypeTag.ToString() < B.ArchetypeTag.ToString();
+		});
+
+		for (const FMDFCombatDeckSlotRuntime& DeckSlot : SortedDeckSlots)
+		{
+			const FString ArchetypeText = TagToDebugString(DeckSlot.ArchetypeTag);
+			const FString DisciplineText = TagToDebugString(DeckSlot.DisciplineTag);
+
+			const bool bLaneUnlocked = DeckSlot.bArchetypeUnlocked;
+			const bool bDisciplineUnlocked = DeckSlot.bDisciplineUnlocked;
+
+			OutSnapshot.CombatDeckLines.Add(
+				FString::Printf(
+					TEXT("[%s] %s | LaneUnlocked=%s | DisciplineUnlocked=%s"),
+					*ArchetypeText,
+					*DisciplineText,
+					bLaneUnlocked ? TEXT("True") : TEXT("False"),
+					bDisciplineUnlocked ? TEXT("True") : TEXT("False"))
+			);
+		}
+
+		if (OutSnapshot.CombatDeckLines.Num() == 0)
+		{
+			OutSnapshot.CombatDeckLines.Add(TEXT("[None]"));
+		}
 	}
 
 	if (OutSnapshot.ActiveDisciplineText.IsEmpty())
 	{
 		OutSnapshot.ActiveDisciplineText = TEXT("<None>");
+	}
+
+	if (OutSnapshot.ActiveArchetypeText.IsEmpty())
+	{
+		OutSnapshot.ActiveArchetypeText = TEXT("<None>");
+	}
+
+	if (OutSnapshot.LastSwapDecisionText.IsEmpty())
+	{
+		OutSnapshot.LastSwapDecisionText = TEXT("<None>");
 	}
 
 	return ProgressionComponent != nullptr || SkillComponent != nullptr;
@@ -149,8 +202,14 @@ bool UMDFDebugWorldSubsystem::SetActiveDiscipline(APlayerController* PlayerContr
 		return false;
 	}
 
-	UMDFPlayerProgressionComponent* ProgressionComponent = ResolveProgressionComponent(PlayerController);
-	return ProgressionComponent ? ProgressionComponent->SetActiveDiscipline(DisciplineTag) : false;
+	UMDFPlayerSkillComponent* SkillComponent = ResolveSkillComponent(PlayerController);
+	if (!SkillComponent)
+	{
+		return false;
+	}
+
+	SkillComponent->RequestSetActiveDiscipline(DisciplineTag);
+	return SkillComponent->GetLastSwapDecision().DidSucceed();
 }
 
 bool UMDFDebugWorldSubsystem::GrantSkill(APlayerController* PlayerController, const FGameplayTag SkillTag)

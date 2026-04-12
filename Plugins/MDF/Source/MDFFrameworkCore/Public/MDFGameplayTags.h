@@ -7,9 +7,18 @@
 namespace MDFGameplayTags
 {
 	// --------------------
+    // Archetypes
+    // --------------------
+	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Archetype_Vanguard);
+    MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Archetype_Striker);
+    MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Archetype_Channeler);
+    MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Archetype_Tactician);
+
+	// --------------------
 	// Disciplines
 	// --------------------
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Discipline_Combat);
+	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Discipline_Combat_Guardian);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Discipline_Combat_Warrior);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Discipline_Combat_Archer);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Discipline_Combat_Mage);

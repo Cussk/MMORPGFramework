@@ -40,19 +40,31 @@ void AMDFDebugHUD::DrawHUD()
 	DebugSubsystem->BuildPlayerSnapshot(OwningController, Snapshot);
 
 	float DrawY = StartY;
+	const FLinearColor Silver = FLinearColor::FromSRGBColor(FColor(192, 192, 192, 255));
 
 	DrawLineText(TEXT("=== MDF Debug ==="), StartX, DrawY, FLinearColor::Yellow);
 	DrawLineText(FString::Printf(TEXT("Active Discipline: %s"), *Snapshot.ActiveDisciplineText), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Active Archetype: %s"), *Snapshot.ActiveArchetypeText), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Swap Cooldown Remaining: %.2f"), Snapshot.RemainingSwapCooldown), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Last Swap Result: %s"), *Snapshot.LastSwapDecisionText), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Unlocked Disciplines: %d"), Snapshot.UnlockedDisciplineCount), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Learned Skills: %d"), Snapshot.LearnedSkillCount), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Equipped Skill Slots: %d"), Snapshot.EquippedSkillCount), StartX, DrawY, FLinearColor::White);
 
 	DrawY += LineHeight;
 
+	const FLinearColor Cyan = FLinearColor::FromSRGBColor(FColor(0, 255, 255, 255));
+	DrawLineText(TEXT("Combat Deck:"), StartX, DrawY, Cyan);
+	for (const FString& Line : Snapshot.CombatDeckLines)
+	{
+		DrawLineText(Line, StartX + 12.f, DrawY, Silver);
+	}
+
+	DrawY += LineHeight;
+
 	DrawLineText(TEXT("Equipped Slots:"), StartX, DrawY, FLinearColor::Green);
 	for (const FString& Line : Snapshot.EquippedSkillLines)
 	{
-		const FLinearColor Silver = FLinearColor::FromSRGBColor(FColor(192, 192, 192, 255));
 		DrawLineText(Line, StartX + 12.f, DrawY, Silver);
 	}
 

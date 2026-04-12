@@ -6,9 +6,18 @@
 namespace MDFGameplayTags
 {
 	// --------------------
+	// Archetypes
+	// -------------------
+	UE_DEFINE_GAMEPLAY_TAG(Archetype_Vanguard, "Archetype.Vanguard");
+	UE_DEFINE_GAMEPLAY_TAG(Archetype_Striker, "Archetype.Striker");
+	UE_DEFINE_GAMEPLAY_TAG(Archetype_Channeler, "Archetype.Channeler");
+	UE_DEFINE_GAMEPLAY_TAG(Archetype_Tactician, "Archetype.Tactician");
+	
+	// --------------------
 	// Disciplines
 	// --------------------
 	UE_DEFINE_GAMEPLAY_TAG(Discipline_Combat, "Discipline.Combat");
+	UE_DEFINE_GAMEPLAY_TAG(Discipline_Combat_Guardian, "Discipline.Combat.Guardian");
 	UE_DEFINE_GAMEPLAY_TAG(Discipline_Combat_Warrior, "Discipline.Combat.Warrior");
 	UE_DEFINE_GAMEPLAY_TAG(Discipline_Combat_Archer, "Discipline.Combat.Archer");
 	UE_DEFINE_GAMEPLAY_TAG(Discipline_Combat_Mage, "Discipline.Combat.Mage");
