@@ -246,7 +246,7 @@ bool UMDFDebugWorldSubsystem::SetActiveDiscipline(APlayerController* PlayerContr
 	return SkillComponent->GetLastSwapDecision().DidSucceed();
 }
 
-bool UMDFDebugWorldSubsystem::GrantSkill(APlayerController* PlayerController, const FGameplayTag SkillTag)
+bool UMDFDebugWorldSubsystem::GrantSkill(APlayerController* PlayerController, const FGameplayTag SkillTag, const FGameplayTag DisciplineTag)
 {
 	if (!SkillTag.IsValid())
 	{
@@ -273,6 +273,7 @@ bool UMDFDebugWorldSubsystem::GrantSkill(APlayerController* PlayerController, co
 
 	FMDFPlayerSkillEntry& NewEntry = UpdatedList.AddDefaulted_GetRef();
 	NewEntry.SkillTag = SkillTag;
+	NewEntry.OwningDisciplineTag = DisciplineTag;
 	NewEntry.bUnlocked = true;
 
 	SkillComponent->SetLearnedSkills(UpdatedList);

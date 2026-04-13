@@ -54,15 +54,15 @@ void UMDFPCDebugComponent::MDFDebugSetActiveDiscipline(const FString& Discipline
 	ServerMDFDebugSetActiveDiscipline(DisciplineTagString);
 }
 
-void UMDFPCDebugComponent::MDFDebugGrantSkill(const FString& SkillTagString)
+void UMDFPCDebugComponent::MDFDebugGrantSkill(const FString& SkillTagString, const FString& DisciplineTagString)
 {
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
-		ExecuteDebugGrantSkill(SkillTagString);
+		ExecuteDebugGrantSkill(SkillTagString, DisciplineTagString);
 		return;
 	}
 
-	ServerMDFDebugGrantSkill(SkillTagString);
+	ServerMDFDebugGrantSkill(SkillTagString, DisciplineTagString);
 }
 
 void UMDFPCDebugComponent::MDFDebugEquipSkill(const FString& DisciplineTagString, const FString& SkillTagString, const int32 SlotIndex)
@@ -86,9 +86,9 @@ void UMDFPCDebugComponent::ServerMDFDebugSetActiveDiscipline_Implementation(cons
 	ExecuteDebugSetActiveDiscipline(DisciplineTagString);
 }
 
-void UMDFPCDebugComponent::ServerMDFDebugGrantSkill_Implementation(const FString& SkillTagString)
+void UMDFPCDebugComponent::ServerMDFDebugGrantSkill_Implementation(const FString& SkillTagString, const FString& DisciplineTagString)
 {
-	ExecuteDebugGrantSkill(SkillTagString);
+	ExecuteDebugGrantSkill(SkillTagString, DisciplineTagString);
 }
 
 void UMDFPCDebugComponent::ServerMDFDebugEquipSkill_Implementation(const FString& DisciplineTagString, const FString& SkillTagString, const int32 SlotIndex)
@@ -148,7 +148,7 @@ bool UMDFPCDebugComponent::ExecuteDebugSetActiveDiscipline(const FString& Discip
 	return bSuccess;
 }
 
-bool UMDFPCDebugComponent::ExecuteDebugGrantSkill(const FString& SkillTagString)
+bool UMDFPCDebugComponent::ExecuteDebugGrantSkill(const FString& SkillTagString, const FString& DisciplineTagString)
 {
 	UMDFDebugWorldSubsystem* DebugSubsystem = ResolveDebugSubsystem();
 	if (!DebugSubsystem)
@@ -163,8 +163,15 @@ bool UMDFPCDebugComponent::ExecuteDebugGrantSkill(const FString& SkillTagString)
 		SendClientDebugMessage(FString::Printf(TEXT("Invalid skill tag: %s"), *SkillTagString));
 		return false;
 	}
+	
+	const FGameplayTag DisciplineTag = ResolveTagString(DisciplineTagString);
+	if (!DisciplineTag.IsValid())
+	{
+		SendClientDebugMessage(FString::Printf(TEXT("Invalid skill tag: %s"), *DisciplineTagString));
+		return false;
+	}
 
-	const bool bSuccess = DebugSubsystem->GrantSkill(ResolveOwningController(), SkillTag);
+	const bool bSuccess = DebugSubsystem->GrantSkill(ResolveOwningController(), SkillTag, DisciplineTag);
 	SendClientDebugMessage(
 		bSuccess
 			? FString::Printf(TEXT("Granted skill: %s"), *SkillTag.ToString())

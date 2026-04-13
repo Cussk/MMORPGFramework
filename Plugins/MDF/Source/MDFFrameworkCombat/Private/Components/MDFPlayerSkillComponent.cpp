@@ -2,7 +2,9 @@
 
 #include "Components/MDFPlayerSkillComponent.h"
 
+#include "Data/MDFSkillDefinition.h"
 #include "GameFramework/GameStateBase.h"
+#include "Helpers/MDFCombatDefinitionLookup.h"
 #include "Net/UnrealNetwork.h"
 
 UMDFPlayerSkillComponent::UMDFPlayerSkillComponent()
@@ -180,6 +182,7 @@ void UMDFPlayerSkillComponent::SetDisciplineSkillLoadouts(const TArray<FMDFDisci
 	}
 
 	DisciplineSkillLoadouts = InLoadouts;
+	SanitizeDisciplineSkillLoadouts();
 	OnRep_DisciplineSkillLoadouts();
 }
 
@@ -201,13 +204,14 @@ bool UMDFPlayerSkillComponent::EquipSkillToDisciplineSlot(const FGameplayTag Dis
 		return false;
 	}
 
-	// Strict intended rule:
-	// skills belong to one discipline.
-	//
-	// Practical Phase 2 note:
-	// if OwningDisciplineTag is not yet populated by your learn/grant path,
-	// this check is skipped so bootstrap/debug does not break immediately.
-	if (LearnedEntry->OwningDisciplineTag.IsValid() && LearnedEntry->OwningDisciplineTag != DisciplineTag)
+	if (LearnedEntry->OwningDisciplineTag.IsValid())
+	{
+		if (LearnedEntry->OwningDisciplineTag != DisciplineTag)
+		{
+			return false;
+		}
+	}
+	else if (!IsResolvedSkillOwnedByDiscipline(SkillTag, DisciplineTag))
 	{
 		return false;
 	}
@@ -324,9 +328,41 @@ void UMDFPlayerSkillComponent::RequestSetActiveDiscipline(const FGameplayTag Dis
 	}
 }
 
+void UMDFPlayerSkillComponent::RequestEquipSkillToDisciplineSlot(const FGameplayTag DisciplineTag, const FGameplayTag SkillTag, const int32 SlotIndex)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		EquipSkillToDisciplineSlot(DisciplineTag, SkillTag, SlotIndex);
+		return;
+	}
+
+	ServerRequestEquipSkillToDisciplineSlot(DisciplineTag, SkillTag, SlotIndex);
+}
+
+void UMDFPlayerSkillComponent::RequestClearDisciplineSkillSlot(const FGameplayTag DisciplineTag, const int32 SlotIndex)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		ClearDisciplineSkillSlot(DisciplineTag, SlotIndex);
+		return;
+	}
+
+	ServerRequestClearDisciplineSkillSlot(DisciplineTag, SlotIndex);
+}
+
 void UMDFPlayerSkillComponent::ServerRequestSetActiveDiscipline_Implementation(const FGameplayTag DisciplineTag)
 {
 	RequestSetActiveDiscipline(DisciplineTag);
+}
+
+void UMDFPlayerSkillComponent::ServerRequestEquipSkillToDisciplineSlot_Implementation(const FGameplayTag DisciplineTag, const FGameplayTag SkillTag, const int32 SlotIndex)
+{
+	EquipSkillToDisciplineSlot(DisciplineTag, SkillTag, SlotIndex);
+}
+
+void UMDFPlayerSkillComponent::ServerRequestClearDisciplineSkillSlot_Implementation(const FGameplayTag DisciplineTag, const int32 SlotIndex)
+{
+	ClearDisciplineSkillSlot(DisciplineTag, SlotIndex);
 }
 
 const FMDFPlayerSkillEntry* UMDFPlayerSkillComponent::FindLearnedSkill(const FGameplayTag SkillTag) const
@@ -394,6 +430,7 @@ void UMDFPlayerSkillComponent::InitializeDisciplineSkillLoadoutsFromDefaults()
 	if (DisciplineSkillLoadouts.Num() == 0 && StartingDisciplineSkillLoadouts.Num() > 0)
 	{
 		DisciplineSkillLoadouts = StartingDisciplineSkillLoadouts;
+		SanitizeDisciplineSkillLoadouts();
 		OnRep_DisciplineSkillLoadouts();
 	}
 }
@@ -535,6 +572,49 @@ float UMDFPlayerSkillComponent::GetServerWorldTimeSecondsSafe() const
 	}
 
 	return World->GetTimeSeconds();
+}
+
+void UMDFPlayerSkillComponent::SanitizeDisciplineSkillLoadouts()
+{
+	for (int32 LoadoutIndex = DisciplineSkillLoadouts.Num() - 1; LoadoutIndex >= 0; --LoadoutIndex)
+	{
+		FMDFDisciplineSkillLoadoutRuntime& Loadout = DisciplineSkillLoadouts[LoadoutIndex];
+
+		if (!Loadout.DisciplineTag.IsValid())
+		{
+			DisciplineSkillLoadouts.RemoveAt(LoadoutIndex);
+			continue;
+		}
+
+		TSet<int32> UsedSlotIndices;
+		TSet<FGameplayTag> UsedSkillTags;
+
+		for (int32 SlotIndex = Loadout.Slots.Num() - 1; SlotIndex >= 0; --SlotIndex)
+		{
+			const FMDFDisciplineSkillSlotRuntime& Slot = Loadout.Slots[SlotIndex];
+
+			const bool bInvalidSlotIndex = Slot.SlotIndex == INDEX_NONE;
+			const bool bInvalidSkillTag = !Slot.SkillTag.IsValid();
+			const bool bDuplicateSlot = UsedSlotIndices.Contains(Slot.SlotIndex);
+			const bool bDuplicateSkill = UsedSkillTags.Contains(Slot.SkillTag);
+			const bool bWrongDiscipline = !IsResolvedSkillOwnedByDiscipline(Slot.SkillTag, Loadout.DisciplineTag);
+
+			if (bInvalidSlotIndex || bInvalidSkillTag || bDuplicateSlot || bDuplicateSkill || bWrongDiscipline)
+			{
+				Loadout.Slots.RemoveAt(SlotIndex);
+				continue;
+			}
+
+			UsedSlotIndices.Add(Slot.SlotIndex);
+			UsedSkillTags.Add(Slot.SkillTag);
+		}
+	}
+}
+
+bool UMDFPlayerSkillComponent::IsResolvedSkillOwnedByDiscipline(const FGameplayTag SkillTag, const FGameplayTag DisciplineTag) const
+{
+	const UMDFSkillDefinition* SkillDefinition = MDFCombatDefinitionLookup::ResolveSkillDefinition(SkillTag);
+	return SkillDefinition && SkillDefinition->IsOwnedByDiscipline(DisciplineTag);
 }
 
 void UMDFPlayerSkillComponent::OnRep_LearnedSkills()

@@ -34,8 +34,6 @@ public:
 	UMDFPlayerSkillComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-protected:
 	virtual void BeginPlay() override;
 
 public:
@@ -98,6 +96,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Combat")
 	void RequestSetActiveDiscipline(FGameplayTag DisciplineTag);
+	
+	UFUNCTION(BlueprintCallable, Category="Skills")
+	void RequestEquipSkillToDisciplineSlot(FGameplayTag DisciplineTag, FGameplayTag SkillTag, int32 SlotIndex);
+
+	UFUNCTION(BlueprintCallable, Category="Skills")
+	void RequestClearDisciplineSkillSlot(FGameplayTag DisciplineTag, int32 SlotIndex);
 
 	const FMDFPlayerSkillEntry* FindLearnedSkill(FGameplayTag SkillTag) const;
 	const FMDFDisciplineSkillLoadoutRuntime* FindDisciplineSkillLoadout(FGameplayTag DisciplineTag) const;
@@ -145,10 +149,15 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_DisciplineSkillLoadouts, Category="Skills", meta=(AllowPrivateAccess="true"))
 	TArray<FMDFDisciplineSkillLoadoutRuntime> DisciplineSkillLoadouts;
-
-protected:
+	
 	UFUNCTION(Server, Reliable)
 	void ServerRequestSetActiveDiscipline(FGameplayTag DisciplineTag);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRequestEquipSkillToDisciplineSlot(FGameplayTag DisciplineTag, FGameplayTag SkillTag, int32 SlotIndex);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestClearDisciplineSkillSlot(FGameplayTag DisciplineTag, int32 SlotIndex);
 
 	UFUNCTION()
 	void OnRep_LearnedSkills();
@@ -176,4 +185,7 @@ protected:
 
 	bool IsDisciplineSwapBlockedByRuntimeState() const;
 	float GetServerWorldTimeSecondsSafe() const;
+
+	void SanitizeDisciplineSkillLoadouts();
+	bool IsResolvedSkillOwnedByDiscipline(FGameplayTag SkillTag, FGameplayTag DisciplineTag) const;
 };

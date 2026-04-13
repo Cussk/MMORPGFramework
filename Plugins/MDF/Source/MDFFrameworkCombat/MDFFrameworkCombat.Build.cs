@@ -13,7 +13,9 @@ public class MDFFrameworkCombat : ModuleRules
                 "CoreUObject",
                 "Engine",
                 "GameplayTags",
-                "MDFFrameworkCore"
+                "DeveloperSettings",
+                "MDFFrameworkCore",
+                "MDFFrameworkProgression"
             }
         );
 

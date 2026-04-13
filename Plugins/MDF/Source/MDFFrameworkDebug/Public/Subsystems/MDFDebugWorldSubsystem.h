@@ -46,7 +46,7 @@ public:
 	bool SetActiveDiscipline(APlayerController* PlayerController, FGameplayTag DisciplineTag);
 
 	/** Early debug helper for unlocking a skill on the supplied player. */
-	bool GrantSkill(APlayerController* PlayerController, FGameplayTag SkillTag);
+	bool GrantSkill(APlayerController* PlayerController, FGameplayTag SkillTag, const FGameplayTag DisciplineTag);
 
 	/** Early debug helper for equipping a learned skill to a slot. */
 	bool EquipSkill(APlayerController* PlayerController, const FGameplayTag DisciplineTag, const FGameplayTag SkillTag, const int32 SlotIndex);
