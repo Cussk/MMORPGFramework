@@ -5,12 +5,14 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Types/MDFCombatDeckTypes.h"
+#include "Types/MDFSkillActivationTypes.h"
 #include "Types/MDFSkillLoadoutTypes.h"
 #include "Types/MDFSkillRuntimeTypes.h"
 #include "MDFPlayerSkillComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMDFPlayerSkillStateChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMDFDisciplineSwapResolved, const FMDFDisciplineSwapDecision&, Decision);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMDFSkillActivationResolved, const FMDFSkillActivationDecision&, Decision);
 
 /**
  * Player-owned runtime skill container intended to live on PlayerState.
@@ -102,6 +104,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Skills")
 	void RequestClearDisciplineSkillSlot(FGameplayTag DisciplineTag, int32 SlotIndex);
+	
+	UFUNCTION(BlueprintCallable, Category="Combat")
+	void RequestActivateSkillSlot(int32 SlotIndex);
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const FMDFSkillActivationDecision& GetLastSkillActivationDecision() const
+	{
+		return LastSkillActivationDecision;
+	}
 
 	const FMDFPlayerSkillEntry* FindLearnedSkill(FGameplayTag SkillTag) const;
 	const FMDFDisciplineSkillLoadoutRuntime* FindDisciplineSkillLoadout(FGameplayTag DisciplineTag) const;
@@ -121,6 +132,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="Events")
 	FMDFDisciplineSwapResolved OnDisciplineSwapResolved;
+	
+	UPROPERTY(BlueprintAssignable, Category="Events")
+	FMDFSkillActivationResolved OnSkillActivationResolved;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LearnedSkills, Category="Skills", meta=(AllowPrivateAccess="true"))
@@ -150,6 +164,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_DisciplineSkillLoadouts, Category="Skills", meta=(AllowPrivateAccess="true"))
 	TArray<FMDFDisciplineSkillLoadoutRuntime> DisciplineSkillLoadouts;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LastSkillActivationDecision, Category="Combat", meta=(AllowPrivateAccess="true"))
+	FMDFSkillActivationDecision LastSkillActivationDecision;
+	
 	UFUNCTION(Server, Reliable)
 	void ServerRequestSetActiveDiscipline(FGameplayTag DisciplineTag);
 	
@@ -158,6 +175,9 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestClearDisciplineSkillSlot(FGameplayTag DisciplineTag, int32 SlotIndex);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRequestActivateSkillSlot(int32 SlotIndex);
 
 	UFUNCTION()
 	void OnRep_LearnedSkills();
@@ -173,6 +193,9 @@ protected:
 
 	UFUNCTION()
 	void OnRep_DisciplineSkillLoadouts();
+	
+	UFUNCTION()
+	void OnRep_LastSkillActivationDecision();
 
 protected:
 	void InitializeCombatDeckFromDefaults();
@@ -188,4 +211,7 @@ protected:
 
 	void SanitizeDisciplineSkillLoadouts();
 	bool IsResolvedSkillOwnedByDiscipline(FGameplayTag SkillTag, FGameplayTag DisciplineTag) const;
+	
+	FMDFSkillActivationDecision EvaluateSkillActivationFromSlot(int32 SlotIndex) const;
+	bool IsSkillActivationBlockedByRuntimeState() const;
 };

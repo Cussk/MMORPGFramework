@@ -83,6 +83,19 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 		{
 			OutSnapshot.LastSwapDecisionText = TEXT("<Unknown>");
 		}
+		
+		const FMDFSkillActivationDecision& LastActivationDecision = SkillComponent->GetLastSkillActivationDecision();
+		OutSnapshot.LastActivationSlotIndex = LastActivationDecision.Request.SlotIndex;
+		OutSnapshot.LastActivationSkillText = TagToDebugString(LastActivationDecision.Request.SkillTag);
+
+		if (const UEnum* ActivationResultEnum = StaticEnum<EMDFSkillActivationResult>())
+		{
+			OutSnapshot.LastActivationResultText = ActivationResultEnum->GetNameStringByValue(static_cast<int64>(LastActivationDecision.Result));
+		}
+		else
+		{
+			OutSnapshot.LastActivationResultText = TEXT("<Unknown>");
+		}
 
 		for (const FMDFPlayerSkillEntry& Entry : SkillComponent->GetLearnedSkills())
 		{
@@ -289,4 +302,16 @@ bool UMDFDebugWorldSubsystem::EquipSkill(APlayerController* PlayerController, co
 
 	UMDFPlayerSkillComponent* SkillComponent = ResolveSkillComponent(PlayerController);
 	return SkillComponent ? SkillComponent->EquipSkillToDisciplineSlot(DisciplineTag, SkillTag, SlotIndex) : false;
+}
+
+bool UMDFDebugWorldSubsystem::ActivateSkillSlot(APlayerController* PlayerController, const int32 SlotIndex)
+{
+	UMDFPlayerSkillComponent* SkillComponent = ResolveSkillComponent(PlayerController);
+	if (!SkillComponent)
+	{
+		return false;
+	}
+
+	SkillComponent->RequestActivateSkillSlot(SlotIndex);
+	return SkillComponent->GetLastSkillActivationDecision().DidSucceed();
 }

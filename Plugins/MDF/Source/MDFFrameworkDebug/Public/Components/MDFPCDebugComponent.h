@@ -52,8 +52,12 @@ public:
 	void MDFDebugGrantSkill(const FString& SkillTagString, const FString& DisciplineTagString);
 
 	/** Debug helper for equipping a skill to a slot. */
-	UFUNCTION(BlueprintCallable, Category="Debug")
+	UFUNCTION(Exec)
 	void MDFDebugEquipSkill(const FString& DisciplineTagString, const FString& SkillTagString, int32 SlotIndex);
+	
+	/** Debug helper for activating a skill slot. */
+	UFUNCTION(Exec)
+	void MDFDebugActivateSkillSlot(int32 SlotIndex);
 
 protected:
 	UFUNCTION(Server, Reliable)
@@ -67,12 +71,16 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void ServerMDFDebugEquipSkill(const FString& DisciplineTagString, const FString& SkillTagString, int32 SlotIndex);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerMDFDebugActivateSkillSlot(int32 SlotIndex);
 
 protected:
 	bool ExecuteDebugGrantDiscipline(const FString& DisciplineTagString);
 	bool ExecuteDebugSetActiveDiscipline(const FString& DisciplineTagString);
 	bool ExecuteDebugGrantSkill(const FString& SkillTagString, const FString& DisciplineTagString);
 	bool ExecuteDebugEquipSkill(const FString& DisciplineTagString, const FString& SkillTagString, int32 SlotIndex);
+	bool ExecuteDebugActivateSkillSlot(int32 SlotIndex);
 
 	APlayerController* ResolveOwningController() const;
 	UMDFDebugWorldSubsystem* ResolveDebugSubsystem() const;

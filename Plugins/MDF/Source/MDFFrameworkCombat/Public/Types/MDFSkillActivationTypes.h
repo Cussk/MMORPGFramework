@@ -1,0 +1,53 @@
+﻿//Copyright Kyle Cuss and Cuss Programming 2026.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
+#include "MDFSkillActivationTypes.generated.h"
+
+UENUM(BlueprintType)
+enum class EMDFSkillActivationResult : uint8
+{
+	Success UMETA(DisplayName="Success"),
+	InvalidSlotIndex UMETA(DisplayName="Invalid Slot Index"),
+	NoActiveDiscipline UMETA(DisplayName="No Active Discipline"),
+	NoLoadoutForDiscipline UMETA(DisplayName="No Loadout For Discipline"),
+	EmptySlot UMETA(DisplayName="Empty Slot"),
+	SkillNotLearned UMETA(DisplayName="Skill Not Learned"),
+	SkillDefinitionMissing UMETA(DisplayName="Skill Definition Missing"),
+	SkillDisciplineMismatch UMETA(DisplayName="Skill Discipline Mismatch"),
+	BlockedByRuntimeState UMETA(DisplayName="Blocked By Runtime State")
+};
+
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFSkillActivationRequest
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FGameplayTag ActiveDisciplineTag;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	int32 SlotIndex = INDEX_NONE;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FGameplayTag SkillTag;
+};
+
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFSkillActivationDecision
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	EMDFSkillActivationResult Result = EMDFSkillActivationResult::NoActiveDiscipline;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FMDFSkillActivationRequest Request;
+
+	bool DidSucceed() const
+	{
+		return Result == EMDFSkillActivationResult::Success;
+	}
+};

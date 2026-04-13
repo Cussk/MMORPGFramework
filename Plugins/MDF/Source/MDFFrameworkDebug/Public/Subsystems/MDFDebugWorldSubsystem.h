@@ -50,6 +50,9 @@ public:
 
 	/** Early debug helper for equipping a learned skill to a slot. */
 	bool EquipSkill(APlayerController* PlayerController, const FGameplayTag DisciplineTag, const FGameplayTag SkillTag, const int32 SlotIndex);
+	
+	/** Early debug helper for triggering a skill slot*/
+	bool ActivateSkillSlot(APlayerController* PlayerController, int32 SlotIndex);
 
 protected:
 	const UMDFPlayerProgressionComponent* ResolveProgressionComponent(const APlayerController* PlayerController) const;

@@ -76,6 +76,17 @@ void UMDFPCDebugComponent::MDFDebugEquipSkill(const FString& DisciplineTagString
 	ServerMDFDebugEquipSkill(DisciplineTagString, SkillTagString, SlotIndex);
 }
 
+void UMDFPCDebugComponent::MDFDebugActivateSkillSlot(const int32 SlotIndex)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		ExecuteDebugActivateSkillSlot(SlotIndex);
+		return;
+	}
+
+	ServerMDFDebugActivateSkillSlot(SlotIndex);
+}
+
 void UMDFPCDebugComponent::ServerMDFDebugGrantDiscipline_Implementation(const FString& DisciplineTagString)
 {
 	ExecuteDebugGrantDiscipline(DisciplineTagString);
@@ -94,6 +105,11 @@ void UMDFPCDebugComponent::ServerMDFDebugGrantSkill_Implementation(const FString
 void UMDFPCDebugComponent::ServerMDFDebugEquipSkill_Implementation(const FString& DisciplineTagString, const FString& SkillTagString, const int32 SlotIndex)
 {
 	ExecuteDebugEquipSkill(DisciplineTagString, SkillTagString, SlotIndex);
+}
+
+void UMDFPCDebugComponent::ServerMDFDebugActivateSkillSlot_Implementation(const int32 SlotIndex)
+{
+	ExecuteDebugActivateSkillSlot(SlotIndex);
 }
 
 bool UMDFPCDebugComponent::ExecuteDebugGrantDiscipline(const FString& DisciplineTagString)
@@ -209,6 +225,25 @@ bool UMDFPCDebugComponent::ExecuteDebugEquipSkill(const FString& DisciplineTagSt
 		bSuccess
 			? FString::Printf(TEXT("Equipped skill %s to %s slot %d"), *SkillTag.ToString(), *DisciplineTag.ToString(), SlotIndex)
 			: FString::Printf(TEXT("Failed to equip skill %s to %s slot %d"), *SkillTag.ToString(), *DisciplineTag.ToString(), SlotIndex)
+	);
+
+	return bSuccess;
+}
+
+bool UMDFPCDebugComponent::ExecuteDebugActivateSkillSlot(const int32 SlotIndex)
+{
+	UMDFDebugWorldSubsystem* DebugSubsystem = ResolveDebugSubsystem();
+	if (!DebugSubsystem)
+	{
+		SendClientDebugMessage(TEXT("MDF debug subsystem not found."));
+		return false;
+	}
+
+	const bool bSuccess = DebugSubsystem->ActivateSkillSlot(ResolveOwningController(), SlotIndex);
+	SendClientDebugMessage(
+		bSuccess
+			? FString::Printf(TEXT("Activated slot %d"), SlotIndex)
+			: FString::Printf(TEXT("Failed to activate slot %d"), SlotIndex)
 	);
 
 	return bSuccess;

@@ -40,7 +40,7 @@ void AMDFDebugHUD::DrawHUD()
 	DebugSubsystem->BuildPlayerSnapshot(OwningController, Snapshot);
 
 	float DrawY = StartY;
-	const FLinearColor Silver = FLinearColor::FromSRGBColor(FColor(192, 192, 192, 255));
+	const FLinearColor Yellow = FLinearColor::FromSRGBColor(FColor(230, 230, 100, 255));
 	const FLinearColor Cyan = FLinearColor::FromSRGBColor(FColor(0, 255, 255, 255));
 
 	DrawLineText(TEXT("=== MDF Debug ==="), StartX, DrawY, FLinearColor::Yellow);
@@ -48,6 +48,9 @@ void AMDFDebugHUD::DrawHUD()
 	DrawLineText(FString::Printf(TEXT("Active Archetype: %s"), *Snapshot.ActiveArchetypeText), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Swap Cooldown Remaining: %.2f"), Snapshot.RemainingSwapCooldown), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Last Swap Result: %s"), *Snapshot.LastSwapDecisionText), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Last Activation Slot: %d"), Snapshot.LastActivationSlotIndex), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Last Activation Skill: %s"), *Snapshot.LastActivationSkillText), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Last Activation Result: %s"), *Snapshot.LastActivationResultText), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Unlocked Disciplines: %d"), Snapshot.UnlockedDisciplineCount), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Learned Skills: %d"), Snapshot.LearnedSkillCount), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Saved Loadouts: %d"), Snapshot.SavedLoadoutCount), StartX, DrawY, FLinearColor::White);
@@ -58,7 +61,7 @@ void AMDFDebugHUD::DrawHUD()
 	DrawLineText(TEXT("Combat Deck:"), StartX, DrawY, Cyan);
 	for (const FString& Line : Snapshot.CombatDeckLines)
 	{
-		DrawLineText(Line, StartX + 12.f, DrawY, Silver);
+		DrawLineText(Line, StartX + 12.f, DrawY, Yellow);
 	}
 
 	DrawY += LineHeight;
@@ -66,7 +69,7 @@ void AMDFDebugHUD::DrawHUD()
 	DrawLineText(TEXT("Active Loadout:"), StartX, DrawY, FLinearColor::Green);
 	for (const FString& Line : Snapshot.ActiveLoadoutLines)
 	{
-		DrawLineText(Line, StartX + 12.f, DrawY, Silver);
+		DrawLineText(Line, StartX + 12.f, DrawY, Yellow);
 	}
 
 	DrawY += LineHeight;
@@ -74,7 +77,7 @@ void AMDFDebugHUD::DrawHUD()
 	DrawLineText(TEXT("Saved Discipline Loadouts:"), StartX, DrawY, Cyan);
 	for (const FString& Line : Snapshot.SavedLoadoutLines)
 	{
-		DrawLineText(Line, StartX + 12.f, DrawY, Silver);
+		DrawLineText(Line, StartX + 12.f, DrawY, Yellow);
 	}
 
 	if (Snapshot.DiagnosticLines.Num() > 0)

@@ -32,6 +32,7 @@ void UMDFPlayerSkillComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME(UMDFPlayerSkillComponent, ActiveDisciplineState);
 	DOREPLIFETIME(UMDFPlayerSkillComponent, DisciplineSkillLoadouts);
 	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastSwapDecision, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastSkillActivationDecision, COND_OwnerOnly);
 }
 
 const TArray<FMDFPlayerSkillEntry>& UMDFPlayerSkillComponent::GetLearnedSkills() const
@@ -350,6 +351,19 @@ void UMDFPlayerSkillComponent::RequestClearDisciplineSkillSlot(const FGameplayTa
 	ServerRequestClearDisciplineSkillSlot(DisciplineTag, SlotIndex);
 }
 
+void UMDFPlayerSkillComponent::RequestActivateSkillSlot(const int32 SlotIndex)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		const FMDFSkillActivationDecision Decision = EvaluateSkillActivationFromSlot(SlotIndex);
+		LastSkillActivationDecision = Decision;
+		OnSkillActivationResolved.Broadcast(Decision);
+		return;
+	}
+
+	ServerRequestActivateSkillSlot(SlotIndex);
+}
+
 void UMDFPlayerSkillComponent::ServerRequestSetActiveDiscipline_Implementation(const FGameplayTag DisciplineTag)
 {
 	RequestSetActiveDiscipline(DisciplineTag);
@@ -363,6 +377,11 @@ void UMDFPlayerSkillComponent::ServerRequestEquipSkillToDisciplineSlot_Implement
 void UMDFPlayerSkillComponent::ServerRequestClearDisciplineSkillSlot_Implementation(const FGameplayTag DisciplineTag, const int32 SlotIndex)
 {
 	ClearDisciplineSkillSlot(DisciplineTag, SlotIndex);
+}
+
+void UMDFPlayerSkillComponent::ServerRequestActivateSkillSlot_Implementation(const int32 SlotIndex)
+{
+	RequestActivateSkillSlot(SlotIndex);
 }
 
 const FMDFPlayerSkillEntry* UMDFPlayerSkillComponent::FindLearnedSkill(const FGameplayTag SkillTag) const
@@ -617,6 +636,78 @@ bool UMDFPlayerSkillComponent::IsResolvedSkillOwnedByDiscipline(const FGameplayT
 	return SkillDefinition && SkillDefinition->IsOwnedByDiscipline(DisciplineTag);
 }
 
+FMDFSkillActivationDecision UMDFPlayerSkillComponent::EvaluateSkillActivationFromSlot(const int32 SlotIndex) const
+{
+	FMDFSkillActivationDecision Decision;
+	Decision.Request.SlotIndex = SlotIndex;
+	Decision.Request.ActiveDisciplineTag = GetActiveDisciplineTag();
+
+	if (SlotIndex == INDEX_NONE)
+	{
+		Decision.Result = EMDFSkillActivationResult::InvalidSlotIndex;
+		return Decision;
+	}
+
+	if (!Decision.Request.ActiveDisciplineTag.IsValid())
+	{
+		Decision.Result = EMDFSkillActivationResult::NoActiveDiscipline;
+		return Decision;
+	}
+
+	FMDFDisciplineSkillLoadoutRuntime ActiveLoadout;
+	if (!GetActiveDisciplineSkillLoadout(ActiveLoadout))
+	{
+		Decision.Result = EMDFSkillActivationResult::NoLoadoutForDiscipline;
+		return Decision;
+	}
+
+	FMDFDisciplineSkillSlotRuntime SlotRuntime;
+	if (!GetSkillInDisciplineSlot(Decision.Request.ActiveDisciplineTag, SlotIndex, SlotRuntime) || !SlotRuntime.SkillTag.IsValid())
+	{
+		Decision.Result = EMDFSkillActivationResult::EmptySlot;
+		return Decision;
+	}
+
+	Decision.Request.SkillTag = SlotRuntime.SkillTag;
+
+	const FMDFPlayerSkillEntry* LearnedEntry = FindLearnedSkill(SlotRuntime.SkillTag);
+	if (!LearnedEntry || !LearnedEntry->bUnlocked)
+	{
+		Decision.Result = EMDFSkillActivationResult::SkillNotLearned;
+		return Decision;
+	}
+
+	const UMDFSkillDefinition* SkillDefinition = MDFCombatDefinitionLookup::ResolveSkillDefinition(SlotRuntime.SkillTag);
+	if (!SkillDefinition)
+	{
+		Decision.Result = EMDFSkillActivationResult::SkillDefinitionMissing;
+		return Decision;
+	}
+
+	if (!SkillDefinition->IsOwnedByDiscipline(Decision.Request.ActiveDisciplineTag))
+	{
+		Decision.Result = EMDFSkillActivationResult::SkillDisciplineMismatch;
+		return Decision;
+	}
+
+	if (IsSkillActivationBlockedByRuntimeState())
+	{
+		Decision.Result = EMDFSkillActivationResult::BlockedByRuntimeState;
+		return Decision;
+	}
+
+	Decision.Result = EMDFSkillActivationResult::Success;
+	return Decision;
+}
+
+bool UMDFPlayerSkillComponent::IsSkillActivationBlockedByRuntimeState() const
+{
+	// Phase 3 intentionally keeps this simple.
+	// Later phases should check real runtime restrictions:
+	// active casts, hard CC, death, recovery lockouts, etc.
+	return false;
+}
+
 void UMDFPlayerSkillComponent::OnRep_LearnedSkills()
 {
 	OnLearnedSkillsChanged.Broadcast();
@@ -640,4 +731,9 @@ void UMDFPlayerSkillComponent::OnRep_LastSwapDecision()
 void UMDFPlayerSkillComponent::OnRep_DisciplineSkillLoadouts()
 {
 	OnDisciplineSkillLoadoutsChanged.Broadcast();
+}
+
+void UMDFPlayerSkillComponent::OnRep_LastSkillActivationDecision()
+{
+	OnSkillActivationResolved.Broadcast(LastSkillActivationDecision);
 }
