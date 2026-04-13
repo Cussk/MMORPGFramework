@@ -65,15 +65,15 @@ void UMDFPCDebugComponent::MDFDebugGrantSkill(const FString& SkillTagString)
 	ServerMDFDebugGrantSkill(SkillTagString);
 }
 
-void UMDFPCDebugComponent::MDFDebugEquipSkill(const FString& SkillTagString, const int32 SlotIndex)
+void UMDFPCDebugComponent::MDFDebugEquipSkill(const FString& DisciplineTagString, const FString& SkillTagString, const int32 SlotIndex)
 {
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
-		ExecuteDebugEquipSkill(SkillTagString, SlotIndex);
+		ExecuteDebugEquipSkill(DisciplineTagString, SkillTagString, SlotIndex);
 		return;
 	}
 
-	ServerMDFDebugEquipSkill(SkillTagString, SlotIndex);
+	ServerMDFDebugEquipSkill(DisciplineTagString, SkillTagString, SlotIndex);
 }
 
 void UMDFPCDebugComponent::ServerMDFDebugGrantDiscipline_Implementation(const FString& DisciplineTagString)
@@ -91,9 +91,9 @@ void UMDFPCDebugComponent::ServerMDFDebugGrantSkill_Implementation(const FString
 	ExecuteDebugGrantSkill(SkillTagString);
 }
 
-void UMDFPCDebugComponent::ServerMDFDebugEquipSkill_Implementation(const FString& SkillTagString, const int32 SlotIndex)
+void UMDFPCDebugComponent::ServerMDFDebugEquipSkill_Implementation(const FString& DisciplineTagString, const FString& SkillTagString, const int32 SlotIndex)
 {
-	ExecuteDebugEquipSkill(SkillTagString, SlotIndex);
+	ExecuteDebugEquipSkill(DisciplineTagString, SkillTagString, SlotIndex);
 }
 
 bool UMDFPCDebugComponent::ExecuteDebugGrantDiscipline(const FString& DisciplineTagString)
@@ -174,12 +174,19 @@ bool UMDFPCDebugComponent::ExecuteDebugGrantSkill(const FString& SkillTagString)
 	return bSuccess;
 }
 
-bool UMDFPCDebugComponent::ExecuteDebugEquipSkill(const FString& SkillTagString, const int32 SlotIndex)
+bool UMDFPCDebugComponent::ExecuteDebugEquipSkill(const FString& DisciplineTagString, const FString& SkillTagString, const int32 SlotIndex)
 {
 	UMDFDebugWorldSubsystem* DebugSubsystem = ResolveDebugSubsystem();
 	if (!DebugSubsystem)
 	{
 		SendClientDebugMessage(TEXT("MDF debug subsystem not found."));
+		return false;
+	}
+
+	const FGameplayTag DisciplineTag = ResolveTagString(DisciplineTagString);
+	if (!DisciplineTag.IsValid())
+	{
+		SendClientDebugMessage(FString::Printf(TEXT("Invalid discipline tag: %s"), *DisciplineTagString));
 		return false;
 	}
 
@@ -190,11 +197,11 @@ bool UMDFPCDebugComponent::ExecuteDebugEquipSkill(const FString& SkillTagString,
 		return false;
 	}
 
-	const bool bSuccess = DebugSubsystem->EquipSkill(ResolveOwningController(), SkillTag, SlotIndex);
+	const bool bSuccess = DebugSubsystem->EquipSkill(ResolveOwningController(), DisciplineTag, SkillTag, SlotIndex);
 	SendClientDebugMessage(
 		bSuccess
-			? FString::Printf(TEXT("Equipped skill %s to slot %d"), *SkillTag.ToString(), SlotIndex)
-			: FString::Printf(TEXT("Failed to equip skill %s to slot %d"), *SkillTag.ToString(), SlotIndex)
+			? FString::Printf(TEXT("Equipped skill %s to %s slot %d"), *SkillTag.ToString(), *DisciplineTag.ToString(), SlotIndex)
+			: FString::Printf(TEXT("Failed to equip skill %s to %s slot %d"), *SkillTag.ToString(), *DisciplineTag.ToString(), SlotIndex)
 	);
 
 	return bSuccess;

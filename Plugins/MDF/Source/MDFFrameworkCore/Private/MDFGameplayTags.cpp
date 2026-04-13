@@ -48,8 +48,11 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Skill_Family_Magic, "Skill.Family.Magic");
 	UE_DEFINE_GAMEPLAY_TAG(Skill_Family_Utility, "Skill.Family.Utility");
 	
-	UE_DEFINE_GAMEPLAY_TAG(Skill_Warrior_BasicStrike, "Skill.Warrior.BasicStrike");
-	UE_DEFINE_GAMEPLAY_TAG(Skill_Warrior_Guard, "Skill.Warrior.Guard");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Guardian_ShieldBash, "Skill.Guardian.ShieldBash");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Guardian_Guard, "Skill.Guardian.Guard");
+	
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Archer_PiercingShot, "Skill.Archer.PiercingShot");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Archer_ArrowRain, "Skill.Archer.ArrowRain");
 	
 	// --------------------
 	// Equipment / Tools

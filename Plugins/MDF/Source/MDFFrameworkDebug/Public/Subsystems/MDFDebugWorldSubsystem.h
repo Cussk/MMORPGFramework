@@ -49,7 +49,7 @@ public:
 	bool GrantSkill(APlayerController* PlayerController, FGameplayTag SkillTag);
 
 	/** Early debug helper for equipping a learned skill to a slot. */
-	bool EquipSkill(APlayerController* PlayerController, FGameplayTag SkillTag, int32 SlotIndex);
+	bool EquipSkill(APlayerController* PlayerController, const FGameplayTag DisciplineTag, const FGameplayTag SkillTag, const int32 SlotIndex);
 
 protected:
 	const UMDFPlayerProgressionComponent* ResolveProgressionComponent(const APlayerController* PlayerController) const;

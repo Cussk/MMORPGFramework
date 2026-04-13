@@ -24,20 +24,16 @@ struct MDFFRAMEWORKCOMBAT_API FMDFCombatDeckSlotRuntime
 {
 	GENERATED_BODY()
 
-	// Which combat lane this slot belongs to.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="MDF|Combat")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
 	FGameplayTag ArchetypeTag;
 
-	// Which discipline is equipped into this lane.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="MDF|Combat")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
 	FGameplayTag DisciplineTag;
 
-	// Whether the lane itself is unlocked for this player yet.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="MDF|Combat")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
 	bool bArchetypeUnlocked = false;
 
-	// Whether the equipped discipline is learned/unlocked/usable.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="MDF|Combat")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
 	bool bDisciplineUnlocked = false;
 
 	bool IsUsable() const
@@ -54,16 +50,13 @@ struct MDFFRAMEWORKCOMBAT_API FMDFActiveDisciplineRuntime
 {
 	GENERATED_BODY()
 
-	// Current active discipline driving combat behavior.
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF|Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	FGameplayTag ActiveDisciplineTag;
 
-	// Cached owning archetype lane for easier UI/debug/action bar resolution later.
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF|Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	FGameplayTag ActiveArchetypeTag;
 
-	// Absolute server time when the next discipline swap becomes legal.
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF|Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	float NextAllowedSwapServerTime = 0.0f;
 };
 
@@ -72,16 +65,16 @@ struct MDFFRAMEWORKCOMBAT_API FMDFDisciplineSwapDecision
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF|Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	EMDFDisciplineSwapResult Result = EMDFDisciplineSwapResult::InvalidDisciplineTag;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF|Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	FGameplayTag RequestedDisciplineTag;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF|Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	FGameplayTag RequestedArchetypeTag;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF|Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	FGameplayTag PreviousActiveDisciplineTag;
 
 	bool DidSucceed() const

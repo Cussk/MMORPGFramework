@@ -30,9 +30,6 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline", meta = (ClampMin = "0"))
 	int32 MaxMasteryRank;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline|Skills")
-	FGameplayTagContainer CompatibleSkillFamilies;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline|Skills")
 	FGameplayTagContainer StartingSkillTags;
@@ -45,10 +42,4 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline")
 	TArray<FMDFDisciplineUnlockRule> UnlockRules;
-
-	UFUNCTION(BlueprintPure, Category = "Discipline")
-	bool IsCombatDiscipline() const;
-
-	UFUNCTION(BlueprintPure, Category = "Discipline")
-	bool IsCompatibleWithSkillFamily(FGameplayTag SkillFamilyTag) const;
 };

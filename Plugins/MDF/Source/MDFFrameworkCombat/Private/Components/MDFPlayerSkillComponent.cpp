@@ -1,4 +1,4 @@
-// Kyle Cuss and Cuss Programming 2026
+//Copyright Kyle Cuss and Cuss Programming 2026.
 
 #include "Components/MDFPlayerSkillComponent.h"
 
@@ -17,6 +17,7 @@ void UMDFPlayerSkillComponent::BeginPlay()
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
 		InitializeCombatDeckFromDefaults();
+		InitializeDisciplineSkillLoadoutsFromDefaults();
 	}
 }
 
@@ -25,9 +26,9 @@ void UMDFPlayerSkillComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UMDFPlayerSkillComponent, LearnedSkills);
-	DOREPLIFETIME(UMDFPlayerSkillComponent, EquippedSkillSlots);
 	DOREPLIFETIME(UMDFPlayerSkillComponent, CombatDeckSlots);
 	DOREPLIFETIME(UMDFPlayerSkillComponent, ActiveDisciplineState);
+	DOREPLIFETIME(UMDFPlayerSkillComponent, DisciplineSkillLoadouts);
 	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastSwapDecision, COND_OwnerOnly);
 }
 
@@ -36,50 +37,20 @@ const TArray<FMDFPlayerSkillEntry>& UMDFPlayerSkillComponent::GetLearnedSkills()
 	return LearnedSkills;
 }
 
-const TArray<FMDFEquippedSkillSlot>& UMDFPlayerSkillComponent::GetEquippedSkillSlots() const
-{
-	return EquippedSkillSlots;
-}
-
 const TArray<FMDFCombatDeckSlotRuntime>& UMDFPlayerSkillComponent::GetCombatDeckSlots() const
 {
 	return CombatDeckSlots;
+}
+
+const TArray<FMDFDisciplineSkillLoadoutRuntime>& UMDFPlayerSkillComponent::GetDisciplineSkillLoadouts() const
+{
+	return DisciplineSkillLoadouts;
 }
 
 bool UMDFPlayerSkillComponent::HasLearnedSkill(const FGameplayTag SkillTag) const
 {
 	const FMDFPlayerSkillEntry* FoundEntry = FindLearnedSkill(SkillTag);
 	return FoundEntry != nullptr && FoundEntry->bUnlocked;
-}
-
-bool UMDFPlayerSkillComponent::IsSkillEquipped(const FGameplayTag SkillTag) const
-{
-	if (!SkillTag.IsValid())
-	{
-		return false;
-	}
-
-	for (const FMDFEquippedSkillSlot& Slot : EquippedSkillSlots)
-	{
-		if (Slot.SkillTag == SkillTag)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool UMDFPlayerSkillComponent::GetSkillInSlot(const int32 SlotIndex, FMDFEquippedSkillSlot& OutSlot) const
-{
-	const FMDFEquippedSkillSlot* FoundSlot = FindEquippedSlot(SlotIndex);
-	if (!FoundSlot)
-	{
-		return false;
-	}
-
-	OutSlot = *FoundSlot;
-	return true;
 }
 
 FGameplayTag UMDFPlayerSkillComponent::GetActiveDisciplineTag() const
@@ -136,16 +107,57 @@ bool UMDFPlayerSkillComponent::TryGetDeckSlotByArchetype(const FGameplayTag Arch
 	return false;
 }
 
-void UMDFPlayerSkillComponent::SetLearnedSkills(const TArray<FMDFPlayerSkillEntry>& InLearnedSkills)
+bool UMDFPlayerSkillComponent::GetSkillLoadoutForDiscipline(const FGameplayTag DisciplineTag, FMDFDisciplineSkillLoadoutRuntime& OutLoadout) const
 {
-	LearnedSkills = InLearnedSkills;
-	OnRep_LearnedSkills();
+	const FMDFDisciplineSkillLoadoutRuntime* FoundLoadout = FindDisciplineSkillLoadout(DisciplineTag);
+	if (!FoundLoadout)
+	{
+		return false;
+	}
+
+	OutLoadout = *FoundLoadout;
+	return true;
 }
 
-void UMDFPlayerSkillComponent::SetEquippedSkillSlots(const TArray<FMDFEquippedSkillSlot>& InEquippedSkillSlots)
+bool UMDFPlayerSkillComponent::GetActiveDisciplineSkillLoadout(FMDFDisciplineSkillLoadoutRuntime& OutLoadout) const
 {
-	EquippedSkillSlots = InEquippedSkillSlots;
-	OnRep_EquippedSkillSlots();
+	return GetSkillLoadoutForDiscipline(GetActiveDisciplineTag(), OutLoadout);
+}
+
+bool UMDFPlayerSkillComponent::GetSkillInDisciplineSlot(const FGameplayTag DisciplineTag, const int32 SlotIndex, FMDFDisciplineSkillSlotRuntime& OutSlot) const
+{
+	if (SlotIndex == INDEX_NONE)
+	{
+		return false;
+	}
+
+	const FMDFDisciplineSkillLoadoutRuntime* FoundLoadout = FindDisciplineSkillLoadout(DisciplineTag);
+	if (!FoundLoadout)
+	{
+		return false;
+	}
+
+	for (const FMDFDisciplineSkillSlotRuntime& Slot : FoundLoadout->Slots)
+	{
+		if (Slot.SlotIndex == SlotIndex)
+		{
+			OutSlot = Slot;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void UMDFPlayerSkillComponent::SetLearnedSkills(const TArray<FMDFPlayerSkillEntry>& InLearnedSkills)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	LearnedSkills = InLearnedSkills;
+	OnRep_LearnedSkills();
 }
 
 void UMDFPlayerSkillComponent::SetCombatDeckSlots(const TArray<FMDFCombatDeckSlotRuntime>& InCombatDeckSlots)
@@ -154,63 +166,125 @@ void UMDFPlayerSkillComponent::SetCombatDeckSlots(const TArray<FMDFCombatDeckSlo
 	{
 		return;
 	}
-	
+
 	CombatDeckSlots = InCombatDeckSlots;
 	OnRep_CombatDeckSlots();
-
-	if (!ActiveDisciplineState.ActiveDisciplineTag.IsValid())
-	{
-		FMDFCombatDeckSlotRuntime FirstUsableSlot;
-		if (TryGetFirstUsableDeckSlot(FirstUsableSlot))
-		{
-			ActiveDisciplineState.ActiveDisciplineTag = FirstUsableSlot.DisciplineTag;
-			ActiveDisciplineState.ActiveArchetypeTag = FirstUsableSlot.ArchetypeTag;
-			ActiveDisciplineState.NextAllowedSwapServerTime = 0.0f;
-			OnRep_ActiveDisciplineState();
-		}
-	}
+	EnsureValidActiveDisciplineFromDeck();
 }
 
-bool UMDFPlayerSkillComponent::EquipSkillToSlot(const FGameplayTag SkillTag, const int32 SlotIndex)
+void UMDFPlayerSkillComponent::SetDisciplineSkillLoadouts(const TArray<FMDFDisciplineSkillLoadoutRuntime>& InLoadouts)
 {
-	if (!SkillTag.IsValid() || SlotIndex == INDEX_NONE)
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	DisciplineSkillLoadouts = InLoadouts;
+	OnRep_DisciplineSkillLoadouts();
+}
+
+bool UMDFPlayerSkillComponent::EquipSkillToDisciplineSlot(const FGameplayTag DisciplineTag, const FGameplayTag SkillTag, const int32 SlotIndex)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
 	{
 		return false;
 	}
 
-	if (!HasLearnedSkill(SkillTag))
+	if (!DisciplineTag.IsValid() || !SkillTag.IsValid() || SlotIndex == INDEX_NONE)
 	{
 		return false;
 	}
 
-	for (FMDFEquippedSkillSlot& Slot : EquippedSkillSlots)
+	const FMDFPlayerSkillEntry* LearnedEntry = FindLearnedSkill(SkillTag);
+	if (!LearnedEntry || !LearnedEntry->bUnlocked)
 	{
-		if (Slot.SlotIndex == SlotIndex)
+		return false;
+	}
+
+	// Strict intended rule:
+	// skills belong to one discipline.
+	//
+	// Practical Phase 2 note:
+	// if OwningDisciplineTag is not yet populated by your learn/grant path,
+	// this check is skipped so bootstrap/debug does not break immediately.
+	if (LearnedEntry->OwningDisciplineTag.IsValid() && LearnedEntry->OwningDisciplineTag != DisciplineTag)
+	{
+		return false;
+	}
+
+	for (FMDFDisciplineSkillLoadoutRuntime& Loadout : DisciplineSkillLoadouts)
+	{
+		if (Loadout.DisciplineTag != DisciplineTag)
 		{
-			Slot.SkillTag = SkillTag;
-			OnRep_EquippedSkillSlots();
-			return true;
+			continue;
 		}
+
+		for (const FMDFDisciplineSkillSlotRuntime& ExistingSlot : Loadout.Slots)
+		{
+			if (ExistingSlot.SkillTag == SkillTag && ExistingSlot.SlotIndex != SlotIndex)
+			{
+				return false;
+			}
+		}
+
+		for (FMDFDisciplineSkillSlotRuntime& Slot : Loadout.Slots)
+		{
+			if (Slot.SlotIndex == SlotIndex)
+			{
+				Slot.SkillTag = SkillTag;
+				OnRep_DisciplineSkillLoadouts();
+				return true;
+			}
+		}
+
+		FMDFDisciplineSkillSlotRuntime& NewSlot = Loadout.Slots.AddDefaulted_GetRef();
+		NewSlot.SlotIndex = SlotIndex;
+		NewSlot.SkillTag = SkillTag;
+		OnRep_DisciplineSkillLoadouts();
+		return true;
 	}
 
-	FMDFEquippedSkillSlot& NewSlot = EquippedSkillSlots.AddDefaulted_GetRef();
+	FMDFDisciplineSkillLoadoutRuntime& NewLoadout = DisciplineSkillLoadouts.AddDefaulted_GetRef();
+	NewLoadout.DisciplineTag = DisciplineTag;
+
+	FMDFDisciplineSkillSlotRuntime& NewSlot = NewLoadout.Slots.AddDefaulted_GetRef();
 	NewSlot.SlotIndex = SlotIndex;
 	NewSlot.SkillTag = SkillTag;
 
-	OnRep_EquippedSkillSlots();
+	OnRep_DisciplineSkillLoadouts();
 	return true;
 }
 
-bool UMDFPlayerSkillComponent::ClearSkillSlot(const int32 SlotIndex)
+bool UMDFPlayerSkillComponent::ClearDisciplineSkillSlot(const FGameplayTag DisciplineTag, const int32 SlotIndex)
 {
-	for (int32 Index = 0; Index < EquippedSkillSlots.Num(); ++Index)
+	if (!GetOwner() || !GetOwner()->HasAuthority())
 	{
-		if (EquippedSkillSlots[Index].SlotIndex == SlotIndex)
+		return false;
+	}
+
+	if (!DisciplineTag.IsValid() || SlotIndex == INDEX_NONE)
+	{
+		return false;
+	}
+
+	for (FMDFDisciplineSkillLoadoutRuntime& Loadout : DisciplineSkillLoadouts)
+	{
+		if (Loadout.DisciplineTag != DisciplineTag)
 		{
-			EquippedSkillSlots.RemoveAt(Index);
-			OnRep_EquippedSkillSlots();
-			return true;
+			continue;
 		}
+
+		for (int32 Index = 0; Index < Loadout.Slots.Num(); ++Index)
+		{
+			if (Loadout.Slots[Index].SlotIndex == SlotIndex)
+			{
+				Loadout.Slots.RemoveAt(Index);
+				OnRep_DisciplineSkillLoadouts();
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	return false;
@@ -273,18 +347,18 @@ const FMDFPlayerSkillEntry* UMDFPlayerSkillComponent::FindLearnedSkill(const FGa
 	return nullptr;
 }
 
-const FMDFEquippedSkillSlot* UMDFPlayerSkillComponent::FindEquippedSlot(const int32 SlotIndex) const
+const FMDFDisciplineSkillLoadoutRuntime* UMDFPlayerSkillComponent::FindDisciplineSkillLoadout(const FGameplayTag DisciplineTag) const
 {
-	if (SlotIndex == INDEX_NONE)
+	if (!DisciplineTag.IsValid())
 	{
 		return nullptr;
 	}
 
-	for (const FMDFEquippedSkillSlot& Slot : EquippedSkillSlots)
+	for (const FMDFDisciplineSkillLoadoutRuntime& Loadout : DisciplineSkillLoadouts)
 	{
-		if (Slot.SlotIndex == SlotIndex)
+		if (Loadout.DisciplineTag == DisciplineTag)
 		{
-			return &Slot;
+			return &Loadout;
 		}
 	}
 
@@ -299,28 +373,67 @@ void UMDFPlayerSkillComponent::InitializeCombatDeckFromDefaults()
 		OnRep_CombatDeckSlots();
 	}
 
-	if (ActiveDisciplineState.ActiveDisciplineTag.IsValid())
+	if (!ActiveDisciplineState.ActiveDisciplineTag.IsValid() && StartingActiveDisciplineTag.IsValid())
 	{
-		return;
+		FMDFCombatDeckSlotRuntime StartingSlot;
+		if (TryGetDeckSlotByDiscipline(StartingActiveDisciplineTag, StartingSlot) && StartingSlot.IsUsable())
+		{
+			ActiveDisciplineState.ActiveDisciplineTag = StartingSlot.DisciplineTag;
+			ActiveDisciplineState.ActiveArchetypeTag = StartingSlot.ArchetypeTag;
+			ActiveDisciplineState.NextAllowedSwapServerTime = 0.0f;
+			OnRep_ActiveDisciplineState();
+			return;
+		}
 	}
 
-	FMDFCombatDeckSlotRuntime TargetSlot;
-	if (StartingActiveDisciplineTag.IsValid()
-		&& TryGetDeckSlotByDiscipline(StartingActiveDisciplineTag, TargetSlot)
-		&& TargetSlot.IsUsable())
+	EnsureValidActiveDisciplineFromDeck();
+}
+
+void UMDFPlayerSkillComponent::InitializeDisciplineSkillLoadoutsFromDefaults()
+{
+	if (DisciplineSkillLoadouts.Num() == 0 && StartingDisciplineSkillLoadouts.Num() > 0)
 	{
-		ActiveDisciplineState.ActiveDisciplineTag = TargetSlot.DisciplineTag;
-		ActiveDisciplineState.ActiveArchetypeTag = TargetSlot.ArchetypeTag;
-		ActiveDisciplineState.NextAllowedSwapServerTime = 0.0f;
-		OnRep_ActiveDisciplineState();
-		return;
+		DisciplineSkillLoadouts = StartingDisciplineSkillLoadouts;
+		OnRep_DisciplineSkillLoadouts();
+	}
+}
+
+void UMDFPlayerSkillComponent::EnsureValidActiveDisciplineFromDeck()
+{
+	FMDFActiveDisciplineRuntime NewState = ActiveDisciplineState;
+
+	FMDFCombatDeckSlotRuntime CurrentSlot;
+	if (NewState.ActiveDisciplineTag.IsValid()
+		&& TryGetDeckSlotByDiscipline(NewState.ActiveDisciplineTag, CurrentSlot)
+		&& CurrentSlot.IsUsable())
+	{
+		NewState.ActiveArchetypeTag = CurrentSlot.ArchetypeTag;
+	}
+	else
+	{
+		FMDFCombatDeckSlotRuntime FirstUsableSlot;
+		if (TryGetFirstUsableDeckSlot(FirstUsableSlot))
+		{
+			NewState.ActiveDisciplineTag = FirstUsableSlot.DisciplineTag;
+			NewState.ActiveArchetypeTag = FirstUsableSlot.ArchetypeTag;
+			NewState.NextAllowedSwapServerTime = 0.0f;
+		}
+		else
+		{
+			NewState.ActiveDisciplineTag = FGameplayTag();
+			NewState.ActiveArchetypeTag = FGameplayTag();
+			NewState.NextAllowedSwapServerTime = 0.0f;
+		}
 	}
 
-	if (TryGetFirstUsableDeckSlot(TargetSlot))
+	const bool bChanged =
+		NewState.ActiveDisciplineTag != ActiveDisciplineState.ActiveDisciplineTag ||
+		NewState.ActiveArchetypeTag != ActiveDisciplineState.ActiveArchetypeTag ||
+		!FMath::IsNearlyEqual(NewState.NextAllowedSwapServerTime, ActiveDisciplineState.NextAllowedSwapServerTime);
+
+	if (bChanged)
 	{
-		ActiveDisciplineState.ActiveDisciplineTag = TargetSlot.DisciplineTag;
-		ActiveDisciplineState.ActiveArchetypeTag = TargetSlot.ArchetypeTag;
-		ActiveDisciplineState.NextAllowedSwapServerTime = 0.0f;
+		ActiveDisciplineState = NewState;
 		OnRep_ActiveDisciplineState();
 	}
 }
@@ -399,15 +512,11 @@ void UMDFPlayerSkillComponent::ApplySuccessfulDisciplineSwap(const FMDFCombatDec
 	ActiveDisciplineState.ActiveDisciplineTag = TargetSlot.DisciplineTag;
 	ActiveDisciplineState.ActiveArchetypeTag = TargetSlot.ArchetypeTag;
 	ActiveDisciplineState.NextAllowedSwapServerTime = GetServerWorldTimeSecondsSafe() + DisciplineSwapCooldownSeconds;
-
 	OnRep_ActiveDisciplineState();
 }
 
 bool UMDFPlayerSkillComponent::IsDisciplineSwapBlockedByRuntimeState() const
 {
-	// Intentionally simple in Phase 1.
-	// Later phases should wire this into real runtime restrictions:
-	// active skill commit, hard CC, death, scripted lockouts, etc.
 	return false;
 }
 
@@ -433,11 +542,6 @@ void UMDFPlayerSkillComponent::OnRep_LearnedSkills()
 	OnLearnedSkillsChanged.Broadcast();
 }
 
-void UMDFPlayerSkillComponent::OnRep_EquippedSkillSlots()
-{
-	OnEquippedSkillSlotsChanged.Broadcast();
-}
-
 void UMDFPlayerSkillComponent::OnRep_CombatDeckSlots()
 {
 	OnCombatDeckChanged.Broadcast();
@@ -451,4 +555,9 @@ void UMDFPlayerSkillComponent::OnRep_ActiveDisciplineState()
 void UMDFPlayerSkillComponent::OnRep_LastSwapDecision()
 {
 	OnDisciplineSwapResolved.Broadcast(LastSwapDecision);
+}
+
+void UMDFPlayerSkillComponent::OnRep_DisciplineSkillLoadouts()
+{
+	OnDisciplineSkillLoadoutsChanged.Broadcast();
 }

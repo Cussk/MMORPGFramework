@@ -23,48 +23,40 @@ USTRUCT(BlueprintType)
 struct MDFFRAMEWORKDEBUG_API FMDFPlayerDebugSnapshot
 {
 	GENERATED_BODY()
-
-public:
-	FMDFPlayerDebugSnapshot()
-		: UnlockedDisciplineCount(0)
-		, LearnedSkillCount(0)
-		, EquippedSkillCount(0)
-	{
-	}
-
-	/** Human-readable active discipline text for display. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Debug")
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	FString ActiveDisciplineText;
 
-	/** Number of unlocked disciplines currently known to the player. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Debug")
-	int32 UnlockedDisciplineCount;
-
-	/** Number of learned skills currently known to the player. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Debug")
-	int32 LearnedSkillCount;
-
-	/** Number of currently equipped skill slots. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Debug")
-	int32 EquippedSkillCount;
-
-	/** Helpful diagnostics when expected components or state are missing. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Debug")
-	TArray<FString> DiagnosticLines;
-
-	/** Human-readable equipped slot lines for display. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Debug")
-	TArray<FString> EquippedSkillLines;
-	
-	UPROPERTY(BlueprintReadOnly, Category="Debug")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	FString ActiveArchetypeText;
 
-	UPROPERTY(BlueprintReadOnly, Category="Debug")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	float RemainingSwapCooldown = 0.0f;
 
-	UPROPERTY(BlueprintReadOnly, Category="Debug")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	FString LastSwapDecisionText;
 
-	UPROPERTY(BlueprintReadOnly, Category="Debug")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	int32 UnlockedDisciplineCount = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	int32 LearnedSkillCount = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	int32 SavedLoadoutCount = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	int32 ActiveLoadoutSkillCount = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	TArray<FString> CombatDeckLines;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	TArray<FString> ActiveLoadoutLines;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	TArray<FString> SavedLoadoutLines;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	TArray<FString> DiagnosticLines;
 };

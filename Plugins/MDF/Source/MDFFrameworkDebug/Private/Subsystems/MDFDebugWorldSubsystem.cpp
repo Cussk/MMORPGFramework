@@ -51,7 +51,7 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 
 	if (!ProgressionComponent)
 	{
-		OutSnapshot.DiagnosticLines.Add(TEXT("Missing MDF progression component."));
+		OutSnapshot.DiagnosticLines.Add(TEXT("Missing progression component."));
 	}
 	else
 	{
@@ -66,7 +66,7 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 
 	if (!SkillComponent)
 	{
-		OutSnapshot.DiagnosticLines.Add(TEXT("Missing MDF skill component."));
+		OutSnapshot.DiagnosticLines.Add(TEXT("Missing skill component."));
 	}
 	else
 	{
@@ -92,23 +92,6 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 			}
 		}
 
-		TArray<FMDFEquippedSkillSlot> SortedSlots = SkillComponent->GetEquippedSkillSlots();
-		Algo::SortBy(SortedSlots, &FMDFEquippedSkillSlot::SlotIndex);
-
-		OutSnapshot.EquippedSkillCount = SortedSlots.Num();
-
-		for (const FMDFEquippedSkillSlot& Slot : SortedSlots)
-		{
-			OutSnapshot.EquippedSkillLines.Add(
-				FString::Printf(TEXT("[%d] %s"), Slot.SlotIndex, *TagToDebugString(Slot.SkillTag))
-			);
-		}
-
-		if (OutSnapshot.EquippedSkillLines.Num() == 0)
-		{
-			OutSnapshot.EquippedSkillLines.Add(TEXT("[None]"));
-		}
-
 		TArray<FMDFCombatDeckSlotRuntime> SortedDeckSlots = SkillComponent->GetCombatDeckSlots();
 		Algo::Sort(SortedDeckSlots, [](const FMDFCombatDeckSlotRuntime& A, const FMDFCombatDeckSlotRuntime& B)
 		{
@@ -117,25 +100,76 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 
 		for (const FMDFCombatDeckSlotRuntime& DeckSlot : SortedDeckSlots)
 		{
-			const FString ArchetypeText = TagToDebugString(DeckSlot.ArchetypeTag);
-			const FString DisciplineText = TagToDebugString(DeckSlot.DisciplineTag);
-
-			const bool bLaneUnlocked = DeckSlot.bArchetypeUnlocked;
-			const bool bDisciplineUnlocked = DeckSlot.bDisciplineUnlocked;
-
 			OutSnapshot.CombatDeckLines.Add(
 				FString::Printf(
 					TEXT("[%s] %s | LaneUnlocked=%s | DisciplineUnlocked=%s"),
-					*ArchetypeText,
-					*DisciplineText,
-					bLaneUnlocked ? TEXT("True") : TEXT("False"),
-					bDisciplineUnlocked ? TEXT("True") : TEXT("False"))
+					*TagToDebugString(DeckSlot.ArchetypeTag),
+					*TagToDebugString(DeckSlot.DisciplineTag),
+					DeckSlot.bArchetypeUnlocked ? TEXT("True") : TEXT("False"),
+					DeckSlot.bDisciplineUnlocked ? TEXT("True") : TEXT("False"))
 			);
 		}
 
 		if (OutSnapshot.CombatDeckLines.Num() == 0)
 		{
 			OutSnapshot.CombatDeckLines.Add(TEXT("[None]"));
+		}
+
+		FMDFDisciplineSkillLoadoutRuntime ActiveLoadout;
+		if (SkillComponent->GetActiveDisciplineSkillLoadout(ActiveLoadout))
+		{
+			TArray<FMDFDisciplineSkillSlotRuntime> SortedActiveSlots = ActiveLoadout.Slots;
+			Algo::SortBy(SortedActiveSlots, &FMDFDisciplineSkillSlotRuntime::SlotIndex);
+
+			OutSnapshot.ActiveLoadoutSkillCount = SortedActiveSlots.Num();
+
+			for (const FMDFDisciplineSkillSlotRuntime& Slot : SortedActiveSlots)
+			{
+				OutSnapshot.ActiveLoadoutLines.Add(
+					FString::Printf(TEXT("[%d] %s"), Slot.SlotIndex, *TagToDebugString(Slot.SkillTag))
+				);
+			}
+		}
+
+		if (OutSnapshot.ActiveLoadoutLines.Num() == 0)
+		{
+			OutSnapshot.ActiveLoadoutLines.Add(TEXT("[None]"));
+		}
+
+		const TArray<FMDFDisciplineSkillLoadoutRuntime>& SavedLoadouts = SkillComponent->GetDisciplineSkillLoadouts();
+		OutSnapshot.SavedLoadoutCount = SavedLoadouts.Num();
+
+		TArray<FMDFDisciplineSkillLoadoutRuntime> SortedLoadouts = SavedLoadouts;
+		Algo::Sort(SortedLoadouts, [](const FMDFDisciplineSkillLoadoutRuntime& A, const FMDFDisciplineSkillLoadoutRuntime& B)
+		{
+			return A.DisciplineTag.ToString() < B.DisciplineTag.ToString();
+		});
+
+		for (const FMDFDisciplineSkillLoadoutRuntime& Loadout : SortedLoadouts)
+		{
+			TArray<FMDFDisciplineSkillSlotRuntime> SortedSlots = Loadout.Slots;
+			Algo::SortBy(SortedSlots, &FMDFDisciplineSkillSlotRuntime::SlotIndex);
+
+			FString LoadoutText = FString::Printf(TEXT("%s:"), *TagToDebugString(Loadout.DisciplineTag));
+
+			if (SortedSlots.Num() == 0)
+			{
+				LoadoutText += TEXT(" [None]");
+			}
+			else
+			{
+				for (const FMDFDisciplineSkillSlotRuntime& Slot : SortedSlots)
+				{
+					LoadoutText += FString::Printf(TEXT(" [%d] %s"), Slot.SlotIndex, *TagToDebugString(Slot.SkillTag));
+				}
+			}
+
+			OutSnapshot.SavedLoadoutLines.Add(LoadoutText);
+		}
+
+		if (OutSnapshot.SavedLoadoutLines.Num() == 0)
+		{
+			OutSnapshot.SavedLoadoutLines.Add(TEXT("[None]"));
 		}
 	}
 
@@ -245,13 +279,13 @@ bool UMDFDebugWorldSubsystem::GrantSkill(APlayerController* PlayerController, co
 	return true;
 }
 
-bool UMDFDebugWorldSubsystem::EquipSkill(APlayerController* PlayerController, const FGameplayTag SkillTag, const int32 SlotIndex)
+bool UMDFDebugWorldSubsystem::EquipSkill(APlayerController* PlayerController, const FGameplayTag DisciplineTag, const FGameplayTag SkillTag, const int32 SlotIndex)
 {
-	if (!SkillTag.IsValid() || SlotIndex == INDEX_NONE)
+	if (!DisciplineTag.IsValid() || !SkillTag.IsValid() || SlotIndex == INDEX_NONE)
 	{
 		return false;
 	}
 
 	UMDFPlayerSkillComponent* SkillComponent = ResolveSkillComponent(PlayerController);
-	return SkillComponent ? SkillComponent->EquipSkillToSlot(SkillTag, SlotIndex) : false;
+	return SkillComponent ? SkillComponent->EquipSkillToDisciplineSlot(DisciplineTag, SkillTag, SlotIndex) : false;
 }

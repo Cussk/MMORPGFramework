@@ -1,4 +1,4 @@
-// Kyle Cuss and Cuss Programming 2026
+//Copyright Kyle Cuss and Cuss Programming 2026.
 
 #pragma once
 
@@ -10,9 +10,13 @@
  * Runtime learned-skill entry owned by a player.
  *
  * Architectural role:
- * - This is mutable player-specific state, not authored skill definition data.
- * - It answers "does this player know this skill?" and "can they currently use it?"
- * - Later this can expand with rank, unlock source, upgrade tier, or temporary disable state.
+ * - Mutable player-specific state, not authored skill definition data.
+ * - Answers "does this player know this skill?" and "what discipline owns it?"
+ * - Later can expand with rank, unlock source, temporary disable state, etc.
+ *
+ * Important note:
+ * - OwningDisciplineTag should be filled when the skill is granted/learned.
+ * - That lets the runtime validate discipline loadouts without leaning on skill-family logic.
  */
 USTRUCT(BlueprintType)
 struct MDFFRAMEWORKCOMBAT_API FMDFPlayerSkillEntry
@@ -25,49 +29,17 @@ public:
 	{
 	}
 
-	/** Identity tag for the learned skill, for example Skill.Warrior.BasicStrike. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Skills")
 	FGameplayTag SkillTag;
 
-	/** Whether this skill is currently unlocked for the player. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Skills")
+	FGameplayTag OwningDisciplineTag;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Skills")
 	bool bUnlocked;
 
 	bool IsValid() const
 	{
 		return SkillTag.IsValid();
-	}
-};
-
-/**
- * Runtime equipped skill slot owned by a player.
- *
- * Architectural role:
- * - Keeps action-bar or hotbar state separate from learned-skill state.
- * - A player may know many skills but only equip some subset of them.
- * - Slot indexing is intentionally simple for the first pass.
- */
-USTRUCT(BlueprintType)
-struct MDFFRAMEWORKCOMBAT_API FMDFEquippedSkillSlot
-{
-	GENERATED_BODY()
-
-public:
-	FMDFEquippedSkillSlot()
-		: SlotIndex(INDEX_NONE)
-	{
-	}
-
-	/** Action bar / hotbar slot index. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill Slot")
-	int32 SlotIndex;
-
-	/** Skill assigned to this slot. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill Slot")
-	FGameplayTag SkillTag;
-
-	bool IsValid() const
-	{
-		return SlotIndex != INDEX_NONE && SkillTag.IsValid();
 	}
 };

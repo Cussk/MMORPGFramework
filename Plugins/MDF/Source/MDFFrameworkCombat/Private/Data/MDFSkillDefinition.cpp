@@ -1,4 +1,4 @@
-// Kyle Cuss and Cuss Programming 2026
+//Copyright Kyle Cuss and Cuss Programming 2026.
 
 #include "Data/MDFSkillDefinition.h"
 
@@ -9,14 +9,9 @@ UMDFSkillDefinition::UMDFSkillDefinition()
 {
 }
 
-bool UMDFSkillDefinition::IsInSkillFamily(const FGameplayTag SkillFamilyTag) const
+bool UMDFSkillDefinition::IsOwnedByDiscipline(const FGameplayTag DisciplineTag) const
 {
-	return SkillFamilyTag.IsValid() && SkillFamilyTags.HasTag(SkillFamilyTag);
-}
-
-bool UMDFSkillDefinition::IsCompatibleWithDiscipline(const FGameplayTag DisciplineTag) const
-{
-	return DisciplineTag.IsValid() && CompatibleDisciplineTags.HasTag(DisciplineTag);
+	return DisciplineTag.IsValid() && OwningDisciplineTag == DisciplineTag;
 }
 
 bool UMDFSkillDefinition::IsCompatibleWithEquipment(const FGameplayTag EquipmentTag) const
