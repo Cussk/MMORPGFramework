@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "MDFCharacter.generated.h"
 
+class UMDFCombatantComponent;
 struct FInputActionValue;
 class UCameraComponent;
 class USpringArmComponent;
@@ -39,6 +40,9 @@ class MDFFRAMEWORKQUICKSTART_API AMDFCharacter : public ACharacter
 public:
 	AMDFCharacter();
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	UMDFCombatantComponent* CombatantComponent;
+	
 	UFUNCTION(BlueprintPure, Category = "MDF")
 	AMDFPlayerController* GetMDFPlayerController() const;
 
@@ -54,6 +58,7 @@ public:
 	
 	/// Third Person Template placeholder movement ///
 	
+private:
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraBoom;

@@ -48,6 +48,23 @@ public:
 	/** Broad targeting shape for the skill. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	EMDFSkillTargetingMode TargetingMode;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
+	FGameplayTag ExecutionTypeTag;
+
+	// Used by SelfTimedState handlers.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
+	FGameplayTag TimedStateTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
+	float TimedStateDurationSeconds = 0.0f;
+
+	// Used by FrontalMeleeTrace handlers.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
+	float FrontalTraceRange = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
+	float FrontalTraceRadius = 0.0f;
 
 	/** Optional cast time before the skill resolves. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))

@@ -2,8 +2,12 @@
 
 #include "Components/MDFPlayerSkillComponent.h"
 
+#include "Components/MDFCombatantComponent.h"
 #include "Data/MDFSkillDefinition.h"
+#include "Execution/MDFSkillExecutionHandler.h"
+#include "Execution/MDFSkillExecutionRegistry.h"
 #include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerState.h"
 #include "Helpers/MDFCombatDefinitionLookup.h"
 #include "Net/UnrealNetwork.h"
 
@@ -31,8 +35,10 @@ void UMDFPlayerSkillComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME(UMDFPlayerSkillComponent, CombatDeckSlots);
 	DOREPLIFETIME(UMDFPlayerSkillComponent, ActiveDisciplineState);
 	DOREPLIFETIME(UMDFPlayerSkillComponent, DisciplineSkillLoadouts);
+	DOREPLIFETIME(UMDFPlayerSkillComponent, ActiveSkillRuntime);
 	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastSwapDecision, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastSkillActivationDecision, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastSkillExecutionDecision, COND_OwnerOnly);
 }
 
 const TArray<FMDFPlayerSkillEntry>& UMDFPlayerSkillComponent::GetLearnedSkills() const
@@ -48,6 +54,21 @@ const TArray<FMDFCombatDeckSlotRuntime>& UMDFPlayerSkillComponent::GetCombatDeck
 const TArray<FMDFDisciplineSkillLoadoutRuntime>& UMDFPlayerSkillComponent::GetDisciplineSkillLoadouts() const
 {
 	return DisciplineSkillLoadouts;
+}
+
+const FMDFDisciplineSwapDecision& UMDFPlayerSkillComponent::GetLastSwapDecision() const
+{
+	return LastSwapDecision;
+}
+
+const FMDFActiveSkillRuntime& UMDFPlayerSkillComponent::GetActiveSkillRuntime() const
+{
+	return ActiveSkillRuntime;
+}
+
+const FMDFSkillExecutionDecision& UMDFPlayerSkillComponent::GetLastSkillExecutionDecision() const
+{
+	return LastSkillExecutionDecision;
 }
 
 bool UMDFPlayerSkillComponent::HasLearnedSkill(const FGameplayTag SkillTag) const
@@ -358,6 +379,12 @@ void UMDFPlayerSkillComponent::RequestActivateSkillSlot(const int32 SlotIndex)
 		const FMDFSkillActivationDecision Decision = EvaluateSkillActivationFromSlot(SlotIndex);
 		LastSkillActivationDecision = Decision;
 		OnSkillActivationResolved.Broadcast(Decision);
+
+		if (Decision.DidSucceed())
+		{
+			CommitAndExecuteSkillActivation(Decision);
+		}
+
 		return;
 	}
 
@@ -708,6 +735,82 @@ bool UMDFPlayerSkillComponent::IsSkillActivationBlockedByRuntimeState() const
 	return false;
 }
 
+UMDFCombatantComponent* UMDFPlayerSkillComponent::ResolveAvatarCombatant() const
+{
+	const APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner());
+	if (!OwningPlayerState)
+	{
+		return nullptr;
+	}
+
+	APawn* Pawn = OwningPlayerState->GetPawn();
+	return Pawn ? Pawn->FindComponentByClass<UMDFCombatantComponent>() : nullptr;
+}
+
+bool UMDFPlayerSkillComponent::CommitAndExecuteSkillActivation(const FMDFSkillActivationDecision& ActivationDecision)
+{
+	LastSkillExecutionDecision = FMDFSkillExecutionDecision();
+	LastSkillExecutionDecision.SkillTag = ActivationDecision.Request.SkillTag;
+
+	const UMDFSkillDefinition* SkillDefinition = MDFCombatDefinitionLookup::ResolveSkillDefinition(ActivationDecision.Request.SkillTag);
+	if (!SkillDefinition)
+	{
+		ActiveSkillRuntime = FMDFActiveSkillRuntime();
+		LastSkillExecutionDecision.Result = EMDFSkillExecutionResult::SkillDefinitionMissing;
+		OnRep_ActiveSkillRuntime();
+		OnRep_LastSkillExecutionDecision();
+		return false;
+	}
+
+	UMDFCombatantComponent* Combatant = ResolveAvatarCombatant();
+	if (!Combatant)
+	{
+		ActiveSkillRuntime = FMDFActiveSkillRuntime();
+		LastSkillExecutionDecision.Result = EMDFSkillExecutionResult::MissingCombatant;
+		OnRep_ActiveSkillRuntime();
+		OnRep_LastSkillExecutionDecision();
+		return false;
+	}
+
+	const UMDFSkillExecutionHandler* Handler = MDFSkillExecutionRegistry::ResolveHandler(SkillDefinition->ExecutionTypeTag);
+	if (!Handler)
+	{
+		ActiveSkillRuntime = FMDFActiveSkillRuntime();
+		LastSkillExecutionDecision.Result = EMDFSkillExecutionResult::MissingExecutionHandler;
+		OnRep_ActiveSkillRuntime();
+		OnRep_LastSkillExecutionDecision();
+		return false;
+	}
+
+	ActiveSkillRuntime.SkillTag = ActivationDecision.Request.SkillTag;
+	ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Committed;
+	ActiveSkillRuntime.ServerStartTime = GetServerWorldTimeSecondsSafe();
+	OnRep_ActiveSkillRuntime();
+
+	FMDFSkillExecutionContext Context;
+	Context.AvatarActor = Combatant->GetOwner();
+	Context.SkillComponent = this;
+	Context.CombatantComponent = Combatant;
+	Context.SkillDefinition = SkillDefinition;
+	Context.OptionalTargetActor = nullptr;
+
+	ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Executing;
+	OnRep_ActiveSkillRuntime();
+
+	const bool bExecuted = Handler->Execute(Context, LastSkillExecutionDecision);
+
+	ActiveSkillRuntime.Phase = bExecuted ? EMDFActiveSkillPhase::Completed : EMDFActiveSkillPhase::Failed;
+	OnRep_ActiveSkillRuntime();
+
+	if (LastSkillExecutionDecision.SkillTag != ActivationDecision.Request.SkillTag)
+	{
+		LastSkillExecutionDecision.SkillTag = ActivationDecision.Request.SkillTag;
+	}
+
+	OnRep_LastSkillExecutionDecision();
+	return bExecuted;
+}
+
 void UMDFPlayerSkillComponent::OnRep_LearnedSkills()
 {
 	OnLearnedSkillsChanged.Broadcast();
@@ -736,4 +839,13 @@ void UMDFPlayerSkillComponent::OnRep_DisciplineSkillLoadouts()
 void UMDFPlayerSkillComponent::OnRep_LastSkillActivationDecision()
 {
 	OnSkillActivationResolved.Broadcast(LastSkillActivationDecision);
+}
+
+void UMDFPlayerSkillComponent::OnRep_ActiveSkillRuntime()
+{
+}
+
+void UMDFPlayerSkillComponent::OnRep_LastSkillExecutionDecision()
+{
+	OnSkillExecutionResolved.Broadcast(LastSkillExecutionDecision);
 }

@@ -56,6 +56,12 @@ namespace MDFGameplayTags
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Skill_Archer_ArrowRain);
 	
 	// --------------------
+	// Execution Family Tags
+	// --------------------
+	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Execution_SelfTimedState);
+	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Execution_FrontalMeleeTrace);
+	
+	// --------------------
 	// Equipment / Tools
 	// --------------------
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Equipment_Weapon_Sword);
@@ -88,6 +94,8 @@ namespace MDFGameplayTags
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_State_Casting);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_State_Channeling);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_State_Dead);
+	
+	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_State_Guarding);
 
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_Target_Hostile);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_Target_Friendly);

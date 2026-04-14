@@ -7,6 +7,8 @@
 #include "GameplayTagContainer.h"
 #include "MDFPCDebugComponent.generated.h"
 
+class UMDFCombatantComponent;
+class AMDFDebugHUD;
 class APlayerController;
 class UMDFDebugWorldSubsystem;
 
@@ -60,6 +62,14 @@ public:
 	void MDFDebugActivateSkillSlot(int32 SlotIndex);
 
 protected:
+	
+	// Local-only sequence tracker so we only draw each replicated debug sphere once.
+	UPROPERTY(Transient)
+	int32 LastProcessedTraceDebugSequence = 0;
+	
+	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	
 	UFUNCTION(Server, Reliable)
 	void ServerMDFDebugGrantDiscipline(const FString& DisciplineTagString);
 
@@ -81,10 +91,18 @@ protected:
 	bool ExecuteDebugGrantSkill(const FString& SkillTagString, const FString& DisciplineTagString);
 	bool ExecuteDebugEquipSkill(const FString& DisciplineTagString, const FString& SkillTagString, int32 SlotIndex);
 	bool ExecuteDebugActivateSkillSlot(int32 SlotIndex);
+	
+	bool IsDebugHUDEnabled();
+	
+	void ConsumeTraceDebugVisual();
 
 	APlayerController* ResolveOwningController() const;
 	UMDFDebugWorldSubsystem* ResolveDebugSubsystem() const;
+	UMDFCombatantComponent* ResolveLocalCombatantComponent() const;
 
 	static FGameplayTag ResolveTagString(const FString& TagString);
 	void SendClientDebugMessage(const FString& Message) const;
+	
+	AMDFDebugHUD* DebugHUD;
+	bool bIsDebugHUDEnabled;
 };

@@ -5,6 +5,7 @@
 #include "EnhancedInputComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/MDFCombatantComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/MDFPlayerController.h"
 #include "GameFramework/MDFPlayerState.h"
@@ -35,6 +36,8 @@ AMDFCharacter::AMDFCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+	
+	CombatantComponent = CreateDefaultSubobject<UMDFCombatantComponent>(TEXT("CombatantComponent"));
 }
 
 AMDFPlayerController* AMDFCharacter::GetMDFPlayerController() const

@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "Types/MDFCombatDeckTypes.h"
 #include "Types/MDFSkillActivationTypes.h"
+#include "Types/MDFSkillExecutionTypes.h"
 #include "Types/MDFSkillLoadoutTypes.h"
 #include "Types/MDFSkillRuntimeTypes.h"
 #include "MDFPlayerSkillComponent.generated.h"
@@ -13,6 +14,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMDFPlayerSkillStateChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMDFDisciplineSwapResolved, const FMDFDisciplineSwapDecision&, Decision);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMDFSkillActivationResolved, const FMDFSkillActivationDecision&, Decision);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMDFSkillExecutionResolved, const FMDFSkillExecutionDecision&, Decision);
 
 /**
  * Player-owned runtime skill container intended to live on PlayerState.
@@ -49,10 +51,13 @@ public:
 	const TArray<FMDFDisciplineSkillLoadoutRuntime>& GetDisciplineSkillLoadouts() const;
 
 	UFUNCTION(BlueprintPure, Category="Combat")
-	const FMDFDisciplineSwapDecision& GetLastSwapDecision() const
-	{
-		return LastSwapDecision;
-	}
+	const FMDFDisciplineSwapDecision& GetLastSwapDecision() const;
+	
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const FMDFActiveSkillRuntime& GetActiveSkillRuntime() const;
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const FMDFSkillExecutionDecision& GetLastSkillExecutionDecision() const;
 
 	UFUNCTION(BlueprintPure, Category="Skills")
 	bool HasLearnedSkill(FGameplayTag SkillTag) const;
@@ -135,6 +140,9 @@ public:
 	
 	UPROPERTY(BlueprintAssignable, Category="Events")
 	FMDFSkillActivationResolved OnSkillActivationResolved;
+	
+	UPROPERTY(BlueprintAssignable, Category="Events")
+	FMDFSkillExecutionResolved OnSkillExecutionResolved;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LearnedSkills, Category="Skills", meta=(AllowPrivateAccess="true"))
@@ -167,6 +175,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LastSkillActivationDecision, Category="Combat", meta=(AllowPrivateAccess="true"))
 	FMDFSkillActivationDecision LastSkillActivationDecision;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_ActiveSkillRuntime, Category="Combat", meta=(AllowPrivateAccess="true"))
+	FMDFActiveSkillRuntime ActiveSkillRuntime;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LastSkillExecutionDecision, Category="Combat", meta=(AllowPrivateAccess="true"))
+	FMDFSkillExecutionDecision LastSkillExecutionDecision;
+	
 	UFUNCTION(Server, Reliable)
 	void ServerRequestSetActiveDiscipline(FGameplayTag DisciplineTag);
 	
@@ -196,6 +210,12 @@ protected:
 	
 	UFUNCTION()
 	void OnRep_LastSkillActivationDecision();
+	
+	UFUNCTION()
+	void OnRep_ActiveSkillRuntime();
+
+	UFUNCTION()
+	void OnRep_LastSkillExecutionDecision();
 
 protected:
 	void InitializeCombatDeckFromDefaults();
@@ -214,4 +234,7 @@ protected:
 	
 	FMDFSkillActivationDecision EvaluateSkillActivationFromSlot(int32 SlotIndex) const;
 	bool IsSkillActivationBlockedByRuntimeState() const;
+	
+	UMDFCombatantComponent* ResolveAvatarCombatant() const;
+	bool CommitAndExecuteSkillActivation(const FMDFSkillActivationDecision& ActivationDecision);
 };

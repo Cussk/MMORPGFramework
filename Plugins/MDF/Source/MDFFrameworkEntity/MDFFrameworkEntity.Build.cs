@@ -14,14 +14,12 @@ public class MDFFrameworkEntity : ModuleRules
                 "Engine",
                 "GameplayTags",
                 "MDFFrameworkCore",
-                "MDFFrameworkProgression"
             }
         );
 
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                
             }
         );
     }

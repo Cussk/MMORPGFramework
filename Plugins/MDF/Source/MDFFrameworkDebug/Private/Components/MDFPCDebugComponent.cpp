@@ -5,30 +5,58 @@
 #include "GameFramework/MDFDebugHUD.h"
 #include "GameFramework/PlayerController.h"
 #include "GameplayTagsManager.h"
+#include "Components/MDFCombatantComponent.h"
 #include "Subsystems/MDFDebugWorldSubsystem.h"
 
 UMDFPCDebugComponent::UMDFPCDebugComponent()
 {
+	PrimaryComponentTick.bCanEverTick = true;
 	SetIsReplicatedByDefault(true);
+}
+
+void UMDFPCDebugComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (APlayerController* OwnerController = ResolveOwningController())
+	{
+		DebugHUD = Cast<AMDFDebugHUD>(OwnerController->GetHUD());
+	}
+
+	LastProcessedTraceDebugSequence = 0;
+}
+
+void UMDFPCDebugComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{	
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	
+	if (!IsDebugHUDEnabled())
+	{
+		return;
+	}
+
+	const APlayerController* OwningPC = Cast<APlayerController>(GetOwner());
+	if (!OwningPC || !OwningPC->IsLocalController())
+	{
+		return;
+	}
+
+	ConsumeTraceDebugVisual();
 }
 
 void UMDFPCDebugComponent::MDFDebugToggleHUD()
 {
-	APlayerController* OwnerController = ResolveOwningController();
-	if (!OwnerController)
-	{
-		return;
-	}
 
-	if (AMDFDebugHUD* MDFHUD = Cast<AMDFDebugHUD>(OwnerController->GetHUD()))
+	if (DebugHUD)
 	{
-		MDFHUD->ToggleFrameworkDebug();
+		DebugHUD->ToggleFrameworkDebug();
 		SendClientDebugMessage(
-			FString::Printf(TEXT("MDF debug HUD %s."), MDFHUD->IsFrameworkDebugVisible() ? TEXT("enabled") : TEXT("disabled"))
+			FString::Printf(TEXT("MDF debug HUD %s."), DebugHUD->IsFrameworkDebugVisible() ? TEXT("enabled") : TEXT("disabled"))
 		);
 		return;
 	}
 
+	bIsDebugHUDEnabled = false;
 	SendClientDebugMessage(TEXT("No AMDFDebugHUD found on this controller."));
 }
 
@@ -86,6 +114,8 @@ void UMDFPCDebugComponent::MDFDebugActivateSkillSlot(const int32 SlotIndex)
 
 	ServerMDFDebugActivateSkillSlot(SlotIndex);
 }
+
+
 
 void UMDFPCDebugComponent::ServerMDFDebugGrantDiscipline_Implementation(const FString& DisciplineTagString)
 {
@@ -249,6 +279,53 @@ bool UMDFPCDebugComponent::ExecuteDebugActivateSkillSlot(const int32 SlotIndex)
 	return bSuccess;
 }
 
+bool UMDFPCDebugComponent::IsDebugHUDEnabled()
+{
+	if (DebugHUD)
+	{
+		return bIsDebugHUDEnabled = DebugHUD->IsFrameworkDebugVisible();
+	}
+	
+	bIsDebugHUDEnabled = false;
+	return bIsDebugHUDEnabled;
+}
+
+void UMDFPCDebugComponent::ConsumeTraceDebugVisual()
+{
+	UMDFCombatantComponent* CombatantComponent = ResolveLocalCombatantComponent();
+	if (!CombatantComponent || !GetWorld())
+	{
+		return;
+	}
+
+	const FMDFTraceDebugVisual& TraceVisual = CombatantComponent->GetLastTraceDebugVisual();
+	if (TraceVisual.Sequence <= 0)
+	{
+		return;
+	}
+
+	if (TraceVisual.Sequence == LastProcessedTraceDebugSequence)
+	{
+		return;
+	}
+
+	LastProcessedTraceDebugSequence = TraceVisual.Sequence;
+
+	if (TraceVisual.Radius <= 0.0f)
+	{
+		return;
+	}
+
+	DrawDebugSphere(
+		GetWorld(),
+		TraceVisual.Center,
+		TraceVisual.Radius,
+		16,
+		TraceVisual.bHit ? FColor::Green : FColor::Red,
+		false,
+		TraceVisual.Duration);
+}
+
 APlayerController* UMDFPCDebugComponent::ResolveOwningController() const
 {
 	return Cast<APlayerController>(GetOwner());
@@ -258,6 +335,18 @@ UMDFDebugWorldSubsystem* UMDFPCDebugComponent::ResolveDebugSubsystem() const
 {
 	UWorld* World = GetWorld();
 	return World ? World->GetSubsystem<UMDFDebugWorldSubsystem>() : nullptr;
+}
+
+UMDFCombatantComponent* UMDFPCDebugComponent::ResolveLocalCombatantComponent() const
+{
+	const APlayerController* OwningPC = Cast<APlayerController>(GetOwner());
+	if (!OwningPC)
+	{
+		return nullptr;
+	}
+
+	APawn* Pawn = OwningPC->GetPawn();
+	return Pawn ? Pawn->FindComponentByClass<UMDFCombatantComponent>() : nullptr;
 }
 
 FGameplayTag UMDFPCDebugComponent::ResolveTagString(const FString& TagString)

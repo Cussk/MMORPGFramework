@@ -3,6 +3,8 @@
 #include "Subsystems/MDFDebugWorldSubsystem.h"
 
 #include "Algo/Sort.h"
+#include "Components/MDFCombatantComponent.h"
+#include "Components/MDFPCDebugComponent.h"
 #include "Components/MDFPlayerProgressionComponent.h"
 #include "Components/MDFPlayerSkillComponent.h"
 #include "Helpers/MDFComponentHelpers.h"
@@ -183,6 +185,40 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 		if (OutSnapshot.SavedLoadoutLines.Num() == 0)
 		{
 			OutSnapshot.SavedLoadoutLines.Add(TEXT("[None]"));
+		}
+		
+		const FMDFActiveSkillRuntime& ActiveSkillRuntime = SkillComponent->GetActiveSkillRuntime();
+		OutSnapshot.ActiveSkillText = TagToDebugString(ActiveSkillRuntime.SkillTag);
+
+		if (const UEnum* SkillPhaseEnum = StaticEnum<EMDFActiveSkillPhase>())
+		{
+			OutSnapshot.ActiveSkillPhaseText = SkillPhaseEnum->GetNameStringByValue(static_cast<int64>(ActiveSkillRuntime.Phase));
+		}
+
+		const FMDFSkillExecutionDecision& LastExecutionDecision = SkillComponent->GetLastSkillExecutionDecision();
+		if (const UEnum* ExecutionResultEnum = StaticEnum<EMDFSkillExecutionResult>())
+		{
+			OutSnapshot.LastExecutionResultText = ExecutionResultEnum->GetNameStringByValue(static_cast<int64>(LastExecutionDecision.Result));
+		}
+	}
+	
+	if (const APawn* Pawn = PlayerController->GetPawn())
+	{
+		if (const UMDFCombatantComponent* Combatant = Pawn->FindComponentByClass<UMDFCombatantComponent>())
+		{
+			OutSnapshot.LastFrontalMeleeHitCount = Combatant->GetLastFrontalMeleeHitCount();
+
+			for (const FMDFTimedStateRuntime& State : Combatant->GetActiveTimedStates())
+			{
+				OutSnapshot.ActiveTimedStateLines.Add(
+					FString::Printf(TEXT("%s (Ends %.2f)"), *TagToDebugString(State.StateTag), State.EndServerTime)
+				);
+			}
+
+			if (OutSnapshot.ActiveTimedStateLines.Num() == 0)
+			{
+				OutSnapshot.ActiveTimedStateLines.Add(TEXT("[None]"));
+			}
 		}
 	}
 

@@ -48,6 +48,10 @@ void AMDFDebugHUD::DrawHUD()
 	DrawLineText(FString::Printf(TEXT("Active Archetype: %s"), *Snapshot.ActiveArchetypeText), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Swap Cooldown Remaining: %.2f"), Snapshot.RemainingSwapCooldown), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Last Swap Result: %s"), *Snapshot.LastSwapDecisionText), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Active Skill: %s"), *Snapshot.ActiveSkillText), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Active Skill Phase: %s"), *Snapshot.ActiveSkillPhaseText), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Last Execution Result: %s"), *Snapshot.LastExecutionResultText), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Last Frontal Melee Hit Count: %d"), Snapshot.LastFrontalMeleeHitCount), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Last Activation Slot: %d"), Snapshot.LastActivationSlotIndex), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Last Activation Skill: %s"), *Snapshot.LastActivationSkillText), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Last Activation Result: %s"), *Snapshot.LastActivationResultText), StartX, DrawY, FLinearColor::White);
@@ -55,7 +59,7 @@ void AMDFDebugHUD::DrawHUD()
 	DrawLineText(FString::Printf(TEXT("Learned Skills: %d"), Snapshot.LearnedSkillCount), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Saved Loadouts: %d"), Snapshot.SavedLoadoutCount), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Active Loadout Skills: %d"), Snapshot.ActiveLoadoutSkillCount), StartX, DrawY, FLinearColor::White);
-
+	
 	DrawY += LineHeight;
 
 	DrawLineText(TEXT("Combat Deck:"), StartX, DrawY, Cyan);
@@ -78,6 +82,13 @@ void AMDFDebugHUD::DrawHUD()
 	for (const FString& Line : Snapshot.SavedLoadoutLines)
 	{
 		DrawLineText(Line, StartX + 12.f, DrawY, Yellow);
+	}
+	
+	DrawY += LineHeight;
+	DrawLineText(TEXT("Active Timed States:"), StartX, DrawY, FLinearColor::Green);
+	for (const FString& Line : Snapshot.ActiveTimedStateLines)
+	{
+		DrawLineText(Line, StartX + 12.f, DrawY, FLinearColor::FromSRGBColor(FColor(230, 230, 100, 255)));
 	}
 
 	if (Snapshot.DiagnosticLines.Num() > 0)

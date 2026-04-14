@@ -55,6 +55,12 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Skill_Archer_ArrowRain, "Skill.Archer.ArrowRain");
 	
 	// --------------------
+	// Execution Family Tags
+	// --------------------
+	UE_DEFINE_GAMEPLAY_TAG(Execution_SelfTimedState, "Execution.SelfTimedState");
+	UE_DEFINE_GAMEPLAY_TAG(Execution_FrontalMeleeTrace, "Execution.FrontalMeleeTrace");
+	
+	// --------------------
 	// Equipment / Tools
 	// --------------------
 	UE_DEFINE_GAMEPLAY_TAG(Equipment_Weapon_Sword, "Equipment.Weapon.Sword");
@@ -88,6 +94,8 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Casting, "Combat.State.Casting");
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Channeling, "Combat.State.Channeling");
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Dead, "Combat.State.Dead");
+	
+	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Guarding, "Combat.State.Guarding");
 
 	UE_DEFINE_GAMEPLAY_TAG(Combat_Target_Hostile, "Combat.Target.Hostile");
 	UE_DEFINE_GAMEPLAY_TAG(Combat_Target_Friendly, "Combat.Target.Friendly");
