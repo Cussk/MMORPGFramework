@@ -207,6 +207,7 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 		if (const UMDFCombatantComponent* Combatant = Pawn->FindComponentByClass<UMDFCombatantComponent>())
 		{
 			OutSnapshot.LastFrontalMeleeHitCount = Combatant->GetLastFrontalMeleeHitCount();
+			OutSnapshot.LastAppliedImpactCount = Combatant->GetLastAppliedImpactCount();
 
 			for (const FMDFTimedStateRuntime& State : Combatant->GetActiveTimedStates())
 			{

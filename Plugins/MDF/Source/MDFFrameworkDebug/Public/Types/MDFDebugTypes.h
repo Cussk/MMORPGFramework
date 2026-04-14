@@ -83,4 +83,7 @@ struct MDFFRAMEWORKDEBUG_API FMDFPlayerDebugSnapshot
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	int32 LastFrontalMeleeHitCount = 0;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	int32 LastAppliedImpactCount = 0;
 };

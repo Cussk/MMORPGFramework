@@ -91,4 +91,16 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Skills")
 	bool IsCompatibleWithEquipment(FGameplayTag EquipmentTag) const;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0"))
+	int32 MaxAffectedTargets = 1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
+	FGameplayTag ImpactTimedStateTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
+	float ImpactTimedStateDurationSeconds = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
+	float KnockbackStrength = 0.0f;
 };

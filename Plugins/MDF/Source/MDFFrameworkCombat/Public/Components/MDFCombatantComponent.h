@@ -71,30 +71,49 @@ public:
 	}
 	
 	UFUNCTION(BlueprintPure, Category="Combat")
-	bool HasTimedState(FGameplayTag StateTag) const;
-
+	int32 GetLastAppliedImpactCount() const
+	{
+		return LastAppliedImpactCount;
+	}
+	
 	bool ApplyTimedState(FGameplayTag StateTag, float DurationSeconds);
 	bool ClearTimedState(FGameplayTag StateTag);
 	bool PerformFrontalMeleeTrace(float Range, float Radius, TArray<FHitResult>& OutHits);
+	bool ApplyImpactTimedState(FGameplayTag StateTag, float DurationSeconds);
+	bool ApplyKnockback(const FVector& WorldDirection, float Strength);
+	bool CanReceiveImpactFrom(const AActor* InstigatorActor) const;
+	void SetLastAppliedImpactCount(int32 InCount);
+	
+	UFUNCTION(BlueprintPure, Category="Combat")
+	bool HasTimedState(FGameplayTag StateTag) const;
 
 	UPROPERTY(BlueprintAssignable, Category="Events")
 	FMDFCombatantStateChanged OnCombatantStateChanged;
 
 protected:
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_ActiveTimedStates, Category="Combat")
 	TArray<FMDFTimedStateRuntime> ActiveTimedStates;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LastFrontalMeleeHitCount, Category="Combat")
 	int32 LastFrontalMeleeHitCount = 0;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LastAppliedImpactCount, Category="Combat")
+	int32 LastAppliedImpactCount = 0;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LastTraceDebugVisual, Category="Combat")
 	FMDFTraceDebugVisual LastTraceDebugVisual;
+	
+	TMap<FGameplayTag, FTimerHandle> TimedStateExpiryHandles;
 
 	UFUNCTION()
 	void OnRep_ActiveTimedStates();
 
 	UFUNCTION()
 	void OnRep_LastFrontalMeleeHitCount();
+	
+	UFUNCTION()
+	void OnRep_LastAppliedImpactCount();
 	
 	UFUNCTION()
 	void OnRep_LastTraceDebugVisual();

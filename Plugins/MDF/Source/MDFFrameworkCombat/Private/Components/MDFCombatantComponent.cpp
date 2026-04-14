@@ -3,6 +3,7 @@
 #include "Components/MDFCombatantComponent.h"
 
 #include "DrawDebugHelpers.h"
+#include "GameFramework/Character.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
 
@@ -52,6 +53,18 @@ bool UMDFCombatantComponent::ApplyTimedState(const FGameplayTag StateTag, const 
 		if (Entry.StateTag == StateTag)
 		{
 			Entry.EndServerTime = EndTime;
+
+			if (FTimerHandle* ExistingHandle = TimedStateExpiryHandles.Find(StateTag))
+			{
+				GetWorld()->GetTimerManager().ClearTimer(*ExistingHandle);
+			}
+
+			FTimerDelegate ExpireDelegate;
+			ExpireDelegate.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UMDFCombatantComponent, HandleTimedStateExpired), StateTag);
+
+			FTimerHandle& Handle = TimedStateExpiryHandles.FindOrAdd(StateTag);
+			GetWorld()->GetTimerManager().SetTimer(Handle, ExpireDelegate, DurationSeconds, false);
+
 			OnRep_ActiveTimedStates();
 			return true;
 		}
@@ -65,8 +78,8 @@ bool UMDFCombatantComponent::ApplyTimedState(const FGameplayTag StateTag, const 
 	FTimerDelegate ExpireDelegate;
 	ExpireDelegate.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UMDFCombatantComponent, HandleTimedStateExpired), StateTag);
 
-	FTimerHandle TimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, ExpireDelegate, DurationSeconds, false);
+	FTimerHandle& Handle = TimedStateExpiryHandles.FindOrAdd(StateTag);
+	GetWorld()->GetTimerManager().SetTimer(Handle, ExpireDelegate, DurationSeconds, false);
 
 	return true;
 }
@@ -76,6 +89,12 @@ bool UMDFCombatantComponent::ClearTimedState(const FGameplayTag StateTag)
 	if (!GetOwner() || !GetOwner()->HasAuthority() || !StateTag.IsValid())
 	{
 		return false;
+	}
+
+	if (FTimerHandle* ExistingHandle = TimedStateExpiryHandles.Find(StateTag))
+	{
+		GetWorld()->GetTimerManager().ClearTimer(*ExistingHandle);
+		TimedStateExpiryHandles.Remove(StateTag);
 	}
 
 	for (int32 Index = 0; Index < ActiveTimedStates.Num(); ++Index)
@@ -118,11 +137,64 @@ bool UMDFCombatantComponent::PerformFrontalMeleeTrace(const float Range, const f
 	OnRep_LastFrontalMeleeHitCount();
 
 #if !(UE_BUILD_SHIPPING)
-	//DrawDebugSphere(GetWorld(), End, Radius, 16, bHit ? FColor::Green : FColor::Red, false, 1.0f);
 	RecordTraceDebugVisual(End, Radius, bHit, 1.0f);
 #endif
 
 	return true;
+}
+
+bool UMDFCombatantComponent::ApplyImpactTimedState(const FGameplayTag StateTag, const float DurationSeconds)
+{
+	return ApplyTimedState(StateTag, DurationSeconds);
+}
+
+bool UMDFCombatantComponent::ApplyKnockback(const FVector& WorldDirection, const float Strength)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || Strength <= 0.0f)
+	{
+		return false;
+	}
+
+	ACharacter* CharacterOwner = Cast<ACharacter>(GetOwner());
+	if (!CharacterOwner)
+	{
+		return false;
+	}
+
+	const FVector SafeDirection = WorldDirection.GetSafeNormal();
+	if (SafeDirection.IsNearlyZero())
+	{
+		return false;
+	}
+
+	CharacterOwner->LaunchCharacter(SafeDirection * Strength, true, true);
+	return true;
+}
+
+bool UMDFCombatantComponent::CanReceiveImpactFrom(const AActor* InstigatorActor) const
+{
+	if (!GetOwner() || !InstigatorActor)
+	{
+		return false;
+	}
+
+	if (InstigatorActor == GetOwner())
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void UMDFCombatantComponent::SetLastAppliedImpactCount(const int32 InCount)
+{
+	LastAppliedImpactCount = InCount;
+	OnRep_LastAppliedImpactCount();
+}
+
+void UMDFCombatantComponent::OnRep_LastAppliedImpactCount()
+{
+	OnCombatantStateChanged.Broadcast();
 }
 
 void UMDFCombatantComponent::HandleTimedStateExpired(const FGameplayTag ExpiredStateTag)

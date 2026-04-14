@@ -94,6 +94,7 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Casting, "Combat.State.Casting");
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Channeling, "Combat.State.Channeling");
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Dead, "Combat.State.Dead");
+	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Stunned, "Combat.State.Stunned");
 	
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Guarding, "Combat.State.Guarding");
 

@@ -52,6 +52,7 @@ void AMDFDebugHUD::DrawHUD()
 	DrawLineText(FString::Printf(TEXT("Active Skill Phase: %s"), *Snapshot.ActiveSkillPhaseText), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Last Execution Result: %s"), *Snapshot.LastExecutionResultText), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Last Frontal Melee Hit Count: %d"), Snapshot.LastFrontalMeleeHitCount), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Last Applied Impact Count: %d"), Snapshot.LastAppliedImpactCount), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Last Activation Slot: %d"), Snapshot.LastActivationSlotIndex), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Last Activation Skill: %s"), *Snapshot.LastActivationSkillText), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Last Activation Result: %s"), *Snapshot.LastActivationResultText), StartX, DrawY, FLinearColor::White);
