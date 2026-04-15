@@ -13,4 +13,19 @@ class MDFFRAMEWORKCOMBAT_API UMDFSkillExecutionHandler : public UObject
 
 public:
 	virtual bool Execute(const FMDFSkillExecutionContext& Context, FMDFSkillExecutionDecision& OutDecision) const PURE_VIRTUAL(UMDFSkillExecutionHandler::Execute, return false;);
+	
+	template <typename TSkillDef>
+const TSkillDef* ResolveTypedSkillDefinition(
+	const FMDFSkillExecutionContext& Context,
+	FMDFSkillExecutionDecision& OutDecision) const
+	{
+		const TSkillDef* TypedDefinition = Cast<TSkillDef>(Context.SkillDefinition);
+		if (!TypedDefinition)
+		{
+			OutDecision.Result = EMDFSkillExecutionResult::ExecutionFailed;
+			return nullptr;
+		}
+
+		return TypedDefinition;
+	}
 };

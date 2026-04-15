@@ -59,6 +59,8 @@ namespace MDFGameplayTags
 	// --------------------
 	UE_DEFINE_GAMEPLAY_TAG(Execution_SelfTimedState, "Execution.SelfTimedState");
 	UE_DEFINE_GAMEPLAY_TAG(Execution_FrontalMeleeTrace, "Execution.FrontalMeleeTrace");
+	UE_DEFINE_GAMEPLAY_TAG(Execution_Projectile, "Execution.Projectile");
+    UE_DEFINE_GAMEPLAY_TAG(Execution_AreaPersistent, "Execution.AreaPersistent");
 	
 	// --------------------
 	// Equipment / Tools
@@ -95,11 +97,17 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Channeling, "Combat.State.Channeling");
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Dead, "Combat.State.Dead");
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Stunned, "Combat.State.Stunned");
-	
-	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Guarding, "Combat.State.Guarding");
 
+	// --------------------
+	// Combat Target
+	// --------------------
 	UE_DEFINE_GAMEPLAY_TAG(Combat_Target_Hostile, "Combat.Target.Hostile");
 	UE_DEFINE_GAMEPLAY_TAG(Combat_Target_Friendly, "Combat.Target.Friendly");
+	
+	// --------------------
+	// Timed State
+	// --------------------
+	UE_DEFINE_GAMEPLAY_TAG(Timed_State_Guarding, "Timed.State.Guarding");
 
 	// --------------------
 	// Narrative

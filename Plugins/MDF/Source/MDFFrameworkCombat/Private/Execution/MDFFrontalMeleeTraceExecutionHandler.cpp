@@ -3,17 +3,21 @@
 #include "Execution/MDFFrontalMeleeTraceExecutionHandler.h"
 
 #include "Components/MDFCombatantComponent.h"
+#include "Data/MDFFrontalMeleeTraceSkillDefinition.h"
 #include "Data/MDFSkillDefinition.h"
 
 bool UMDFFrontalMeleeTraceExecutionHandler::Execute(const FMDFSkillExecutionContext& Context, FMDFSkillExecutionDecision& OutDecision) const
 {
-	if (!Context.CombatantComponent || !Context.SkillDefinition)
+	const UMDFFrontalMeleeTraceSkillDefinition* FrontalMeleeSkillDefinition =
+		ResolveTypedSkillDefinition<UMDFFrontalMeleeTraceSkillDefinition>(Context, OutDecision);
+	
+	if (!Context.CombatantComponent || !FrontalMeleeSkillDefinition)
 	{
 		OutDecision.Result = EMDFSkillExecutionResult::MissingCombatant;
 		return false;
 	}
 
-	if (Context.SkillDefinition->FrontalTraceRange <= 0.0f || Context.SkillDefinition->FrontalTraceRadius <= 0.0f)
+	if (FrontalMeleeSkillDefinition->FrontalTraceRange <= 0.0f || FrontalMeleeSkillDefinition->FrontalTraceRadius <= 0.0f)
 	{
 		OutDecision.Result = EMDFSkillExecutionResult::ExecutionFailed;
 		return false;
@@ -21,8 +25,8 @@ bool UMDFFrontalMeleeTraceExecutionHandler::Execute(const FMDFSkillExecutionCont
 
 	TArray<FHitResult> Hits;
 	const bool bTraceRan = Context.CombatantComponent->PerformFrontalMeleeTrace(
-		Context.SkillDefinition->FrontalTraceRange,
-		Context.SkillDefinition->FrontalTraceRadius,
+		FrontalMeleeSkillDefinition->FrontalTraceRange,
+		FrontalMeleeSkillDefinition->FrontalTraceRadius,
 		Hits);
 
 	if (!bTraceRan)
@@ -58,21 +62,21 @@ bool UMDFFrontalMeleeTraceExecutionHandler::Execute(const FMDFSkillExecutionCont
 			continue;
 		}
 
-		if (Context.SkillDefinition->ImpactTimedStateTag.IsValid() && Context.SkillDefinition->ImpactTimedStateDurationSeconds > 0.0f)
+		if (FrontalMeleeSkillDefinition->ImpactTimedStateTag.IsValid() && FrontalMeleeSkillDefinition->ImpactTimedStateDurationSeconds > 0.0f)
 		{
 			TargetCombatant->ApplyImpactTimedState(
-				Context.SkillDefinition->ImpactTimedStateTag,
-				Context.SkillDefinition->ImpactTimedStateDurationSeconds);
+				FrontalMeleeSkillDefinition->ImpactTimedStateTag,
+				FrontalMeleeSkillDefinition->ImpactTimedStateDurationSeconds);
 		}
 
-		if (Context.SkillDefinition->KnockbackStrength > 0.0f)
+		if (FrontalMeleeSkillDefinition->KnockbackStrength > 0.0f)
 		{
-			TargetCombatant->ApplyKnockback(Forward, Context.SkillDefinition->KnockbackStrength);
+			TargetCombatant->ApplyKnockback(Forward, FrontalMeleeSkillDefinition->KnockbackStrength);
 		}
 
 		++AppliedCount;
 
-		if (Context.SkillDefinition->MaxAffectedTargets > 0 && AppliedCount >= Context.SkillDefinition->MaxAffectedTargets)
+		if (FrontalMeleeSkillDefinition->MaxAffectedTargets > 0 && AppliedCount >= FrontalMeleeSkillDefinition->MaxAffectedTargets)
 		{
 			break;
 		}

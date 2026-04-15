@@ -143,6 +143,44 @@ bool UMDFCombatantComponent::PerformFrontalMeleeTrace(const float Range, const f
 	return true;
 }
 
+FTransform UMDFCombatantComponent::BuildProjectileSpawnTransform(const FName OptionalSocketName, const float ForwardOffset) const
+{
+	const AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return FTransform::Identity;
+	}
+
+	FVector SpawnLocation = OwnerActor->GetActorLocation();
+	FRotator SpawnRotation = OwnerActor->GetActorRotation();
+
+	if (const ACharacter* CharacterOwner = Cast<ACharacter>(OwnerActor))
+	{
+		if (USkeletalMeshComponent* MeshComp = CharacterOwner->GetMesh())
+		{
+			if (OptionalSocketName != NAME_None && MeshComp->DoesSocketExist(OptionalSocketName))
+			{
+				SpawnLocation = MeshComp->GetSocketLocation(OptionalSocketName);
+				SpawnRotation = MeshComp->GetSocketRotation(OptionalSocketName);
+			}
+		}
+	}
+
+	SpawnLocation += SpawnRotation.Vector() * ForwardOffset;
+	return FTransform(SpawnRotation, SpawnLocation);
+}
+
+FVector UMDFCombatantComponent::BuildForwardAreaLocation(const float ForwardDistance) const
+{
+	const AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return FVector::ZeroVector;
+	}
+
+	return OwnerActor->GetActorLocation() + (OwnerActor->GetActorForwardVector() * ForwardDistance);
+}
+
 bool UMDFCombatantComponent::ApplyImpactTimedState(const FGameplayTag StateTag, const float DurationSeconds)
 {
 	return ApplyTimedState(StateTag, DurationSeconds);

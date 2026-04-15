@@ -4,8 +4,6 @@
 
 UMDFSkillDefinition::UMDFSkillDefinition()
 	: TargetingMode(EMDFSkillTargetingMode::SingleTarget)
-	, CastTimeSeconds(0.f)
-	, RecoveryTimeSeconds(0.f)
 {
 }
 
@@ -18,3 +16,4 @@ bool UMDFSkillDefinition::IsCompatibleWithEquipment(const FGameplayTag Equipment
 {
 	return EquipmentTag.IsValid() && CompatibleEquipmentTags.HasTag(EquipmentTag);
 }
+

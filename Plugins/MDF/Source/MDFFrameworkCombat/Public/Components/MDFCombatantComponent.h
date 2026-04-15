@@ -78,11 +78,14 @@ public:
 	
 	bool ApplyTimedState(FGameplayTag StateTag, float DurationSeconds);
 	bool ClearTimedState(FGameplayTag StateTag);
-	bool PerformFrontalMeleeTrace(float Range, float Radius, TArray<FHitResult>& OutHits);
 	bool ApplyImpactTimedState(FGameplayTag StateTag, float DurationSeconds);
 	bool ApplyKnockback(const FVector& WorldDirection, float Strength);
 	bool CanReceiveImpactFrom(const AActor* InstigatorActor) const;
 	void SetLastAppliedImpactCount(int32 InCount);
+	
+	bool PerformFrontalMeleeTrace(float Range, float Radius, TArray<FHitResult>& OutHits);
+	FTransform BuildProjectileSpawnTransform(FName OptionalSocketName, float ForwardOffset) const;
+	FVector BuildForwardAreaLocation(float ForwardDistance) const;
 	
 	UFUNCTION(BlueprintPure, Category="Combat")
 	bool HasTimedState(FGameplayTag StateTag) const;

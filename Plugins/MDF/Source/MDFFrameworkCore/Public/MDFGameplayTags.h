@@ -60,6 +60,8 @@ namespace MDFGameplayTags
 	// --------------------
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Execution_SelfTimedState);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Execution_FrontalMeleeTrace);
+	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Execution_Projectile);
+    MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Execution_AreaPersistent);
 	
 	// --------------------
 	// Equipment / Tools
@@ -95,11 +97,20 @@ namespace MDFGameplayTags
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_State_Channeling);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_State_Dead);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_State_Stunned);
-	
-	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_State_Guarding);
 
+	
+	// --------------------
+	// Combat Target
+	// --------------------
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_Target_Hostile);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_Target_Friendly);
+	
+	// --------------------
+	// Timed State
+	// --------------------
+	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Timed_State_Guarding);
+	
+	
 
 	// --------------------
 	// Narrative

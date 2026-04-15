@@ -9,19 +9,12 @@
 #include "MDFSkillDefinition.generated.h"
 
 /**
- * Authored definition asset for a skill.
+ * Base authored definition asset for a skill.
  *
- * Architectural role:
- * - Static design-time data only.
- * - Describes what the skill is, which discipline owns it, how it targets,
- *   and what its authored costs/cooldowns/effects look like.
- * - Does not track per-player cooldowns, active casts, or runtime execution state.
- *
- * Current direction:
- * - Skills are discipline-owned, not shared across archetype families.
- * - Loadout compatibility is driven by OwningDisciplineTag, not family containers.
+ * Holds only data common to all skills regardless of execution family.
+ * Family-specific authored fields live in shallow child definitions.
  */
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Abstract)
 class MDFFRAMEWORKCOMBAT_API UMDFSkillDefinition : public UMDFDefinitionAsset
 {
 	GENERATED_BODY()
@@ -29,62 +22,51 @@ class MDFFRAMEWORKCOMBAT_API UMDFSkillDefinition : public UMDFDefinitionAsset
 public:
 	UMDFSkillDefinition();
 
-	/** Primary identity tag for this skill, for example Skill.Guardian.ShieldBash. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	FGameplayTag SkillTag;
 
-	/** The one discipline that owns this skill. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	FGameplayTag OwningDisciplineTag;
 
-	/** High-level semantic categories such as attack, guard, movement, heal, etc. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	FGameplayTagContainer SkillCategoryTags;
 
-	/** Equipment or tool compatibility for the skill. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	FGameplayTagContainer CompatibleEquipmentTags;
 
-	/** Broad targeting shape for the skill. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	EMDFSkillTargetingMode TargetingMode;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	FGameplayTag ExecutionTypeTag;
 
-	// Used by SelfTimedState handlers.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
-	FGameplayTag TimedStateTag;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
+	float CastTimeSeconds = 0.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
-	float TimedStateDurationSeconds = 0.0f;
+	float RecoveryTimeSeconds = 0.0f;
 
-	// Used by FrontalMeleeTrace handlers.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
-	float FrontalTraceRange = 0.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
-	float FrontalTraceRadius = 0.0f;
-
-	/** Optional cast time before the skill resolves. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
-	float CastTimeSeconds;
-
-	/** Optional recovery/lockout time after the skill resolves. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
-	float RecoveryTimeSeconds;
-
-	/** One or more authored resource costs for using the skill. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	TArray<FMDFSkillCostSpec> Costs;
 
-	/** Authored cooldown information for the skill. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	FMDFSkillCooldownSpec Cooldown;
 
-	/** Placeholder authored effect list for the skill. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	TArray<FMDFSkillEffectSpec> Effects;
+
+	// Shared impact payload used by multiple delivery families.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact", meta=(ClampMin="0"))
+	int32 MaxAffectedTargets = 1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact")
+	FGameplayTag ImpactTimedStateTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact", meta=(ClampMin="0.0"))
+	float ImpactTimedStateDurationSeconds = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact", meta=(ClampMin="0.0"))
+	float KnockbackStrength = 0.0f;
 
 	UFUNCTION(BlueprintPure, Category="Skills")
 	bool IsOwnedByDiscipline(FGameplayTag DisciplineTag) const;
@@ -92,15 +74,5 @@ public:
 	UFUNCTION(BlueprintPure, Category="Skills")
 	bool IsCompatibleWithEquipment(FGameplayTag EquipmentTag) const;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0"))
-	int32 MaxAffectedTargets = 1;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
-	FGameplayTag ImpactTimedStateTag;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
-	float ImpactTimedStateDurationSeconds = 0.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
-	float KnockbackStrength = 0.0f;
+	virtual UClass* GetExpectedSkillDefinitionClass() const PURE_VIRTUAL(..., return nullptr;);
 };

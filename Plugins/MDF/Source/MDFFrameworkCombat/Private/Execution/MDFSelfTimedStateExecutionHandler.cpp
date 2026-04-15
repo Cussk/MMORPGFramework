@@ -3,25 +3,29 @@
 #include "Execution/MDFSelfTimedStateExecutionHandler.h"
 
 #include "Components/MDFCombatantComponent.h"
+#include "Data/MDFSelfTimedStateSkillDefinition.h"
 #include "Data/MDFSkillDefinition.h"
 
 bool UMDFSelfTimedStateExecutionHandler::Execute(const FMDFSkillExecutionContext& Context, FMDFSkillExecutionDecision& OutDecision) const
 {
-	if (!Context.CombatantComponent || !Context.SkillDefinition)
+	const UMDFSelfTimedStateSkillDefinition* SelfTimedSkillDefinition =
+		ResolveTypedSkillDefinition<UMDFSelfTimedStateSkillDefinition>(Context, OutDecision);
+	
+	if (!Context.CombatantComponent || !SelfTimedSkillDefinition)
 	{
 		OutDecision.Result = EMDFSkillExecutionResult::MissingCombatant;
 		return false;
 	}
 
-	if (!Context.SkillDefinition->TimedStateTag.IsValid() || Context.SkillDefinition->TimedStateDurationSeconds <= 0.0f)
+	if (!SelfTimedSkillDefinition->TimedStateTag.IsValid() || SelfTimedSkillDefinition->TimedStateDurationSeconds <= 0.0f)
 	{
 		OutDecision.Result = EMDFSkillExecutionResult::ExecutionFailed;
 		return false;
 	}
 
 	const bool bApplied = Context.CombatantComponent->ApplyTimedState(
-		Context.SkillDefinition->TimedStateTag,
-		Context.SkillDefinition->TimedStateDurationSeconds);
+		SelfTimedSkillDefinition->TimedStateTag,
+		SelfTimedSkillDefinition->TimedStateDurationSeconds);
 
 	OutDecision.Result = bApplied ? EMDFSkillExecutionResult::Success : EMDFSkillExecutionResult::ExecutionFailed;
 	return bApplied;
