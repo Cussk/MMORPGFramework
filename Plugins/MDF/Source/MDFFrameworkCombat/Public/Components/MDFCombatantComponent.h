@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
+#include "Types/MDFSkillDebugTypes.h"
 #include "MDFCombatantComponent.generated.h"
 
 USTRUCT(BlueprintType)
@@ -17,27 +18,6 @@ struct MDFFRAMEWORKCOMBAT_API FMDFTimedStateRuntime
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	float EndServerTime = 0.0f;
-};
-
-USTRUCT(BlueprintType)
-struct MDFFRAMEWORKCOMBAT_API FMDFTraceDebugVisual
-{
-	GENERATED_BODY()
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
-	FVector Center = FVector::ZeroVector;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
-	float Radius = 0.0f;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
-	bool bHit = false;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
-	float Duration = 1.0f;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
-	int32 Sequence = 0;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMDFCombatantStateChanged);
@@ -65,15 +45,27 @@ public:
 	}
 	
 	UFUNCTION(BlueprintPure, Category="Combat")
+	int32 GetLastAppliedImpactCount() const
+	{
+		return LastAppliedImpactCount;
+	}
+	
+	UFUNCTION(BlueprintPure, Category="Combat")
 	const FMDFTraceDebugVisual& GetLastTraceDebugVisual() const
 	{
 		return LastTraceDebugVisual;
 	}
 	
 	UFUNCTION(BlueprintPure, Category="Combat")
-	int32 GetLastAppliedImpactCount() const
+	const FMDFDebugLineVisual& GetLastProjectileDebugLine() const
 	{
-		return LastAppliedImpactCount;
+		return LastProjectileDebugLine;
+	}
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const FMDFDebugSphereVisual& GetLastAreaDebugSphere() const
+	{
+		return LastAreaDebugSphere;
 	}
 	
 	bool ApplyTimedState(FGameplayTag StateTag, float DurationSeconds);
@@ -84,8 +76,12 @@ public:
 	void SetLastAppliedImpactCount(int32 InCount);
 	
 	bool PerformFrontalMeleeTrace(float Range, float Radius, TArray<FHitResult>& OutHits);
-	FTransform BuildProjectileSpawnTransform(FName OptionalSocketName, float ForwardOffset) const;
+	FVector BuildProjectileSpawnLocation(FName OptionalSocketName, float ForwardOffset) const;
 	FVector BuildForwardAreaLocation(float ForwardDistance) const;
+	
+	void RecordTraceDebugVisual(const FVector& Center, float Radius, bool bHit, float Duration);
+	void RecordProjectileDebugLine(const FVector& Start, const FVector& End, float Duration);
+	void RecordAreaDebugSphere(const FVector& Center, float Radius, float Duration, bool bPositive);
 	
 	UFUNCTION(BlueprintPure, Category="Combat")
 	bool HasTimedState(FGameplayTag StateTag) const;
@@ -107,6 +103,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LastTraceDebugVisual, Category="Combat")
 	FMDFTraceDebugVisual LastTraceDebugVisual;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LastProjectileDebugLine, Category="Combat")
+	FMDFDebugLineVisual LastProjectileDebugLine;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LastAreaDebugSphere, Category="Combat")
+	FMDFDebugSphereVisual LastAreaDebugSphere;
+	
 	TMap<FGameplayTag, FTimerHandle> TimedStateExpiryHandles;
 
 	UFUNCTION()
@@ -120,10 +122,15 @@ protected:
 	
 	UFUNCTION()
 	void OnRep_LastTraceDebugVisual();
+	
+	UFUNCTION()
+	void OnRep_LastProjectileDebugLine();
+
+	UFUNCTION()
+	void OnRep_LastAreaDebugSphere();
 
 	UFUNCTION()
 	void HandleTimedStateExpired(FGameplayTag ExpiredStateTag);
 
 	float GetServerWorldTimeSecondsSafe() const;
-	void RecordTraceDebugVisual(const FVector& Center, float Radius, bool bHit, float Duration);
 };

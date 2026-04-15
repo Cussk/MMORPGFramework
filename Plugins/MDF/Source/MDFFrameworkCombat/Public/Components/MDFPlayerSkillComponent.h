@@ -11,6 +11,8 @@
 #include "Types/MDFSkillRuntimeTypes.h"
 #include "MDFPlayerSkillComponent.generated.h"
 
+class APlayerController;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMDFPlayerSkillStateChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMDFDisciplineSwapResolved, const FMDFDisciplineSwapDecision&, Decision);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMDFSkillActivationResolved, const FMDFSkillActivationDecision&, Decision);
@@ -235,6 +237,20 @@ protected:
 	FMDFSkillActivationDecision EvaluateSkillActivationFromSlot(int32 SlotIndex) const;
 	bool IsSkillActivationBlockedByRuntimeState() const;
 	
+	bool ResolveViewAimData(FVector& OutViewOrigin, FVector& OutAimDirection) const;
+	bool ResolveTargetPointForSkill(
+		const UMDFSkillDefinition* SkillDefinition,
+		const FVector& ViewOrigin,
+		const FVector& AimDirection,
+		AActor*& OutOptionalTargetActor,
+		FVector& OutTargetPoint) const;
+
+	bool BuildExecutionContext(
+		const UMDFSkillDefinition* SkillDefinition,
+		UMDFCombatantComponent* CombatantComponent,
+		FMDFSkillExecutionContext& OutContext) const;
+	
+	APlayerController* ResolveOwningPlayerController() const;
 	UMDFCombatantComponent* ResolveAvatarCombatant() const;
 	bool CommitAndExecuteSkillActivation(const FMDFSkillActivationDecision& ActivationDecision);
 };

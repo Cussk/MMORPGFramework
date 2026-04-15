@@ -29,9 +29,23 @@ bool UMDFProjectileExecutionHandler::Execute(const FMDFSkillExecutionContext& Co
 		return false;
 	}
 
-	const FTransform SpawnTransform = Context.CombatantComponent->BuildProjectileSpawnTransform(
-		ProjectileDefinition->ProjectileSpawnSocketName,
-		ProjectileDefinition->ProjectileForwardSpawnOffset);
+	const FVector SpawnLocation = Context.CombatantComponent->BuildProjectileSpawnLocation(
+	ProjectileDefinition->ProjectileSpawnSocketName,
+	ProjectileDefinition->ProjectileForwardSpawnOffset);
+
+	const FVector AimDirection =
+		Context.bHasTargetPoint
+			? (Context.TargetPoint - SpawnLocation).GetSafeNormal()
+			: Context.AimDirection;
+
+	if (AimDirection.IsNearlyZero())
+	{
+		OutDecision.Result = EMDFSkillExecutionResult::ExecutionFailed;
+		return false;
+	}
+
+	const FRotator AimRotation = AimDirection.Rotation();
+	const FTransform SpawnTransform(AimRotation, SpawnLocation);
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = Context.AvatarActor;
@@ -52,5 +66,13 @@ bool UMDFProjectileExecutionHandler::Execute(const FMDFSkillExecutionContext& Co
 	Projectile->InitializeFromSkillDefinition(ProjectileDefinition, Context.AvatarActor);
 
 	OutDecision.Result = EMDFSkillExecutionResult::Success;
+	
+#if !(UE_BUILD_SHIPPING)
+	Context.CombatantComponent->RecordProjectileDebugLine(
+	SpawnLocation,
+	Context.bHasTargetPoint ? Context.TargetPoint : (SpawnLocation + (AimDirection * 600.0f)),
+	1.0f);
+#endif
+	
 	return true;
 }

@@ -67,6 +67,12 @@ protected:
 	UPROPERTY(Transient)
 	int32 LastProcessedTraceDebugSequence = 0;
 	
+	UPROPERTY(Transient)
+	int32 LastProcessedProjectileDebugSequence = 0;
+	
+	UPROPERTY(Transient)
+	int32 LastProcessedAreaDebugSequence = 0;
+	
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	
@@ -95,6 +101,8 @@ protected:
 	bool IsDebugHUDEnabled();
 	
 	void ConsumeTraceDebugVisual();
+	void ConsumeProjectileDebugLine();
+	void ConsumeAreaDebugSphere();
 
 	APlayerController* ResolveOwningController() const;
 	UMDFDebugWorldSubsystem* ResolveDebugSubsystem() const;

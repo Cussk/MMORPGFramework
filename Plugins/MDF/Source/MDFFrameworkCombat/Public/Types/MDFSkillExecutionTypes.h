@@ -73,4 +73,12 @@ struct MDFFRAMEWORKCOMBAT_API FMDFSkillExecutionContext
 	UMDFCombatantComponent* CombatantComponent = nullptr;
 	const UMDFSkillDefinition* SkillDefinition = nullptr;
 	AActor* OptionalTargetActor = nullptr;
+
+	// Resolved from the current player view at activation time.
+	FVector ViewOrigin = FVector::ZeroVector;
+	FVector AimDirection = FVector::ForwardVector;
+
+	// Optional resolved endpoint for projectile / ground-target / area skills.
+	FVector TargetPoint = FVector::ZeroVector;
+	bool bHasTargetPoint = false;
 };

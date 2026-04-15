@@ -42,6 +42,8 @@ void UMDFPCDebugComponent::TickComponent(const float DeltaTime, const ELevelTick
 	}
 
 	ConsumeTraceDebugVisual();
+	ConsumeProjectileDebugLine();
+	ConsumeAreaDebugSphere();
 }
 
 void UMDFPCDebugComponent::MDFDebugToggleHUD()
@@ -324,6 +326,61 @@ void UMDFPCDebugComponent::ConsumeTraceDebugVisual()
 		TraceVisual.bHit ? FColor::Green : FColor::Red,
 		false,
 		TraceVisual.Duration);
+}
+
+void UMDFPCDebugComponent::ConsumeProjectileDebugLine()
+{
+	UMDFCombatantComponent* CombatantComponent = ResolveLocalCombatantComponent();
+	if (!CombatantComponent || !GetWorld())
+	{
+		return;
+	}
+
+	const FMDFDebugLineVisual& Visual = CombatantComponent->GetLastProjectileDebugLine();
+	if (Visual.Sequence <= 0 || Visual.Sequence == LastProcessedProjectileDebugSequence)
+	{
+		return;
+	}
+
+	LastProcessedProjectileDebugSequence = Visual.Sequence;
+
+	DrawDebugLine(
+		GetWorld(),
+		Visual.Start,
+		Visual.End,
+		FColor::Cyan,
+		false,
+		Visual.Duration,
+		0,
+		2.0f);
+
+	DrawDebugSphere(GetWorld(), Visual.End, 12.0f, 8, FColor::Cyan, false, Visual.Duration);
+}
+
+void UMDFPCDebugComponent::ConsumeAreaDebugSphere()
+{
+	UMDFCombatantComponent* CombatantComponent = ResolveLocalCombatantComponent();
+	if (!CombatantComponent || !GetWorld())
+	{
+		return;
+	}
+
+	const FMDFDebugSphereVisual& Visual = CombatantComponent->GetLastAreaDebugSphere();
+	if (Visual.Sequence <= 0 || Visual.Sequence == LastProcessedAreaDebugSequence)
+	{
+		return;
+	}
+
+	LastProcessedAreaDebugSequence = Visual.Sequence;
+
+	DrawDebugSphere(
+		GetWorld(),
+		Visual.Center,
+		Visual.Radius,
+		16,
+		Visual.bPositive ? FColor::Green : FColor::Yellow,
+		false,
+		Visual.Duration);
 }
 
 APlayerController* UMDFPCDebugComponent::ResolveOwningController() const

@@ -7,6 +7,7 @@
 #include "GameplayTagContainer.h"
 #include "MDFPersistentSkillArea.generated.h"
 
+class UMDFCombatantComponent;
 class UMDFSkillDefinition;
 
 UCLASS()
@@ -49,6 +50,8 @@ protected:
 	int32 LastPulseAppliedCount = 0;
 
 	FTimerHandle PulseTimerHandle;
+	
+	TWeakObjectPtr<UMDFCombatantComponent> SourceCombatantComponent;
 
 	UFUNCTION()
 	void HandlePulse();

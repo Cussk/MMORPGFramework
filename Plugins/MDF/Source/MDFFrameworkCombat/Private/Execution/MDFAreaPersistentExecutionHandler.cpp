@@ -29,10 +29,12 @@ bool UMDFAreaPersistentExecutionHandler::Execute(const FMDFSkillExecutionContext
 		return false;
 	}
 
-	const FVector SpawnLocation = Context.CombatantComponent->BuildForwardAreaLocation(
-		AreaPersistentSkillDefinition->PersistentAreaForwardDistance);
+	const FVector SpawnLocation =
+	Context.bHasTargetPoint
+		? Context.TargetPoint
+		: Context.CombatantComponent->BuildForwardAreaLocation(AreaPersistentSkillDefinition->PersistentAreaForwardDistance);
 
-	FTransform SpawnTransform(Context.AvatarActor->GetActorRotation(), SpawnLocation);
+	FTransform SpawnTransform(FRotator::ZeroRotator, SpawnLocation);
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = Context.AvatarActor;
@@ -53,5 +55,14 @@ bool UMDFAreaPersistentExecutionHandler::Execute(const FMDFSkillExecutionContext
 	AreaActor->InitializeFromSkillDefinition(AreaPersistentSkillDefinition, Context.AvatarActor);
 
 	OutDecision.Result = EMDFSkillExecutionResult::Success;
+	
+#if !(UE_BUILD_SHIPPING)
+	Context.CombatantComponent->RecordAreaDebugSphere(
+	SpawnLocation,
+	AreaPersistentSkillDefinition->PersistentAreaRadius,
+	AreaPersistentSkillDefinition->PersistentAreaLifetimeSeconds,
+	false);
+#endif
+	
 	return true;
 }

@@ -735,6 +735,121 @@ bool UMDFPlayerSkillComponent::IsSkillActivationBlockedByRuntimeState() const
 	return false;
 }
 
+bool UMDFPlayerSkillComponent::ResolveViewAimData(FVector& OutViewOrigin, FVector& OutAimDirection) const
+{
+	APlayerController* PC = ResolveOwningPlayerController();
+	if (!PC)
+	{
+		return false;
+	}
+
+	FRotator ViewRotation = FRotator::ZeroRotator;
+	PC->GetPlayerViewPoint(OutViewOrigin, ViewRotation);
+	OutAimDirection = ViewRotation.Vector().GetSafeNormal();
+
+	return !OutAimDirection.IsNearlyZero();
+}
+
+bool UMDFPlayerSkillComponent::ResolveTargetPointForSkill(
+	const UMDFSkillDefinition* SkillDefinition,
+	const FVector& ViewOrigin,
+	const FVector& AimDirection,
+	AActor*& OutOptionalTargetActor,
+	FVector& OutTargetPoint) const
+{
+	OutOptionalTargetActor = nullptr;
+	OutTargetPoint = FVector::ZeroVector;
+
+	if (!SkillDefinition || !GetWorld())
+	{
+		return false;
+	}
+
+	constexpr float TraceDistance = 10000.0f;
+	const FVector TraceEnd = ViewOrigin + (AimDirection * TraceDistance);
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(MDFSkillTargetPointTrace), false);
+	if (const AActor* AvatarActor = GetOwner())
+	{
+		Params.AddIgnoredActor(AvatarActor);
+	}
+
+	FHitResult Hit;
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(
+		Hit,
+		ViewOrigin,
+		TraceEnd,
+		ECC_Visibility,
+		Params);
+
+	switch (SkillDefinition->TargetingMode)
+	{
+	case EMDFSkillTargetingMode::Self:
+		if (const APlayerState* PS = Cast<APlayerState>(GetOwner()))
+		{
+			if (const APawn* Pawn = PS->GetPawn())
+			{
+				OutTargetPoint = Pawn->GetActorLocation();
+				return true;
+			}
+		}
+		return false;
+
+	case EMDFSkillTargetingMode::SingleTarget:
+	case EMDFSkillTargetingMode::GroundTarget:
+	case EMDFSkillTargetingMode::Area:
+		if (bHit)
+		{
+			OutOptionalTargetActor = Hit.GetActor();
+			OutTargetPoint = Hit.ImpactPoint;
+			return true;
+		}
+
+		OutTargetPoint = TraceEnd;
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+bool UMDFPlayerSkillComponent::BuildExecutionContext(
+	const UMDFSkillDefinition* SkillDefinition,
+	UMDFCombatantComponent* CombatantComponent,
+	FMDFSkillExecutionContext& OutContext) const
+{
+	if (!SkillDefinition || !CombatantComponent)
+	{
+		return false;
+	}
+
+	OutContext = FMDFSkillExecutionContext();
+	OutContext.AvatarActor = CombatantComponent->GetOwner();
+	OutContext.SkillComponent = const_cast<UMDFPlayerSkillComponent*>(this);
+	OutContext.CombatantComponent = CombatantComponent;
+	OutContext.SkillDefinition = SkillDefinition;
+
+	if (!ResolveViewAimData(OutContext.ViewOrigin, OutContext.AimDirection))
+	{
+		return false;
+	}
+
+	OutContext.bHasTargetPoint = ResolveTargetPointForSkill(
+		SkillDefinition,
+		OutContext.ViewOrigin,
+		OutContext.AimDirection,
+		OutContext.OptionalTargetActor,
+		OutContext.TargetPoint);
+
+	return true;
+}
+
+APlayerController* UMDFPlayerSkillComponent::ResolveOwningPlayerController() const
+{
+	const APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner());
+	return OwningPlayerState ? Cast<APlayerController>(OwningPlayerState->GetOwner()) : nullptr;
+}
+
 UMDFCombatantComponent* UMDFPlayerSkillComponent::ResolveAvatarCombatant() const
 {
 	const APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner());
@@ -788,12 +903,15 @@ bool UMDFPlayerSkillComponent::CommitAndExecuteSkillActivation(const FMDFSkillAc
 	OnRep_ActiveSkillRuntime();
 
 	FMDFSkillExecutionContext Context;
-	Context.AvatarActor = Combatant->GetOwner();
-	Context.SkillComponent = this;
-	Context.CombatantComponent = Combatant;
-	Context.SkillDefinition = SkillDefinition;
-	Context.OptionalTargetActor = nullptr;
-
+	if (!BuildExecutionContext(SkillDefinition, Combatant, Context))
+	{
+		ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Failed;
+		LastSkillExecutionDecision.Result = EMDFSkillExecutionResult::ExecutionFailed;
+		OnRep_ActiveSkillRuntime();
+		OnRep_LastSkillExecutionDecision();
+		return false;
+	}
+	
 	ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Executing;
 	OnRep_ActiveSkillRuntime();
 

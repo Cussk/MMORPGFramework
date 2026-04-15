@@ -19,6 +19,8 @@ void UMDFCombatantComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME(UMDFCombatantComponent, ActiveTimedStates);
 	DOREPLIFETIME(UMDFCombatantComponent, LastFrontalMeleeHitCount);
 	DOREPLIFETIME_CONDITION(UMDFCombatantComponent, LastTraceDebugVisual, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UMDFCombatantComponent, LastProjectileDebugLine, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UMDFCombatantComponent, LastAreaDebugSphere, COND_OwnerOnly);
 }
 
 bool UMDFCombatantComponent::HasTimedState(const FGameplayTag StateTag) const
@@ -143,16 +145,16 @@ bool UMDFCombatantComponent::PerformFrontalMeleeTrace(const float Range, const f
 	return true;
 }
 
-FTransform UMDFCombatantComponent::BuildProjectileSpawnTransform(const FName OptionalSocketName, const float ForwardOffset) const
+FVector UMDFCombatantComponent::BuildProjectileSpawnLocation(const FName OptionalSocketName, const float ForwardOffset) const
 {
 	const AActor* OwnerActor = GetOwner();
 	if (!OwnerActor)
 	{
-		return FTransform::Identity;
+		return FVector::ZeroVector;
 	}
 
 	FVector SpawnLocation = OwnerActor->GetActorLocation();
-	FRotator SpawnRotation = OwnerActor->GetActorRotation();
+	FVector ForwardVector = OwnerActor->GetActorForwardVector();
 
 	if (const ACharacter* CharacterOwner = Cast<ACharacter>(OwnerActor))
 	{
@@ -161,13 +163,11 @@ FTransform UMDFCombatantComponent::BuildProjectileSpawnTransform(const FName Opt
 			if (OptionalSocketName != NAME_None && MeshComp->DoesSocketExist(OptionalSocketName))
 			{
 				SpawnLocation = MeshComp->GetSocketLocation(OptionalSocketName);
-				SpawnRotation = MeshComp->GetSocketRotation(OptionalSocketName);
 			}
 		}
 	}
 
-	SpawnLocation += SpawnRotation.Vector() * ForwardOffset;
-	return FTransform(SpawnRotation, SpawnLocation);
+	return SpawnLocation + (ForwardVector * ForwardOffset);
 }
 
 FVector UMDFCombatantComponent::BuildForwardAreaLocation(const float ForwardDistance) const
@@ -271,6 +271,37 @@ void UMDFCombatantComponent::RecordTraceDebugVisual(const FVector& Center, float
 	OnRep_LastTraceDebugVisual();
 }
 
+void UMDFCombatantComponent::RecordProjectileDebugLine(const FVector& Start, const FVector& End, const float Duration)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	LastProjectileDebugLine.Start = Start;
+	LastProjectileDebugLine.End = End;
+	LastProjectileDebugLine.Duration = Duration;
+	++LastProjectileDebugLine.Sequence;
+
+	OnRep_LastProjectileDebugLine();
+}
+
+void UMDFCombatantComponent::RecordAreaDebugSphere(const FVector& Center, const float Radius, const float Duration, const bool bPositive)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	LastAreaDebugSphere.Center = Center;
+	LastAreaDebugSphere.Radius = Radius;
+	LastAreaDebugSphere.Duration = Duration;
+	LastAreaDebugSphere.bPositive = bPositive;
+	++LastAreaDebugSphere.Sequence;
+
+	OnRep_LastAreaDebugSphere();
+}
+
 auto UMDFCombatantComponent::OnRep_ActiveTimedStates() -> void
 {
 	OnCombatantStateChanged.Broadcast();
@@ -283,4 +314,15 @@ void UMDFCombatantComponent::OnRep_LastFrontalMeleeHitCount()
 
 void UMDFCombatantComponent::OnRep_LastTraceDebugVisual()
 {
+	OnCombatantStateChanged.Broadcast();
+}
+
+void UMDFCombatantComponent::OnRep_LastProjectileDebugLine()
+{
+	OnCombatantStateChanged.Broadcast();
+}
+
+void UMDFCombatantComponent::OnRep_LastAreaDebugSphere()
+{
+	OnCombatantStateChanged.Broadcast();
 }

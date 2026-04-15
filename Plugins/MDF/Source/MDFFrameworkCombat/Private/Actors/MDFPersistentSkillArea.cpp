@@ -11,23 +11,13 @@
 AMDFPersistentSkillArea::AMDFPersistentSkillArea()
 {
 	bReplicates = true;
-	SetReplicateMovement(false);
+	AActor::SetReplicateMovement(false);
 	PrimaryActorTick.bCanEverTick = false;
 }
 
 void AMDFPersistentSkillArea::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (!HasAuthority())
-	{
-		return;
-	}
-
-	if (PulseIntervalSeconds > 0.0f)
-	{
-		GetWorldTimerManager().SetTimer(PulseTimerHandle, this, &AMDFPersistentSkillArea::HandlePulse, PulseIntervalSeconds, true);
-	}
 }
 
 void AMDFPersistentSkillArea::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -63,8 +53,17 @@ void AMDFPersistentSkillArea::InitializeFromSkillDefinition(const UMDFSkillDefin
 	ImpactTimedStateDurationSeconds = AreaDefinition->ImpactTimedStateDurationSeconds;
 	KnockbackStrength = AreaDefinition->KnockbackStrength;
 	MaxAffectedTargets = AreaDefinition->MaxAffectedTargets;
+	
+	if (SourceActor)
+	{
+		SourceCombatantComponent = SourceActor->FindComponentByClass<UMDFCombatantComponent>();
+	}
 
 	SetLifeSpan(AreaDefinition->PersistentAreaLifetimeSeconds);
+	if (PulseIntervalSeconds > 0.0f)
+	{
+		GetWorldTimerManager().SetTimer(PulseTimerHandle, this, &AMDFPersistentSkillArea::HandlePulse, PulseIntervalSeconds, true, 0);
+	}
 }
 
 void AMDFPersistentSkillArea::HandlePulse()
@@ -132,6 +131,13 @@ void AMDFPersistentSkillArea::HandlePulse()
 	}
 
 #if !(UE_BUILD_SHIPPING)
-	DrawDebugSphere(GetWorld(), Center, AreaRadius, 16, LastPulseAppliedCount > 0 ? FColor::Green : FColor::Red, false, PulseIntervalSeconds);
+	if (SourceCombatantComponent.IsValid())
+	{
+		SourceCombatantComponent->RecordAreaDebugSphere(
+			Center,
+			AreaRadius,
+			PulseIntervalSeconds,
+			LastPulseAppliedCount > 0);
+	}
 #endif
 }
