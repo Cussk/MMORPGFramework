@@ -23,20 +23,26 @@ bool UMDFProjectileExecutionHandler::Execute(const FMDFSkillExecutionContext& Co
 	}
 
 	UWorld* World = Context.AvatarActor->GetWorld();
-	if (!World)
+	if (!World || !ProjectileDefinition->ProjectileActorClass)
 	{
 		OutDecision.Result = EMDFSkillExecutionResult::ExecutionFailed;
 		return false;
 	}
 
 	const FVector SpawnLocation = Context.CombatantComponent->BuildProjectileSpawnLocation(
-	ProjectileDefinition->ProjectileSpawnSocketName,
-	ProjectileDefinition->ProjectileForwardSpawnOffset);
+		ProjectileDefinition->ProjectileSpawnSocketName,
+		ProjectileDefinition->ProjectileForwardSpawnOffset);
 
-	const FVector AimDirection =
-		Context.bHasTargetPoint
-			? (Context.TargetPoint - SpawnLocation).GetSafeNormal()
-			: Context.AimDirection;
+	FVector AimDirection = FVector::ZeroVector;
+	if (Context.AimResult.bHasResolvedPoint)
+	{
+		AimDirection = (Context.AimResult.DesiredWorldPoint - SpawnLocation).GetSafeNormal();
+	}
+
+	if (AimDirection.IsNearlyZero())
+	{
+		AimDirection = Context.AimResult.ViewDirection.GetSafeNormal();
+	}
 
 	if (AimDirection.IsNearlyZero())
 	{
@@ -44,8 +50,8 @@ bool UMDFProjectileExecutionHandler::Execute(const FMDFSkillExecutionContext& Co
 		return false;
 	}
 
-	const FRotator AimRotation = AimDirection.Rotation();
-	const FTransform SpawnTransform(AimRotation, SpawnLocation);
+	const FRotator SpawnRotation = AimDirection.Rotation();
+	const FTransform SpawnTransform(SpawnRotation, SpawnLocation);
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = Context.AvatarActor;
@@ -65,14 +71,15 @@ bool UMDFProjectileExecutionHandler::Execute(const FMDFSkillExecutionContext& Co
 
 	Projectile->InitializeFromSkillDefinition(ProjectileDefinition, Context.AvatarActor);
 
-	OutDecision.Result = EMDFSkillExecutionResult::Success;
-	
 #if !(UE_BUILD_SHIPPING)
 	Context.CombatantComponent->RecordProjectileDebugLine(
-	SpawnLocation,
-	Context.bHasTargetPoint ? Context.TargetPoint : (SpawnLocation + (AimDirection * 600.0f)),
-	1.0f);
+		SpawnLocation,
+		Context.AimResult.bHasResolvedPoint
+			? Context.AimResult.DesiredWorldPoint
+			: (SpawnLocation + (AimDirection * 600.0f)),
+		1.0f);
 #endif
-	
+
+	OutDecision.Result = EMDFSkillExecutionResult::Success;
 	return true;
 }

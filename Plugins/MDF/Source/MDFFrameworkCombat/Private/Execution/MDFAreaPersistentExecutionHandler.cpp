@@ -23,18 +23,49 @@ bool UMDFAreaPersistentExecutionHandler::Execute(const FMDFSkillExecutionContext
 	}
 
 	UWorld* World = Context.AvatarActor->GetWorld();
-	if (!World)
+	if (!World || !AreaPersistentSkillDefinition->PersistentAreaActorClass)
 	{
 		OutDecision.Result = EMDFSkillExecutionResult::ExecutionFailed;
 		return false;
 	}
 
-	const FVector SpawnLocation =
-	Context.bHasTargetPoint
-		? Context.TargetPoint
-		: Context.CombatantComponent->BuildForwardAreaLocation(AreaPersistentSkillDefinition->PersistentAreaForwardDistance);
+	FVector SpawnLocation;
 
-	FTransform SpawnTransform(FRotator::ZeroRotator, SpawnLocation);
+	switch (AreaPersistentSkillDefinition->TargetingMode)
+	{
+	case EMDFSkillTargetingMode::Self:
+		SpawnLocation = Context.AvatarActor->GetActorLocation();
+		break;
+
+	case EMDFSkillTargetingMode::SingleTarget:
+		if (Context.OptionalTargetActor)
+		{
+			SpawnLocation = Context.OptionalTargetActor->GetActorLocation();
+		}
+		else if (Context.AimResult.bHasResolvedPoint)
+		{
+			SpawnLocation = Context.AimResult.DesiredWorldPoint;
+		}
+		else
+		{
+			SpawnLocation = Context.CombatantComponent->BuildForwardAreaLocation(AreaPersistentSkillDefinition->PersistentAreaForwardDistance);
+		}
+		break;
+
+	case EMDFSkillTargetingMode::GroundTarget:
+	default:
+		if (Context.AimResult.bHasResolvedPoint)
+		{
+			SpawnLocation = Context.AimResult.DesiredWorldPoint;
+		}
+		else
+		{
+			SpawnLocation = Context.CombatantComponent->BuildForwardAreaLocation(AreaPersistentSkillDefinition->PersistentAreaForwardDistance);
+		}
+		break;
+	}
+
+	const FTransform SpawnTransform(FRotator::ZeroRotator, SpawnLocation);
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = Context.AvatarActor;
@@ -60,7 +91,7 @@ bool UMDFAreaPersistentExecutionHandler::Execute(const FMDFSkillExecutionContext
 	Context.CombatantComponent->RecordAreaDebugSphere(
 	SpawnLocation,
 	AreaPersistentSkillDefinition->PersistentAreaRadius,
-	AreaPersistentSkillDefinition->PersistentAreaLifetimeSeconds,
+	AreaPersistentSkillDefinition->PersistentAreaPulseIntervalSeconds,
 	false);
 #endif
 	

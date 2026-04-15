@@ -30,9 +30,11 @@ AMDFCharacter::AMDFCharacter()
 	
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 400.0f;
+	CameraBoom->TargetArmLength = 360.0f;
 	CameraBoom->bUsePawnControlRotation = true;
-	
+	CameraBoom->SocketOffset = FVector(0.0f, 45.0f, 55.0f);
+	CameraBoom->TargetOffset = FVector(0.0f, 0.0f, 20.0f);
+
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;

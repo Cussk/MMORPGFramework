@@ -16,7 +16,8 @@ public class MDFFrameworkQuickstart : ModuleRules
                 "EnhancedInput",
                 "MDFFrameworkCore",
                 "MDFFrameworkProgression",
-                "MDFFrameworkCombat"
+                "MDFFrameworkCombat",
+                
             }
         );
 
@@ -24,6 +25,7 @@ public class MDFFrameworkQuickstart : ModuleRules
             new string[]
             {
                 "GameplayTags",
+                "UMG",
                 "MDFFrameworkDebug"
             }
         );

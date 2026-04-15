@@ -3,12 +3,29 @@
 #include "GameFramework/MDFPlayerController.h"
 
 #include "EnhancedInputSubsystems.h"
+#include "Blueprint/UserWidget.h"
 #include "Components/MDFPCDebugComponent.h"
 #include "GameFramework/MDFPlayerState.h"
 
 AMDFPlayerController::AMDFPlayerController()
 {
 	MDFDebugComponent = CreateDefaultSubobject<UMDFPCDebugComponent>(TEXT("MDFDebugComponent"));
+}
+
+void AMDFPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (!IsLocalController() || !CenterDotWidgetClass || CenterDotWidget)
+	{
+		return;
+	}
+
+	CenterDotWidget = CreateWidget<UUserWidget>(this, CenterDotWidgetClass);
+	if (CenterDotWidget)
+	{
+		CenterDotWidget->AddToViewport(10);
+	}
 }
 
 bool AMDFPlayerController::ProcessConsoleExec(const TCHAR* Cmd, FOutputDevice& Ar, UObject* Executor)

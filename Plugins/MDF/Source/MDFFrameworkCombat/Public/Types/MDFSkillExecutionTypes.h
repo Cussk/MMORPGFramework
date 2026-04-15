@@ -65,6 +65,30 @@ struct MDFFRAMEWORKCOMBAT_API FMDFSkillExecutionDecision
 	}
 };
 
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFAimPointResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Aim")
+	FVector ViewOrigin = FVector::ZeroVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Aim")
+	FVector ViewDirection = FVector::ForwardVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Aim")
+	FVector DesiredWorldPoint = FVector::ZeroVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Aim")
+	bool bHasResolvedPoint = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Aim")
+	bool bBlockingHit = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Aim")
+	TObjectPtr<AActor> HitActor = nullptr;
+};
+
 // Internal execution context. No reflection needed.
 struct MDFFRAMEWORKCOMBAT_API FMDFSkillExecutionContext
 {
@@ -74,11 +98,5 @@ struct MDFFRAMEWORKCOMBAT_API FMDFSkillExecutionContext
 	const UMDFSkillDefinition* SkillDefinition = nullptr;
 	AActor* OptionalTargetActor = nullptr;
 
-	// Resolved from the current player view at activation time.
-	FVector ViewOrigin = FVector::ZeroVector;
-	FVector AimDirection = FVector::ForwardVector;
-
-	// Optional resolved endpoint for projectile / ground-target / area skills.
-	FVector TargetPoint = FVector::ZeroVector;
-	bool bHasTargetPoint = false;
+	FMDFAimPointResult AimResult;
 };

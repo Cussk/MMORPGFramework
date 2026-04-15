@@ -36,6 +36,8 @@ public:
 
 	virtual bool ProcessConsoleExec(const TCHAR* Cmd, FOutputDevice& Ar, UObject* Executor) override;
 	
+	
+	
 	UPROPERTY(EditAnywhere, Category ="Input|Input Mappings")
 	TArray<UInputMappingContext*> DefaultMappingContexts;
 	
@@ -52,7 +54,14 @@ public:
 	UMDFPCDebugComponent* GetMDFDebugComponent() const;
 
 protected:
+	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UUserWidget> CenterDotWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UUserWidget> CenterDotWidget;
 	
 	/** Optional quickstart debug command component. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MDF", meta=(AllowPrivateAccess="true"))

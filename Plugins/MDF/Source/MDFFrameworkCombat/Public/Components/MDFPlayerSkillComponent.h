@@ -147,6 +147,11 @@ public:
 	FMDFSkillExecutionResolved OnSkillExecutionResolved;
 
 protected:
+	
+	/* Channel for aiming trace set for your games preferred channel */
+	UPROPERTY(EditDefaultsOnly, Category="Trace")
+	TEnumAsByte<ECollisionChannel> PreferredAimTraceChannel = ECC_Visibility;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LearnedSkills, Category="Skills", meta=(AllowPrivateAccess="true"))
 	TArray<FMDFPlayerSkillEntry> LearnedSkills;
 
@@ -237,13 +242,7 @@ protected:
 	FMDFSkillActivationDecision EvaluateSkillActivationFromSlot(int32 SlotIndex) const;
 	bool IsSkillActivationBlockedByRuntimeState() const;
 	
-	bool ResolveViewAimData(FVector& OutViewOrigin, FVector& OutAimDirection) const;
-	bool ResolveTargetPointForSkill(
-		const UMDFSkillDefinition* SkillDefinition,
-		const FVector& ViewOrigin,
-		const FVector& AimDirection,
-		AActor*& OutOptionalTargetActor,
-		FVector& OutTargetPoint) const;
+	bool ResolveScreenCenterAim(FMDFAimPointResult& OutAimResult) const;
 
 	bool BuildExecutionContext(
 		const UMDFSkillDefinition* SkillDefinition,

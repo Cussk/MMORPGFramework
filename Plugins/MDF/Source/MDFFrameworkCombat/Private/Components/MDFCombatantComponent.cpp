@@ -158,11 +158,11 @@ FVector UMDFCombatantComponent::BuildProjectileSpawnLocation(const FName Optiona
 
 	if (const ACharacter* CharacterOwner = Cast<ACharacter>(OwnerActor))
 	{
-		if (USkeletalMeshComponent* MeshComp = CharacterOwner->GetMesh())
+		if (USkeletalMeshComponent* MeshComponent = CharacterOwner->GetMesh())
 		{
-			if (OptionalSocketName != NAME_None && MeshComp->DoesSocketExist(OptionalSocketName))
+			if (OptionalSocketName != NAME_None && MeshComponent->DoesSocketExist(OptionalSocketName))
 			{
-				SpawnLocation = MeshComp->GetSocketLocation(OptionalSocketName);
+				SpawnLocation = MeshComponent->GetSocketLocation(OptionalSocketName);
 			}
 		}
 	}

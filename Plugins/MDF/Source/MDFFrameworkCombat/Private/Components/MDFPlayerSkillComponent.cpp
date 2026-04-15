@@ -735,82 +735,69 @@ bool UMDFPlayerSkillComponent::IsSkillActivationBlockedByRuntimeState() const
 	return false;
 }
 
-bool UMDFPlayerSkillComponent::ResolveViewAimData(FVector& OutViewOrigin, FVector& OutAimDirection) const
+bool UMDFPlayerSkillComponent::ResolveScreenCenterAim(FMDFAimPointResult& OutAimResult) const
 {
-	APlayerController* PC = ResolveOwningPlayerController();
-	if (!PC)
+	OutAimResult = FMDFAimPointResult();
+
+	APlayerController* PlayerController = ResolveOwningPlayerController();
+	if (!PlayerController || !GetWorld())
 	{
 		return false;
 	}
 
-	FRotator ViewRotation = FRotator::ZeroRotator;
-	PC->GetPlayerViewPoint(OutViewOrigin, ViewRotation);
-	OutAimDirection = ViewRotation.Vector().GetSafeNormal();
+	int32 ViewportSizeX = 0;
+	int32 ViewportSizeY = 0;
+	PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
 
-	return !OutAimDirection.IsNearlyZero();
-}
-
-bool UMDFPlayerSkillComponent::ResolveTargetPointForSkill(
-	const UMDFSkillDefinition* SkillDefinition,
-	const FVector& ViewOrigin,
-	const FVector& AimDirection,
-	AActor*& OutOptionalTargetActor,
-	FVector& OutTargetPoint) const
-{
-	OutOptionalTargetActor = nullptr;
-	OutTargetPoint = FVector::ZeroVector;
-
-	if (!SkillDefinition || !GetWorld())
+	if (ViewportSizeX <= 0 || ViewportSizeY <= 0)
 	{
 		return false;
 	}
 
-	constexpr float TraceDistance = 10000.0f;
-	const FVector TraceEnd = ViewOrigin + (AimDirection * TraceDistance);
+	const float ScreenX = static_cast<float>(ViewportSizeX) * 0.5f;
+	const float ScreenY = static_cast<float>(ViewportSizeY) * 0.5f;
 
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(MDFSkillTargetPointTrace), false);
-	if (const AActor* AvatarActor = GetOwner())
+	FVector WorldOrigin = FVector::ZeroVector;
+	FVector WorldDirection = FVector::ForwardVector;
+	if (!PlayerController->DeprojectScreenPositionToWorld(ScreenX, ScreenY, WorldOrigin, WorldDirection))
 	{
-		Params.AddIgnoredActor(AvatarActor);
+		return false;
 	}
 
-	FHitResult Hit;
-	const bool bHit = GetWorld()->LineTraceSingleByChannel(
-		Hit,
-		ViewOrigin,
+	WorldDirection = WorldDirection.GetSafeNormal();
+	if (WorldDirection.IsNearlyZero())
+	{
+		return false;
+	}
+
+	const FVector TraceEnd = WorldOrigin + (WorldDirection * 10000.0f);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MDFResolveScreenCenterAim), false);
+
+	if (const APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner()))
+	{
+		if (const APawn* Pawn = OwningPlayerState->GetPawn())
+		{
+			QueryParams.AddIgnoredActor(Pawn);
+		}
+	}
+	
+	FHitResult HitResult;
+	const bool bBlockingHit = GetWorld()->LineTraceSingleByChannel(
+		HitResult,
+		WorldOrigin,
 		TraceEnd,
-		ECC_Visibility,
-		Params);
+		PreferredAimTraceChannel,
+		QueryParams);
 
-	switch (SkillDefinition->TargetingMode)
-	{
-	case EMDFSkillTargetingMode::Self:
-		if (const APlayerState* PS = Cast<APlayerState>(GetOwner()))
-		{
-			if (const APawn* Pawn = PS->GetPawn())
-			{
-				OutTargetPoint = Pawn->GetActorLocation();
-				return true;
-			}
-		}
-		return false;
+	OutAimResult.ViewOrigin = WorldOrigin;
+	OutAimResult.ViewDirection = WorldDirection;
+	OutAimResult.bBlockingHit = bBlockingHit;
+	OutAimResult.bHasResolvedPoint = true;
+	OutAimResult.DesiredWorldPoint = bBlockingHit ? HitResult.ImpactPoint : TraceEnd;
+	OutAimResult.HitActor = bBlockingHit ? HitResult.GetActor() : nullptr;
 
-	case EMDFSkillTargetingMode::SingleTarget:
-	case EMDFSkillTargetingMode::GroundTarget:
-	case EMDFSkillTargetingMode::Area:
-		if (bHit)
-		{
-			OutOptionalTargetActor = Hit.GetActor();
-			OutTargetPoint = Hit.ImpactPoint;
-			return true;
-		}
-
-		OutTargetPoint = TraceEnd;
-		return true;
-
-	default:
-		return false;
-	}
+	return true;
 }
 
 bool UMDFPlayerSkillComponent::BuildExecutionContext(
@@ -829,17 +816,31 @@ bool UMDFPlayerSkillComponent::BuildExecutionContext(
 	OutContext.CombatantComponent = CombatantComponent;
 	OutContext.SkillDefinition = SkillDefinition;
 
-	if (!ResolveViewAimData(OutContext.ViewOrigin, OutContext.AimDirection))
+	if (!ResolveScreenCenterAim(OutContext.AimResult))
 	{
 		return false;
 	}
 
-	OutContext.bHasTargetPoint = ResolveTargetPointForSkill(
-		SkillDefinition,
-		OutContext.ViewOrigin,
-		OutContext.AimDirection,
-		OutContext.OptionalTargetActor,
-		OutContext.TargetPoint);
+	switch (SkillDefinition->TargetingMode)
+	{
+	case EMDFSkillTargetingMode::Self:
+		if (OutContext.AvatarActor)
+		{
+			OutContext.AimResult.DesiredWorldPoint = OutContext.AvatarActor->GetActorLocation();
+			OutContext.AimResult.bHasResolvedPoint = true;
+			OutContext.OptionalTargetActor = OutContext.AvatarActor;
+		}
+		break;
+
+	case EMDFSkillTargetingMode::SingleTarget:
+		OutContext.OptionalTargetActor = OutContext.AimResult.HitActor.Get();
+		break;
+
+	case EMDFSkillTargetingMode::GroundTarget:
+	default:
+		OutContext.OptionalTargetActor = OutContext.AimResult.HitActor.Get();
+		break;
+	}
 
 	return true;
 }
