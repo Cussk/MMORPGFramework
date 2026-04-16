@@ -374,18 +374,13 @@ void UMDFPlayerSkillComponent::RequestClearDisciplineSkillSlot(const FGameplayTa
 	ServerRequestClearDisciplineSkillSlot(DisciplineTag, SlotIndex);
 }
 
-void UMDFPlayerSkillComponent::RequestActivateSkillSlot(const int32 SlotIndex)
+void UMDFPlayerSkillComponent::RequestActivateSkillSlotFromInput(
+	const int32 SlotIndex,
+	const FMDFSkillActivationAimSnapshot& AimSnapshot)
 {
 	if (!GetOwner())
 	{
 		return;
-	}
-
-	FMDFSkillActivationAimSnapshot AimSnapshot;
-
-	if (UMDFTargetingComponent* TargetingComponent = ResolveOwningTargetingComponent())
-	{
-		TargetingComponent->BuildLocalActivationAimSnapshot(AimSnapshot);
 	}
 
 	if (GetOwner()->HasAuthority())
@@ -398,7 +393,6 @@ void UMDFPlayerSkillComponent::RequestActivateSkillSlot(const int32 SlotIndex)
 		{
 			CommitAndExecuteSkillActivation(Decision);
 		}
-
 		return;
 	}
 

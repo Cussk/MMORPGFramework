@@ -371,6 +371,9 @@ bool UMDFDebugWorldSubsystem::ActivateSkillSlot(APlayerController* PlayerControl
 		return false;
 	}
 
-	SkillComponent->RequestActivateSkillSlot(SlotIndex);
+	/* For real aiming use PlayerInputComponent */
+	FMDFSkillActivationAimSnapshot AimSnapshot = FMDFSkillActivationAimSnapshot(); 
+	SkillComponent->RequestActivateSkillSlotFromInput(SlotIndex, AimSnapshot);
+	
 	return SkillComponent->GetLastSkillActivationDecision().DidSucceed();
 }

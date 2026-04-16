@@ -114,7 +114,7 @@ public:
 	void RequestClearDisciplineSkillSlot(FGameplayTag DisciplineTag, int32 SlotIndex);
 	
 	UFUNCTION(BlueprintCallable, Category="Combat")
-	void RequestActivateSkillSlot(int32 SlotIndex);
+	void RequestActivateSkillSlotFromInput(int32 SlotIndex, const FMDFSkillActivationAimSnapshot& AimSnapshot);
 
 	UFUNCTION(BlueprintPure, Category="Combat")
 	const FMDFSkillActivationDecision& GetLastSkillActivationDecision() const
