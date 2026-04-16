@@ -7,6 +7,8 @@
 #include "Types/MDFTargetingTypes.h"
 #include "MDFTargetingComponent.generated.h"
 
+struct FMDFAimPointResult;
+struct FMDFSkillActivationAimSnapshot;
 class UMDFCombatantComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMDFTargetingStateChanged);
@@ -31,31 +33,22 @@ public:
 	void CycleTargetRight();
 
 	UFUNCTION(BlueprintPure, Category="Targeting")
-	bool HasLockedTarget() const
-	{
-		return IsValid(LockedTargetActor);
-	}
+	bool HasLockedTarget() const;
 
 	UFUNCTION(BlueprintPure, Category="Targeting")
-	AActor* GetLockedTargetActor() const
-	{
-		return LockedTargetActor;
-	}
+	AActor* GetLockedTargetActor() const;
 
 	UFUNCTION(BlueprintPure, Category="Targeting")
 	FVector GetLockedTargetPoint() const;
 
 	UFUNCTION(BlueprintPure, Category="Targeting")
-	int32 GetLastCandidateCount() const
-	{
-		return LastCandidateCount;
-	}
+	int32 GetLastCandidateCount() const;
 
 	UFUNCTION(BlueprintPure, Category="Targeting")
-	EMDFTargetingActionResult GetLastActionResult() const
-	{
-		return LastActionResult;
-	}
+	EMDFTargetingActionResult GetLastActionResult() const;
+	
+	UFUNCTION(BlueprintPure, Category="Targeting")
+	bool BuildLocalActivationAimSnapshot(FMDFSkillActivationAimSnapshot& OutSnapshot) const;
 
 	UPROPERTY(BlueprintAssignable, Category="Events")
 	FMDFTargetingStateChanged OnTargetingStateChanged;
@@ -81,10 +74,10 @@ protected:
 	int32 LastCandidateCount = 0;
 
 	UFUNCTION()
-	void OnRep_LockedTargetActor();
+	void OnRep_LockedTargetActor() const;
 
 	UFUNCTION()
-	void OnRep_LastActionResult();
+	void OnRep_LastActionResult() const;
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetLockedTarget(AActor* InTargetActor);
@@ -96,10 +89,12 @@ protected:
 	bool SelectBestCandidate(FMDFTargetCandidate& OutCandidate);
 	bool SelectNextCandidateToRight(FMDFTargetCandidate& OutCandidate);
 
-	bool ValidateTargetActor_Server(AActor* InTargetActor) const;
+	bool ValidateTargetActor_Server(const AActor* InTargetActor) const;
 	void ApplyLockedTarget_Server(AActor* InTargetActor, EMDFTargetingActionResult ActionResult);
 
 	APlayerController* GetOwningPlayerController() const;
 	APawn* GetOwningPawn() const;
 	UMDFCombatantComponent* ResolveCombatant(const AActor* TargetActor) const;
+	
+	bool ResolveScreenCenterAim(FMDFAimPointResult& OutAimResult) const;
 };

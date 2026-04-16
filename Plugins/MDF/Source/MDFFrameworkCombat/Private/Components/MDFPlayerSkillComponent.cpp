@@ -10,6 +10,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "Helpers/MDFCombatDefinitionLookup.h"
+#include "Helpers/MDFComponentHelpers.h"
 #include "Net/UnrealNetwork.h"
 
 UMDFPlayerSkillComponent::UMDFPlayerSkillComponent()
@@ -375,24 +376,20 @@ void UMDFPlayerSkillComponent::RequestClearDisciplineSkillSlot(const FGameplayTa
 
 void UMDFPlayerSkillComponent::RequestActivateSkillSlot(const int32 SlotIndex)
 {
-	FMDFSkillActivationAimSnapshot AimSnapshot;
-
 	if (!GetOwner())
 	{
 		return;
 	}
 
+	FMDFSkillActivationAimSnapshot AimSnapshot;
+
+	if (UMDFTargetingComponent* TargetingComponent = ResolveOwningTargetingComponent())
+	{
+		TargetingComponent->BuildLocalActivationAimSnapshot(AimSnapshot);
+	}
+
 	if (GetOwner()->HasAuthority())
 	{
-		FMDFAimPointResult LocalAimResult;
-		if (ResolveLocalAimForActivation(LocalAimResult))
-		{
-			AimSnapshot.ViewOrigin = LocalAimResult.ViewOrigin;
-			AimSnapshot.ViewDirection = LocalAimResult.ViewDirection;
-			AimSnapshot.DesiredWorldPoint = LocalAimResult.DesiredWorldPoint;
-			AimSnapshot.bHasResolvedPoint = LocalAimResult.bHasResolvedPoint;
-		}
-
 		const FMDFSkillActivationDecision Decision = EvaluateSkillActivationFromSlot(SlotIndex, AimSnapshot);
 		LastSkillActivationDecision = Decision;
 		OnSkillActivationResolved.Broadcast(Decision);
@@ -403,15 +400,6 @@ void UMDFPlayerSkillComponent::RequestActivateSkillSlot(const int32 SlotIndex)
 		}
 
 		return;
-	}
-
-	FMDFAimPointResult LocalAimResult;
-	if (ResolveLocalAimForActivation(LocalAimResult))
-	{
-		AimSnapshot.ViewOrigin = LocalAimResult.ViewOrigin;
-		AimSnapshot.ViewDirection = LocalAimResult.ViewDirection;
-		AimSnapshot.DesiredWorldPoint = LocalAimResult.DesiredWorldPoint;
-		AimSnapshot.bHasResolvedPoint = LocalAimResult.bHasResolvedPoint;
 	}
 
 	ServerRequestActivateSkillSlot(SlotIndex, AimSnapshot);
@@ -769,71 +757,6 @@ bool UMDFPlayerSkillComponent::IsSkillActivationBlockedByRuntimeState() const
 	return false;
 }
 
-bool UMDFPlayerSkillComponent::ResolveScreenCenterAim(FMDFAimPointResult& OutAimResult) const
-{
-	OutAimResult = FMDFAimPointResult();
-
-	APlayerController* PlayerController = ResolveOwningPlayerController();
-	if (!PlayerController || !GetWorld())
-	{
-		return false;
-	}
-
-	int32 ViewportSizeX = 0;
-	int32 ViewportSizeY = 0;
-	PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
-
-	if (ViewportSizeX <= 0 || ViewportSizeY <= 0)
-	{
-		return false;
-	}
-
-	const float ScreenX = static_cast<float>(ViewportSizeX) * 0.5f;
-	const float ScreenY = static_cast<float>(ViewportSizeY) * 0.5f;
-
-	FVector WorldOrigin = FVector::ZeroVector;
-	FVector WorldDirection = FVector::ForwardVector;
-	if (!PlayerController->DeprojectScreenPositionToWorld(ScreenX, ScreenY, WorldOrigin, WorldDirection))
-	{
-		return false;
-	}
-
-	WorldDirection = WorldDirection.GetSafeNormal();
-	if (WorldDirection.IsNearlyZero())
-	{
-		return false;
-	}
-
-	const FVector TraceEnd = WorldOrigin + (WorldDirection * 10000.0f);
-
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MDFResolveScreenCenterAim), false);
-
-	if (const APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner()))
-	{
-		if (const APawn* Pawn = OwningPlayerState->GetPawn())
-		{
-			QueryParams.AddIgnoredActor(Pawn);
-		}
-	}
-	
-	FHitResult HitResult;
-	const bool bBlockingHit = GetWorld()->LineTraceSingleByChannel(
-		HitResult,
-		WorldOrigin,
-		TraceEnd,
-		PreferredAimTraceChannel,
-		QueryParams);
-
-	OutAimResult.ViewOrigin = WorldOrigin;
-	OutAimResult.ViewDirection = WorldDirection;
-	OutAimResult.bBlockingHit = bBlockingHit;
-	OutAimResult.bHasResolvedPoint = true;
-	OutAimResult.DesiredWorldPoint = bBlockingHit ? HitResult.ImpactPoint : TraceEnd;
-	OutAimResult.HitActor = bBlockingHit ? HitResult.GetActor() : nullptr;
-
-	return true;
-}
-
 bool UMDFPlayerSkillComponent::BuildAimResultFromSnapshot(
 	const FMDFSkillActivationAimSnapshot& AimSnapshot,
 	FMDFAimPointResult& OutAimResult) const
@@ -858,11 +781,6 @@ bool UMDFPlayerSkillComponent::BuildAimResultFromSnapshot(
 	return true;
 }
 
-bool UMDFPlayerSkillComponent::ResolveLocalAimForActivation(FMDFAimPointResult& OutAimResult) const
-{
-	return ResolveScreenCenterAim(OutAimResult);
-}
-
 bool UMDFPlayerSkillComponent::BuildExecutionContext(
 	const FMDFSkillActivationDecision& ActivationDecision,
 	const UMDFSkillDefinition* SkillDefinition,
@@ -884,68 +802,69 @@ bool UMDFPlayerSkillComponent::BuildExecutionContext(
 		ActivationDecision.Request.AimSnapshot,
 		OutContext.AimResult);
 
-	if (!bHasSnapshotAim)
-	{
-		if (!ResolveLocalAimForActivation(OutContext.AimResult))
-		{
-			return false;
-		}
-	}
-
 	switch (SkillDefinition->TargetingMode)
 	{
 	case EMDFSkillTargetingMode::Self:
-		if (OutContext.AvatarActor)
+		if (!OutContext.AvatarActor)
 		{
-			OutContext.AimResult.DesiredWorldPoint = OutContext.AvatarActor->GetActorLocation();
-			OutContext.AimResult.bHasResolvedPoint = true;
-			OutContext.OptionalTargetActor = OutContext.AvatarActor;
+			return false;
 		}
-		break;
+
+		OutContext.OptionalTargetActor = OutContext.AvatarActor;
+		OutContext.AimResult = FMDFAimPointResult();
+		OutContext.AimResult.DesiredWorldPoint = OutContext.AvatarActor->GetActorLocation();
+		OutContext.AimResult.bHasResolvedPoint = true;
+		return true;
 
 	case EMDFSkillTargetingMode::SingleTarget:
 	{
-		UMDFTargetingComponent* TargetingComponent = ResolveOwningTargetingComponent();
-		if (TargetingComponent && TargetingComponent->HasLockedTarget())
+		if (UMDFTargetingComponent* TargetingComponent = ResolveOwningTargetingComponent())
 		{
-			OutContext.OptionalTargetActor = TargetingComponent->GetLockedTargetActor();
-
-			if (const UMDFCombatantComponent* TargetCombatant =
-				OutContext.OptionalTargetActor
-					? OutContext.OptionalTargetActor->FindComponentByClass<UMDFCombatantComponent>()
-					: nullptr)
+			if (TargetingComponent->HasLockedTarget())
 			{
-				OutContext.AimResult.DesiredWorldPoint = TargetCombatant->GetPreferredTargetPoint();
-				OutContext.AimResult.bHasResolvedPoint = true;
-				OutContext.AimResult.HitActor = OutContext.OptionalTargetActor;
+				OutContext.OptionalTargetActor = TargetingComponent->GetLockedTargetActor();
+
+				if (const UMDFCombatantComponent* TargetCombatant =
+					FMDFComponentHelpers::FindOnActor<UMDFCombatantComponent>(OutContext.OptionalTargetActor))
+				{
+					OutContext.AimResult.DesiredWorldPoint = TargetCombatant->GetPreferredTargetPoint();
+					OutContext.AimResult.bHasResolvedPoint = true;
+					OutContext.AimResult.HitActor = OutContext.OptionalTargetActor;
+					return true;
+				}
 			}
 		}
-		else
+
+		if (!bHasSnapshotAim)
 		{
-			OutContext.OptionalTargetActor = OutContext.AimResult.HitActor.Get();
+			return false;
 		}
-		break;
+
+		OutContext.OptionalTargetActor = OutContext.AimResult.HitActor.Get();
+		return true;
 	}
 
 	case EMDFSkillTargetingMode::GroundTarget:
 	default:
+		if (!bHasSnapshotAim)
+		{
+			return false;
+		}
+
 		OutContext.OptionalTargetActor = OutContext.AimResult.HitActor.Get();
-		break;
+		return true;
 	}
-
-	return true;
-}
-
-APlayerController* UMDFPlayerSkillComponent::ResolveOwningPlayerController() const
-{
-	const APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner());
-	return OwningPlayerState ? Cast<APlayerController>(OwningPlayerState->GetOwner()) : nullptr;
 }
 
 UMDFTargetingComponent* UMDFPlayerSkillComponent::ResolveOwningTargetingComponent() const
 {
-	const APlayerController* PC = ResolveOwningPlayerController();
-	return PC ? PC->FindComponentByClass<UMDFTargetingComponent>() : nullptr;
+	const APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner());
+	if (!OwningPlayerState)
+	{
+		return nullptr;
+	}
+
+	return FMDFComponentHelpers::FindFromPawn<UMDFTargetingComponent>(OwningPlayerState->GetPawn());
 }
 
 UMDFCombatantComponent* UMDFPlayerSkillComponent::ResolveAvatarCombatant() const
@@ -956,8 +875,7 @@ UMDFCombatantComponent* UMDFPlayerSkillComponent::ResolveAvatarCombatant() const
 		return nullptr;
 	}
 
-	APawn* Pawn = OwningPlayerState->GetPawn();
-	return Pawn ? Pawn->FindComponentByClass<UMDFCombatantComponent>() : nullptr;
+	return FMDFComponentHelpers::FindFromPawn<UMDFCombatantComponent>(OwningPlayerState->GetPawn());
 }
 
 bool UMDFPlayerSkillComponent::CommitAndExecuteSkillActivation(const FMDFSkillActivationDecision& ActivationDecision)

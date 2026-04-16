@@ -8,6 +8,8 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Net/UnrealNetwork.h"
+#include "Types/MDFSkillActivationTypes.h"
+#include "Types/MDFSkillExecutionTypes.h"
 
 UMDFTargetingComponent::UMDFTargetingComponent()
 {
@@ -38,6 +40,91 @@ UMDFCombatantComponent* UMDFTargetingComponent::ResolveCombatant(const AActor* T
 	return TargetActor ? TargetActor->FindComponentByClass<UMDFCombatantComponent>() : nullptr;
 }
 
+bool UMDFTargetingComponent::ResolveScreenCenterAim(FMDFAimPointResult& OutAimResult) const
+{
+	OutAimResult = FMDFAimPointResult();
+
+	const APlayerController* PlayerController = GetOwningPlayerController();
+	if (!PlayerController || !PlayerController->IsLocalController() || !GetWorld())
+	{
+		return false;
+	}
+
+	int32 ViewportSizeX = 0;
+	int32 ViewportSizeY = 0;
+	PlayerController->GetViewportSize(ViewportSizeX, ViewportSizeY);
+
+	if (ViewportSizeX <= 0 || ViewportSizeY <= 0)
+	{
+		return false;
+	}
+
+	const float ScreenX = static_cast<float>(ViewportSizeX) * 0.5f;
+	const float ScreenY = static_cast<float>(ViewportSizeY) * 0.5f;
+
+	FVector WorldOrigin = FVector::ZeroVector;
+	FVector WorldDirection = FVector::ForwardVector;
+	if (!PlayerController->DeprojectScreenPositionToWorld(ScreenX, ScreenY, WorldOrigin, WorldDirection))
+	{
+		return false;
+	}
+
+	WorldDirection = WorldDirection.GetSafeNormal();
+	if (WorldDirection.IsNearlyZero())
+	{
+		return false;
+	}
+
+	const FVector TraceEnd = WorldOrigin + (WorldDirection * MaxCandidateDistance * 4.0f);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MDFResolveScreenCenterAim), false);
+
+	if (const APawn* OwningPawn = GetOwningPawn())
+	{
+		QueryParams.AddIgnoredActor(OwningPawn);
+	}
+
+	FHitResult HitResult;
+	const bool bBlockingHit = GetWorld()->LineTraceSingleByChannel(
+		HitResult,
+		WorldOrigin,
+		TraceEnd,
+		PreferredTargetingTraceChannel,
+		QueryParams);
+
+	OutAimResult.ViewOrigin = WorldOrigin;
+	OutAimResult.ViewDirection = WorldDirection;
+	OutAimResult.bBlockingHit = bBlockingHit;
+	OutAimResult.bHasResolvedPoint = true;
+	OutAimResult.DesiredWorldPoint = bBlockingHit ? HitResult.ImpactPoint : TraceEnd;
+	OutAimResult.HitActor = bBlockingHit ? HitResult.GetActor() : nullptr;
+
+	return true;
+}
+
+bool UMDFTargetingComponent::BuildLocalActivationAimSnapshot(FMDFSkillActivationAimSnapshot& OutSnapshot) const
+{
+	OutSnapshot = FMDFSkillActivationAimSnapshot();
+
+	FMDFAimPointResult AimResult;
+	if (!ResolveScreenCenterAim(AimResult))
+	{
+		return false;
+	}
+
+	OutSnapshot.ViewOrigin = AimResult.ViewOrigin;
+	OutSnapshot.ViewDirection = AimResult.ViewDirection;
+	OutSnapshot.DesiredWorldPoint = AimResult.DesiredWorldPoint;
+	OutSnapshot.bHasResolvedPoint = AimResult.bHasResolvedPoint;
+
+	return true;
+}
+
+AActor* UMDFTargetingComponent::GetLockedTargetActor() const
+{
+	return LockedTargetActor;
+}
+
 FVector UMDFTargetingComponent::GetLockedTargetPoint() const
 {
 	if (const UMDFCombatantComponent* Combatant = ResolveCombatant(LockedTargetActor))
@@ -46,6 +133,16 @@ FVector UMDFTargetingComponent::GetLockedTargetPoint() const
 	}
 
 	return LockedTargetActor ? LockedTargetActor->GetActorLocation() : FVector::ZeroVector;
+}
+
+int32 UMDFTargetingComponent::GetLastCandidateCount() const
+{
+	return LastCandidateCount;
+}
+
+EMDFTargetingActionResult UMDFTargetingComponent::GetLastActionResult() const
+{
+	return LastActionResult;
 }
 
 void UMDFTargetingComponent::ToggleTargetLock()
@@ -106,6 +203,11 @@ void UMDFTargetingComponent::CycleTargetRight()
 	ServerSetLockedTarget(NextCandidate.TargetActor);
 }
 
+bool UMDFTargetingComponent::HasLockedTarget() const
+{
+	return IsValid(LockedTargetActor);
+}
+
 void UMDFTargetingComponent::ServerSetLockedTarget_Implementation(AActor* InTargetActor)
 {
 	if (!ValidateTargetActor_Server(InTargetActor))
@@ -129,7 +231,7 @@ void UMDFTargetingComponent::ServerClearLockedTarget_Implementation()
 	OnRep_LastActionResult();
 }
 
-bool UMDFTargetingComponent::ValidateTargetActor_Server(AActor* InTargetActor) const
+bool UMDFTargetingComponent::ValidateTargetActor_Server(const AActor* InTargetActor) const
 {
 	if (!InTargetActor)
 	{
@@ -330,12 +432,12 @@ bool UMDFTargetingComponent::SelectNextCandidateToRight(FMDFTargetCandidate& Out
 	return false;
 }
 
-void UMDFTargetingComponent::OnRep_LockedTargetActor()
+void UMDFTargetingComponent::OnRep_LockedTargetActor() const
 {
 	OnTargetingStateChanged.Broadcast();
 }
 
-void UMDFTargetingComponent::OnRep_LastActionResult()
+void UMDFTargetingComponent::OnRep_LastActionResult() const
 {
 	OnTargetingStateChanged.Broadcast();
 }
