@@ -3,6 +3,7 @@
 #include "Components/MDFPlayerSkillComponent.h"
 
 #include "Components/MDFCombatantComponent.h"
+#include "Components/MDFTargetingComponent.h"
 #include "Data/MDFSkillDefinition.h"
 #include "Execution/MDFSkillExecutionHandler.h"
 #include "Execution/MDFSkillExecutionRegistry.h"
@@ -833,8 +834,28 @@ bool UMDFPlayerSkillComponent::BuildExecutionContext(
 		break;
 
 	case EMDFSkillTargetingMode::SingleTarget:
-		OutContext.OptionalTargetActor = OutContext.AimResult.HitActor.Get();
-		break;
+		{
+			UMDFTargetingComponent* TargetingComponent = ResolveOwningTargetingComponent();
+			if (TargetingComponent && TargetingComponent->HasLockedTarget())
+			{
+				OutContext.OptionalTargetActor = TargetingComponent->GetLockedTargetActor();
+
+				if (const UMDFCombatantComponent* TargetCombatant =
+					OutContext.OptionalTargetActor
+						? OutContext.OptionalTargetActor->FindComponentByClass<UMDFCombatantComponent>()
+						: nullptr)
+				{
+					OutContext.AimResult.DesiredWorldPoint = TargetCombatant->GetPreferredTargetPoint();
+					OutContext.AimResult.bHasResolvedPoint = true;
+					OutContext.AimResult.HitActor = OutContext.OptionalTargetActor;
+				}
+			}
+			else
+			{
+				OutContext.OptionalTargetActor = OutContext.AimResult.HitActor.Get();
+			}
+			break;
+		}
 
 	case EMDFSkillTargetingMode::GroundTarget:
 	default:
@@ -849,6 +870,12 @@ APlayerController* UMDFPlayerSkillComponent::ResolveOwningPlayerController() con
 {
 	const APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner());
 	return OwningPlayerState ? Cast<APlayerController>(OwningPlayerState->GetOwner()) : nullptr;
+}
+
+UMDFTargetingComponent* UMDFPlayerSkillComponent::ResolveOwningTargetingComponent() const
+{
+	const APlayerController* PC = ResolveOwningPlayerController();
+	return PC ? PC->FindComponentByClass<UMDFTargetingComponent>() : nullptr;
 }
 
 UMDFCombatantComponent* UMDFPlayerSkillComponent::ResolveAvatarCombatant() const

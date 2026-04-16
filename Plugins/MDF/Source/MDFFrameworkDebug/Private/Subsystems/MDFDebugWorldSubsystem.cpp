@@ -7,6 +7,7 @@
 #include "Components/MDFPCDebugComponent.h"
 #include "Components/MDFPlayerProgressionComponent.h"
 #include "Components/MDFPlayerSkillComponent.h"
+#include "Components/MDFTargetingComponent.h"
 #include "Helpers/MDFComponentHelpers.h"
 #include "Types/MDFCombatDeckTypes.h"
 #include "Types/MDFDebugTypes.h"
@@ -220,6 +221,27 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 			{
 				OutSnapshot.ActiveTimedStateLines.Add(TEXT("[None]"));
 			}
+		}
+	}
+	
+	if (const UMDFTargetingComponent* TargetingComponent = PlayerController->FindComponentByClass<UMDFTargetingComponent>())
+	{
+		OutSnapshot.TargetCandidateCount = TargetingComponent->GetLastCandidateCount();
+
+		if (const AActor* LockedTarget = TargetingComponent->GetLockedTargetActor())
+		{
+			OutSnapshot.LockedTargetName = LockedTarget->GetName();
+			OutSnapshot.LockedTargetPoint = TargetingComponent->GetLockedTargetPoint();
+		}
+		else
+		{
+			OutSnapshot.LockedTargetName = TEXT("[None]");
+		}
+
+		if (const UEnum* TargetingActionEnum = StaticEnum<EMDFTargetingActionResult>())
+		{
+			OutSnapshot.LastTargetingActionText =
+				TargetingActionEnum->GetNameStringByValue(static_cast<int64>(TargetingComponent->GetLastActionResult()));
 		}
 	}
 

@@ -92,4 +92,16 @@ struct MDFFRAMEWORKDEBUG_API FMDFPlayerDebugSnapshot
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	int32 LastPersistentAreaPulseImpactCount = 0;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	FString LockedTargetName;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	FVector LockedTargetPoint = FVector::ZeroVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	FString LastTargetingActionText;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	int32 TargetCandidateCount = 0;
 };

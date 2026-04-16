@@ -11,6 +11,7 @@
 #include "Types/MDFSkillRuntimeTypes.h"
 #include "MDFPlayerSkillComponent.generated.h"
 
+class UMDFTargetingComponent;
 class APlayerController;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMDFPlayerSkillStateChanged);
@@ -250,6 +251,7 @@ protected:
 		FMDFSkillExecutionContext& OutContext) const;
 	
 	APlayerController* ResolveOwningPlayerController() const;
+	UMDFTargetingComponent* ResolveOwningTargetingComponent() const;
 	UMDFCombatantComponent* ResolveAvatarCombatant() const;
 	bool CommitAndExecuteSkillActivation(const FMDFSkillActivationDecision& ActivationDecision);
 };

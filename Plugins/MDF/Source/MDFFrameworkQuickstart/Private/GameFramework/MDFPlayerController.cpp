@@ -5,11 +5,13 @@
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/MDFPCDebugComponent.h"
+#include "Components/MDFTargetingComponent.h"
 #include "GameFramework/MDFPlayerState.h"
 
 AMDFPlayerController::AMDFPlayerController()
 {
 	MDFDebugComponent = CreateDefaultSubobject<UMDFPCDebugComponent>(TEXT("MDFDebugComponent"));
+	MDFTargetingComponent = CreateDefaultSubobject<UMDFTargetingComponent>(TEXT("MDFTargetingComponent"));
 }
 
 void AMDFPlayerController::BeginPlay()
@@ -65,6 +67,11 @@ UMDFPlayerSkillComponent* AMDFPlayerController::GetMDFSkillComponent() const
 	return nullptr;
 }
 
+UMDFTargetingComponent* AMDFPlayerController::GetMDFTargetingComponent() const
+{
+	return MDFTargetingComponent;
+}
+
 UMDFPCDebugComponent* AMDFPlayerController::GetMDFDebugComponent() const
 {
 	return MDFDebugComponent;
@@ -83,5 +90,21 @@ void AMDFPlayerController::SetupInputComponent()
 				Subsystem->AddMappingContext(CurrentContext, 0);
 			}
 		}
+	}
+}
+
+void AMDFPlayerController::ToggleTargetLock()
+{
+	if (MDFTargetingComponent)
+	{
+		MDFTargetingComponent->ToggleTargetLock();
+	}
+}
+
+void AMDFPlayerController::CycleTargetRight()
+{
+	if (MDFTargetingComponent)
+	{
+		MDFTargetingComponent->CycleTargetRight();
 	}
 }

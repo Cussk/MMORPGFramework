@@ -68,6 +68,12 @@ public:
 		return LastAreaDebugSphere;
 	}
 	
+	UFUNCTION(BlueprintPure, Category="Targeting")
+	bool CanBeTargetedBy(const AActor* RequestingActor) const;
+
+	UFUNCTION(BlueprintPure, Category="Targeting")
+	FVector GetPreferredTargetPoint() const;
+	
 	bool ApplyTimedState(FGameplayTag StateTag, float DurationSeconds);
 	bool ClearTimedState(FGameplayTag StateTag);
 	bool ApplyImpactTimedState(FGameplayTag StateTag, float DurationSeconds);

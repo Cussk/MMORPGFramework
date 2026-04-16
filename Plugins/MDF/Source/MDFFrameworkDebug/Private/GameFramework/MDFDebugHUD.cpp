@@ -60,6 +60,10 @@ void AMDFDebugHUD::DrawHUD()
 	DrawLineText(FString::Printf(TEXT("Learned Skills: %d"), Snapshot.LearnedSkillCount), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Saved Loadouts: %d"), Snapshot.SavedLoadoutCount), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Active Loadout Skills: %d"), Snapshot.ActiveLoadoutSkillCount), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Locked Target: %s"), *Snapshot.LockedTargetName), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Target Candidates: %d"), Snapshot.TargetCandidateCount), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Last Targeting Action: %s"), *Snapshot.LastTargetingActionText), StartX, DrawY, FLinearColor::White);
+	DrawLineText(FString::Printf(TEXT("Locked Target Point: X=%.1f Y=%.1f Z=%.1f"), Snapshot.LockedTargetPoint.X, Snapshot.LockedTargetPoint.Y, Snapshot.LockedTargetPoint.Z), StartX, DrawY, FLinearColor::White);
 	
 	DrawY += LineHeight;
 

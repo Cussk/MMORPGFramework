@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "MDFPlayerController.generated.h"
 
+class UMDFTargetingComponent;
 class UMDFPCDebugComponent;
 class UInputMappingContext;
 class AMDFPlayerState;
@@ -36,8 +37,6 @@ public:
 
 	virtual bool ProcessConsoleExec(const TCHAR* Cmd, FOutputDevice& Ar, UObject* Executor) override;
 	
-	
-	
 	UPROPERTY(EditAnywhere, Category ="Input|Input Mappings")
 	TArray<UInputMappingContext*> DefaultMappingContexts;
 	
@@ -49,9 +48,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "MDF")
 	UMDFPlayerSkillComponent* GetMDFSkillComponent() const;
+
+	UFUNCTION(BlueprintPure, Category="MDF")
+	UMDFTargetingComponent* GetMDFTargetingComponent() const;
 	
 	UFUNCTION(BlueprintPure, Category = "MDF")
 	UMDFPCDebugComponent* GetMDFDebugComponent() const;
+	
+	UFUNCTION(BlueprintCallable, Category="Targeting")
+	void ToggleTargetLock();
+
+	UFUNCTION(BlueprintCallable, Category="Targeting")
+	void CycleTargetRight();
 
 protected:
 	virtual void BeginPlay() override;
@@ -62,6 +70,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UUserWidget> CenterDotWidget;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
+	UMDFTargetingComponent* MDFTargetingComponent;
 	
 	/** Optional quickstart debug command component. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MDF", meta=(AllowPrivateAccess="true"))

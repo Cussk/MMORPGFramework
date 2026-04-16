@@ -3,6 +3,7 @@
 #include "Components/MDFCombatantComponent.h"
 
 #include "DrawDebugHelpers.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
@@ -39,6 +40,40 @@ bool UMDFCombatantComponent::HasTimedState(const FGameplayTag StateTag) const
 	}
 
 	return false;
+}
+
+bool UMDFCombatantComponent::CanBeTargetedBy(const AActor* RequestingActor) const
+{
+	if (!GetOwner() || !RequestingActor)
+	{
+		return false;
+	}
+
+	if (GetOwner() == RequestingActor)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+FVector UMDFCombatantComponent::GetPreferredTargetPoint() const
+{
+	const AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return FVector::ZeroVector;
+	}
+
+	if (const ACharacter* CharacterOwner = Cast<ACharacter>(OwnerActor))
+	{
+		if (const UCapsuleComponent* Capsule = CharacterOwner->GetCapsuleComponent())
+		{
+			return OwnerActor->GetActorLocation() + FVector(0.0f, 0.0f, Capsule->GetScaledCapsuleHalfHeight() * 0.65f);
+		}
+	}
+
+	return OwnerActor->GetActorLocation();
 }
 
 bool UMDFCombatantComponent::ApplyTimedState(const FGameplayTag StateTag, const float DurationSeconds)
