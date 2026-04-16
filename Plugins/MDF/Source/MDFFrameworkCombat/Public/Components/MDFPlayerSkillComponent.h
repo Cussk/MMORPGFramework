@@ -199,7 +199,7 @@ protected:
 	void ServerRequestClearDisciplineSkillSlot(FGameplayTag DisciplineTag, int32 SlotIndex);
 	
 	UFUNCTION(Server, Reliable)
-	void ServerRequestActivateSkillSlot(int32 SlotIndex);
+	void ServerRequestActivateSkillSlot(int32 SlotIndex, const FMDFSkillActivationAimSnapshot& AimSnapshot);
 
 	UFUNCTION()
 	void OnRep_LearnedSkills();
@@ -240,15 +240,14 @@ protected:
 	void SanitizeDisciplineSkillLoadouts();
 	bool IsResolvedSkillOwnedByDiscipline(FGameplayTag SkillTag, FGameplayTag DisciplineTag) const;
 	
-	FMDFSkillActivationDecision EvaluateSkillActivationFromSlot(int32 SlotIndex) const;
+	FMDFSkillActivationDecision EvaluateSkillActivationFromSlot(int32 SlotIndex, const FMDFSkillActivationAimSnapshot& AimSnapshot) const;
 	bool IsSkillActivationBlockedByRuntimeState() const;
 	
 	bool ResolveScreenCenterAim(FMDFAimPointResult& OutAimResult) const;
+	bool BuildAimResultFromSnapshot(const FMDFSkillActivationAimSnapshot& AimSnapshot, FMDFAimPointResult& OutAimResult) const;
+	bool ResolveLocalAimForActivation(FMDFAimPointResult& OutAimResult) const;
 
-	bool BuildExecutionContext(
-		const UMDFSkillDefinition* SkillDefinition,
-		UMDFCombatantComponent* CombatantComponent,
-		FMDFSkillExecutionContext& OutContext) const;
+	bool BuildExecutionContext(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition, UMDFCombatantComponent* CombatantComponent, FMDFSkillExecutionContext& OutContext) const;
 	
 	APlayerController* ResolveOwningPlayerController() const;
 	UMDFTargetingComponent* ResolveOwningTargetingComponent() const;

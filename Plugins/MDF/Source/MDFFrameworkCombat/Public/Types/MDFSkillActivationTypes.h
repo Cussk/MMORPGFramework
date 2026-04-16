@@ -21,6 +21,24 @@ enum class EMDFSkillActivationResult : uint8
 };
 
 USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFSkillActivationAimSnapshot
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FVector ViewOrigin = FVector::ZeroVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FVector ViewDirection = FVector::ForwardVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FVector DesiredWorldPoint = FVector::ZeroVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	bool bHasResolvedPoint = false;
+};
+
+USTRUCT(BlueprintType)
 struct MDFFRAMEWORKCOMBAT_API FMDFSkillActivationRequest
 {
 	GENERATED_BODY()
@@ -33,6 +51,9 @@ struct MDFFRAMEWORKCOMBAT_API FMDFSkillActivationRequest
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	FGameplayTag SkillTag;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FMDFSkillActivationAimSnapshot AimSnapshot;
 };
 
 USTRUCT(BlueprintType)
