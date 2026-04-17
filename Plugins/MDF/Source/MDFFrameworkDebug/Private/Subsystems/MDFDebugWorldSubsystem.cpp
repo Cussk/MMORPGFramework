@@ -201,6 +201,38 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 		{
 			OutSnapshot.LastExecutionResultText = ExecutionResultEnum->GetNameStringByValue(static_cast<int64>(LastExecutionDecision.Result));
 		}
+		
+		
+		const FGameplayTag ActiveDisciplineTag = SkillComponent->GetActiveDisciplineTag();
+
+		for (const FMDFSkillCooldownRuntime& Cooldown : SkillComponent->GetSkillCooldowns())
+		{
+			if (Cooldown.DisciplineTag != ActiveDisciplineTag)
+			{
+				continue;
+			}
+
+			const float RemainingSeconds =
+				SkillComponent->GetRemainingCooldownSecondsForSkill(Cooldown.DisciplineTag, Cooldown.SkillTag);
+
+			if (RemainingSeconds <= 0.0f)
+			{
+				continue;
+			}
+
+			OutSnapshot.ActiveDisciplineCooldownLines.Add(
+				FString::Printf(TEXT("%s (%.2fs)"), *TagToDebugString(Cooldown.SkillTag), RemainingSeconds));
+		}
+
+		if (OutSnapshot.ActiveDisciplineCooldownLines.Num() == 0)
+		{
+			OutSnapshot.ActiveDisciplineCooldownLines.Add(TEXT("[None]"));
+		}
+
+		OutSnapshot.LastBlockedCooldownRemainingSeconds =
+			SkillComponent->GetLastSkillActivationDecision().Result == EMDFSkillActivationResult::BlockedByCooldown
+				? SkillComponent->GetLastSkillActivationDecision().CooldownRemainingSeconds
+				: 0.0f;
 	}
 	
 	if (const APawn* Pawn = PlayerController->GetPawn())

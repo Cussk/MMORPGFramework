@@ -65,6 +65,15 @@ void AMDFDebugHUD::DrawHUD()
 	DrawLineText(FString::Printf(TEXT("Last Targeting Action: %s"), *Snapshot.LastTargetingActionText), StartX, DrawY, FLinearColor::White);
 	DrawLineText(FString::Printf(TEXT("Locked Target Point: X=%.1f Y=%.1f Z=%.1f"), Snapshot.LockedTargetPoint.X, Snapshot.LockedTargetPoint.Y, Snapshot.LockedTargetPoint.Z), StartX, DrawY, FLinearColor::White);
 	
+	DrawLineText(TEXT("Active Discipline Cooldowns:"), StartX, DrawY, FLinearColor::White);
+	for (const FString& Line : Snapshot.ActiveDisciplineCooldownLines)
+	{
+		DrawLineText(FString::Printf(TEXT("  %s"), *Line), StartX, DrawY, FLinearColor::White);
+	}
+	
+	DrawLineText(FString::Printf(TEXT("Last Blocked Cooldown Remaining: %.2f"), Snapshot.LastBlockedCooldownRemainingSeconds), StartX, DrawY,
+	FLinearColor::White);
+	
 	DrawY += LineHeight;
 
 	DrawLineText(TEXT("Combat Deck:"), StartX, DrawY, Cyan);

@@ -43,3 +43,26 @@ public:
 		return SkillTag.IsValid();
 	}
 };
+
+/**
+ * Runtime cooldown entry for a specific skill on a specific discipline.
+ *
+ * Why this shape:
+ * - Cooldowns belong to the skill/runtime layer, not attributes.
+ * - Cooldowns need to persist across discipline swaps.
+ * - Cooldowns should follow the skill even if loadout slot assignments change later.
+ */
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFSkillCooldownRuntime
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cooldown")
+	FGameplayTag DisciplineTag;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cooldown")
+	FGameplayTag SkillTag;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cooldown")
+	float CooldownEndServerTime = 0.0f;
+};

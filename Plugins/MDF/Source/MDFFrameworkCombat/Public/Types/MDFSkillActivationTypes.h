@@ -17,6 +17,7 @@ enum class EMDFSkillActivationResult : uint8
 	SkillNotLearned UMETA(DisplayName="Skill Not Learned"),
 	SkillDefinitionMissing UMETA(DisplayName="Skill Definition Missing"),
 	SkillDisciplineMismatch UMETA(DisplayName="Skill Discipline Mismatch"),
+	BlockedByCooldown		UMETA(DisplayName="Blocked By Cooldown"),
 	BlockedByRuntimeState UMETA(DisplayName="Blocked By Runtime State")
 };
 
@@ -66,6 +67,9 @@ struct MDFFRAMEWORKCOMBAT_API FMDFSkillActivationDecision
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	FMDFSkillActivationRequest Request;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	float CooldownRemainingSeconds = 0.0f;
 
 	bool DidSucceed() const
 	{

@@ -104,4 +104,10 @@ struct MDFFRAMEWORKDEBUG_API FMDFPlayerDebugSnapshot
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	int32 TargetCandidateCount = 0;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	TArray<FString> ActiveDisciplineCooldownLines;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	float LastBlockedCooldownRemainingSeconds = 0.0f;
 };

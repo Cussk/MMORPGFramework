@@ -41,6 +41,7 @@ void UMDFPlayerSkillComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastSwapDecision, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastSkillActivationDecision, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastSkillExecutionDecision, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, SkillCooldowns, COND_OwnerOnly);
 }
 
 const TArray<FMDFPlayerSkillEntry>& UMDFPlayerSkillComponent::GetLearnedSkills() const
@@ -173,6 +174,11 @@ bool UMDFPlayerSkillComponent::GetSkillInDisciplineSlot(const FGameplayTag Disci
 	}
 
 	return false;
+}
+
+const TArray<FMDFSkillCooldownRuntime>& UMDFPlayerSkillComponent::GetSkillCooldowns() const
+{
+	return SkillCooldowns;
 }
 
 void UMDFPlayerSkillComponent::SetLearnedSkills(const TArray<FMDFPlayerSkillEntry>& InLearnedSkills)
@@ -397,6 +403,11 @@ void UMDFPlayerSkillComponent::RequestActivateSkillSlotFromInput(
 	}
 
 	ServerRequestActivateSkillSlot(SlotIndex, AimSnapshot);
+}
+
+const FMDFSkillActivationDecision& UMDFPlayerSkillComponent::GetLastSkillActivationDecision() const
+{
+	return LastSkillActivationDecision;
 }
 
 void UMDFPlayerSkillComponent::ServerRequestSetActiveDiscipline_Implementation(const FGameplayTag DisciplineTag)
@@ -738,6 +749,19 @@ FMDFSkillActivationDecision UMDFPlayerSkillComponent::EvaluateSkillActivationFro
 		Decision.Result = EMDFSkillActivationResult::BlockedByRuntimeState;
 		return Decision;
 	}
+	
+	if (SkillDefinition->SkillTag.IsValid())
+	{
+		const float RemainingCooldownSeconds =
+			GetRemainingCooldownSecondsForSkill(Decision.Request.ActiveDisciplineTag, SkillDefinition->SkillTag);
+
+		if (RemainingCooldownSeconds > 0.0f)
+		{
+			Decision.Result = EMDFSkillActivationResult::BlockedByCooldown;
+			Decision.CooldownRemainingSeconds = RemainingCooldownSeconds;
+			return Decision;
+		}
+	}
 
 	Decision.Result = EMDFSkillActivationResult::Success;
 	return Decision;
@@ -934,9 +958,118 @@ bool UMDFPlayerSkillComponent::CommitAndExecuteSkillActivation(const FMDFSkillAc
 	{
 		LastSkillExecutionDecision.SkillTag = ActivationDecision.Request.SkillTag;
 	}
+	
+	if (LastSkillExecutionDecision.Result == EMDFSkillExecutionResult::Success)
+	{
+		CommitSkillCooldown(ActivationDecision.Request.ActiveDisciplineTag, SkillDefinition);
+	}
 
 	OnRep_LastSkillExecutionDecision();
 	return bExecuted;
+}
+
+FMDFSkillCooldownRuntime* UMDFPlayerSkillComponent::FindSkillCooldownEntry(
+	const FGameplayTag DisciplineTag,
+	const FGameplayTag SkillTag)
+{
+	return SkillCooldowns.FindByPredicate(
+		[&](const FMDFSkillCooldownRuntime& Entry)
+		{
+			return Entry.DisciplineTag == DisciplineTag && Entry.SkillTag == SkillTag;
+		});
+}
+
+const FMDFSkillCooldownRuntime* UMDFPlayerSkillComponent::FindSkillCooldownEntry(
+	const FGameplayTag DisciplineTag,
+	const FGameplayTag SkillTag) const
+{
+	return SkillCooldowns.FindByPredicate(
+		[&](const FMDFSkillCooldownRuntime& Entry)
+		{
+			return Entry.DisciplineTag == DisciplineTag && Entry.SkillTag == SkillTag;
+		});
+}
+
+bool UMDFPlayerSkillComponent::IsSkillOnCooldown(
+	const FGameplayTag DisciplineTag,
+	const FGameplayTag SkillTag) const
+{
+	return GetRemainingCooldownSecondsForSkill(DisciplineTag, SkillTag) > 0.0f;
+}
+
+float UMDFPlayerSkillComponent::GetRemainingCooldownSecondsForSkill(
+	const FGameplayTag DisciplineTag,
+	const FGameplayTag SkillTag) const
+{
+	const FMDFSkillCooldownRuntime* Entry = FindSkillCooldownEntry(DisciplineTag, SkillTag);
+	if (!Entry)
+	{
+		return 0.0f;
+	}
+
+	const float Remaining = Entry->CooldownEndServerTime - GetServerWorldTimeSecondsSafe();
+	return FMath::Max(0.0f, Remaining);
+}
+
+float UMDFPlayerSkillComponent::GetRemainingCooldownSecondsForSlot(const int32 SlotIndex) const
+{
+	if (SlotIndex == INDEX_NONE)
+	{
+		return 0.0f;
+	}
+
+	const FGameplayTag ActiveDisciplineTag = GetActiveDisciplineTag();
+	if (!ActiveDisciplineTag.IsValid())
+	{
+		return 0.0f;
+	}
+
+	for (const FMDFDisciplineSkillLoadoutRuntime& SkillLoadout : DisciplineSkillLoadouts)
+	{
+		if (SkillLoadout.DisciplineTag == ActiveDisciplineTag && SkillLoadout.Slots[SlotIndex].IsValid())
+		{
+			FMDFDisciplineSkillSlotRuntime SlotRuntime = SkillLoadout.Slots[SlotIndex];
+			return GetRemainingCooldownSecondsForSkill(ActiveDisciplineTag, SlotRuntime.SkillTag);
+		}
+	}
+
+	return 0.0f;
+}
+
+void UMDFPlayerSkillComponent::CommitSkillCooldown(
+	const FGameplayTag DisciplineTag,
+	const UMDFSkillDefinition* SkillDefinition)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !SkillDefinition || !SkillDefinition->SkillTag.IsValid())
+	{
+		return;
+	}
+
+	const float DurationSeconds = SkillDefinition->Cooldown.DurationSeconds;
+	if (DurationSeconds <= 0.0f)
+	{
+		return;
+	}
+
+	const float EndTime = GetServerWorldTimeSecondsSafe() + DurationSeconds;
+
+	if (FMDFSkillCooldownRuntime* ExistingEntry = FindSkillCooldownEntry(DisciplineTag, SkillDefinition->SkillTag))
+	{
+		ExistingEntry->CooldownEndServerTime = EndTime;
+		OnRep_SkillCooldowns();
+		return;
+	}
+
+	FMDFSkillCooldownRuntime& NewEntry = SkillCooldowns.AddDefaulted_GetRef();
+	NewEntry.DisciplineTag = DisciplineTag;
+	NewEntry.SkillTag = SkillDefinition->SkillTag;
+	NewEntry.CooldownEndServerTime = EndTime;
+	OnRep_SkillCooldowns();
+}
+
+void UMDFPlayerSkillComponent::OnRep_SkillCooldowns()
+{
+	// Add a delegate broadcast later if the action bar/UI needs explicit notifications.
 }
 
 void UMDFPlayerSkillComponent::OnRep_LearnedSkills()

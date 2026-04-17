@@ -88,6 +88,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Skills")
 	bool GetSkillInDisciplineSlot(FGameplayTag DisciplineTag, int32 SlotIndex, FMDFDisciplineSkillSlotRuntime& OutSlot) const;
+	
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const TArray<FMDFSkillCooldownRuntime>& GetSkillCooldowns() const;
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	bool IsSkillOnCooldown(FGameplayTag DisciplineTag, FGameplayTag SkillTag) const;
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	float GetRemainingCooldownSecondsForSkill(FGameplayTag DisciplineTag, FGameplayTag SkillTag) const;
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	float GetRemainingCooldownSecondsForSlot(int32 SlotIndex) const;
 
 	UFUNCTION(BlueprintCallable, Category="Skills")
 	void SetLearnedSkills(const TArray<FMDFPlayerSkillEntry>& InLearnedSkills);
@@ -117,10 +129,7 @@ public:
 	void RequestActivateSkillSlotFromInput(int32 SlotIndex, const FMDFSkillActivationAimSnapshot& AimSnapshot);
 
 	UFUNCTION(BlueprintPure, Category="Combat")
-	const FMDFSkillActivationDecision& GetLastSkillActivationDecision() const
-	{
-		return LastSkillActivationDecision;
-	}
+	const FMDFSkillActivationDecision& GetLastSkillActivationDecision() const;
 
 	const FMDFPlayerSkillEntry* FindLearnedSkill(FGameplayTag SkillTag) const;
 	const FMDFDisciplineSkillLoadoutRuntime* FindDisciplineSkillLoadout(FGameplayTag DisciplineTag) const;
@@ -180,6 +189,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_DisciplineSkillLoadouts, Category="Skills", meta=(AllowPrivateAccess="true"))
 	TArray<FMDFDisciplineSkillLoadoutRuntime> DisciplineSkillLoadouts;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_SkillCooldowns, Category="Combat")
+	TArray<FMDFSkillCooldownRuntime> SkillCooldowns;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LastSkillActivationDecision, Category="Combat", meta=(AllowPrivateAccess="true"))
 	FMDFSkillActivationDecision LastSkillActivationDecision;
 	
@@ -224,6 +236,9 @@ protected:
 
 	UFUNCTION()
 	void OnRep_LastSkillExecutionDecision();
+	
+	UFUNCTION()
+	void OnRep_SkillCooldowns();
 
 protected:
 	void InitializeCombatDeckFromDefaults();
@@ -248,6 +263,11 @@ protected:
 	bool BuildExecutionContext(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition, UMDFCombatantComponent* CombatantComponent, FMDFSkillExecutionContext& OutContext) const;
 	
 	bool CommitAndExecuteSkillActivation(const FMDFSkillActivationDecision& ActivationDecision);
+	
+	FMDFSkillCooldownRuntime* FindSkillCooldownEntry(FGameplayTag DisciplineTag, FGameplayTag SkillTag);
+	const FMDFSkillCooldownRuntime* FindSkillCooldownEntry(FGameplayTag DisciplineTag, FGameplayTag SkillTag) const;
+
+	void CommitSkillCooldown(FGameplayTag DisciplineTag, const UMDFSkillDefinition* SkillDefinition);
 	
 	UMDFTargetingComponent* ResolveOwningTargetingComponent() const;
 	UMDFCombatantComponent* ResolveAvatarCombatant() const;
