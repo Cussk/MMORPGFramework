@@ -11,6 +11,7 @@
 #include "GameFramework/PlayerState.h"
 #include "Helpers/MDFCombatDefinitionLookup.h"
 #include "Helpers/MDFComponentHelpers.h"
+#include "MDFFrameworkEntity/Public/Components/MDFAttributeComponent.h"
 #include "Net/UnrealNetwork.h"
 
 UMDFPlayerSkillComponent::UMDFPlayerSkillComponent()
@@ -762,6 +763,17 @@ FMDFSkillActivationDecision UMDFPlayerSkillComponent::EvaluateSkillActivationFro
 			return Decision;
 		}
 	}
+	
+	FGameplayTag FailedCostResourceTag;
+	float FailedCostAmount = 0.0f;
+
+	if (!CanPaySkillCosts(SkillDefinition, FailedCostResourceTag, FailedCostAmount))
+	{
+		Decision.Result = EMDFSkillActivationResult::BlockedByCost;
+		Decision.FailedCostResourceTag = FailedCostResourceTag;
+		Decision.FailedCostAmount = FailedCostAmount;
+		return Decision;
+	}
 
 	Decision.Result = EMDFSkillActivationResult::Success;
 	return Decision;
@@ -874,6 +886,17 @@ bool UMDFPlayerSkillComponent::BuildExecutionContext(
 	}
 }
 
+UMDFAttributeComponent* UMDFPlayerSkillComponent::ResolveOwningAttributeComponent() const
+{
+	const APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner());
+	if (!OwningPlayerState)
+	{
+		return nullptr;
+	}
+
+	return FMDFComponentHelpers::FindFromPawn<UMDFAttributeComponent>(OwningPlayerState->GetPawn());
+}
+
 UMDFTargetingComponent* UMDFPlayerSkillComponent::ResolveOwningTargetingComponent() const
 {
 	const APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner());
@@ -961,6 +984,7 @@ bool UMDFPlayerSkillComponent::CommitAndExecuteSkillActivation(const FMDFSkillAc
 	
 	if (LastSkillExecutionDecision.Result == EMDFSkillExecutionResult::Success)
 	{
+		CommitSkillCosts(SkillDefinition);
 		CommitSkillCooldown(ActivationDecision.Request.ActiveDisciplineTag, SkillDefinition);
 	}
 
@@ -1065,6 +1089,96 @@ void UMDFPlayerSkillComponent::CommitSkillCooldown(
 	NewEntry.SkillTag = SkillDefinition->SkillTag;
 	NewEntry.CooldownEndServerTime = EndTime;
 	OnRep_SkillCooldowns();
+}
+
+bool UMDFPlayerSkillComponent::CanPaySkillCosts(
+	const UMDFSkillDefinition* SkillDefinition,
+	FGameplayTag& OutFailedResourceTag,
+	float& OutFailedAmount) const
+{
+	OutFailedResourceTag = FGameplayTag();
+	OutFailedAmount = 0.0f;
+
+	if (!SkillDefinition)
+	{
+		return false;
+	}
+
+	bool bHasAnyValidCost = false;
+	for (const FMDFSkillCostSpec& Cost : SkillDefinition->Costs)
+	{
+		if (!Cost.ResourceTag.IsValid() || Cost.Amount <= 0.0f)
+		{
+			continue;
+		}
+
+		bHasAnyValidCost = true;
+		break;
+	}
+
+	if (!bHasAnyValidCost)
+	{
+		return true;
+	}
+
+	const UMDFAttributeComponent* AttributeComponent = ResolveOwningAttributeComponent();
+	if (!AttributeComponent)
+	{
+		for (const FMDFSkillCostSpec& Cost : SkillDefinition->Costs)
+		{
+			if (Cost.ResourceTag.IsValid() && Cost.Amount > 0.0f)
+			{
+				OutFailedResourceTag = Cost.ResourceTag;
+				OutFailedAmount = Cost.Amount;
+				break;
+			}
+		}
+		return false;
+	}
+
+	for (const FMDFSkillCostSpec& Cost : SkillDefinition->Costs)
+	{
+		if (!Cost.ResourceTag.IsValid() || Cost.Amount <= 0.0f)
+		{
+			continue;
+		}
+
+		if (!AttributeComponent->HasSufficientValue(Cost.ResourceTag, Cost.Amount))
+		{
+			OutFailedResourceTag = Cost.ResourceTag;
+			OutFailedAmount = Cost.Amount;
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void UMDFPlayerSkillComponent::CommitSkillCosts(const UMDFSkillDefinition* SkillDefinition)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !SkillDefinition)
+	{
+		return;
+	}
+
+	UMDFAttributeComponent* AttributeComponent = ResolveOwningAttributeComponent();
+	if (!AttributeComponent)
+	{
+		return;
+	}
+
+	for (const FMDFSkillCostSpec& Cost : SkillDefinition->Costs)
+	{
+		if (!Cost.ResourceTag.IsValid() || Cost.Amount <= 0.0f)
+		{
+			continue;
+		}
+
+		const bool bSpent = AttributeComponent->TrySpend(Cost.ResourceTag, Cost.Amount);
+
+		// This should have already been validated during activation.
+		ensureMsgf(bSpent, TEXT("Skill cost spend failed after successful activation for resource [%s]."), *Cost.ResourceTag.ToString());
+	}
 }
 
 void UMDFPlayerSkillComponent::OnRep_SkillCooldowns()

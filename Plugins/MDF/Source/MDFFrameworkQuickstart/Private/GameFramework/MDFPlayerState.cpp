@@ -4,11 +4,13 @@
 
 #include "Components/MDFPlayerProgressionComponent.h"
 #include "Components/MDFPlayerSkillComponent.h"
+#include "MDFFrameworkEntity/Public/Components/MDFAttributeComponent.h"
 
 AMDFPlayerState::AMDFPlayerState()
 {
 	MDFProgressionComponent = CreateDefaultSubobject<UMDFPlayerProgressionComponent>(TEXT("MDFProgressionComponent"));
 	MDFSkillComponent = CreateDefaultSubobject<UMDFPlayerSkillComponent>(TEXT("MDFSkillComponent"));
+	MDFAttributeComponent = CreateDefaultSubobject<UMDFAttributeComponent>(TEXT("MDFAttributeComponent"));
 }
 
 UMDFPlayerProgressionComponent* AMDFPlayerState::GetMDFProgressionComponent() const
@@ -19,4 +21,9 @@ UMDFPlayerProgressionComponent* AMDFPlayerState::GetMDFProgressionComponent() co
 UMDFPlayerSkillComponent* AMDFPlayerState::GetMDFSkillComponent() const
 {
 	return MDFSkillComponent;
+}
+
+UMDFAttributeComponent* AMDFPlayerState::GetMDFAttributeComponent() const
+{
+	return MDFAttributeComponent;
 }

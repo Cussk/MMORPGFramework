@@ -110,4 +110,13 @@ struct MDFFRAMEWORKDEBUG_API FMDFPlayerDebugSnapshot
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	float LastBlockedCooldownRemainingSeconds = 0.0f;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	TArray<FString> AttributeLines;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	FString LastBlockedCostResourceText;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	float LastBlockedCostAmount = 0.0f;
 };

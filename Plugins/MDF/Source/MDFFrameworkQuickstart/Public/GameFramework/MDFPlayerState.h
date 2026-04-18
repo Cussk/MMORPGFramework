@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerState.h"
 #include "MDFPlayerState.generated.h"
 
+class UMDFAttributeComponent;
 class UMDFPlayerProgressionComponent;
 class UMDFPlayerSkillComponent;
 
@@ -39,6 +40,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "MDF")
 	UMDFPlayerSkillComponent* GetMDFSkillComponent() const;
+	
+	UFUNCTION(BlueprintPure, Category="MDF")
+	UMDFAttributeComponent* GetMDFAttributeComponent() const;
 
 protected:
 	/** Player-owned runtime progression state. */
@@ -48,4 +52,7 @@ protected:
 	/** Player-owned runtime learned/equipped skill state. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MDF", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UMDFPlayerSkillComponent> MDFSkillComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UMDFAttributeComponent> MDFAttributeComponent;
 };

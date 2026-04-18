@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "Components/MDFAttributeComponent.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Types/MDFDebugTypes.h"
 #include "MDFDebugWorldSubsystem.generated.h"
@@ -60,6 +61,9 @@ protected:
 
 	const UMDFPlayerSkillComponent* ResolveSkillComponent(const APlayerController* PlayerController) const;
 	UMDFPlayerSkillComponent* ResolveSkillComponent(APlayerController* PlayerController) const;
+	
+	const UMDFAttributeComponent* ResolveAttributeComponent(const APlayerController* PlayerController) const;
+	UMDFAttributeComponent* ResolveAttributeComponent(APlayerController* PlayerController) const;
 
 	static FString TagToDebugString(FGameplayTag Tag);
 };

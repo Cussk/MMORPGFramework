@@ -3,12 +3,14 @@
 #include "Subsystems/MDFDebugWorldSubsystem.h"
 
 #include "Algo/Sort.h"
+#include "Components/MDFAttributeComponent.h"
 #include "Components/MDFCombatantComponent.h"
 #include "Components/MDFPCDebugComponent.h"
 #include "Components/MDFPlayerProgressionComponent.h"
 #include "Components/MDFPlayerSkillComponent.h"
 #include "Components/MDFTargetingComponent.h"
 #include "Helpers/MDFComponentHelpers.h"
+#include "Types/MDFAttributeTypes.h"
 #include "Types/MDFCombatDeckTypes.h"
 #include "Types/MDFDebugTypes.h"
 #include "Types/MDFDisciplineTypes.h"
@@ -34,6 +36,16 @@ UMDFPlayerSkillComponent* UMDFDebugWorldSubsystem::ResolveSkillComponent(APlayer
 	return FMDFComponentHelpers::FindFromController<UMDFPlayerSkillComponent>(PlayerController);
 }
 
+const UMDFAttributeComponent* UMDFDebugWorldSubsystem::ResolveAttributeComponent(const APlayerController* PlayerController) const
+{
+	return FMDFComponentHelpers::FindFromController<UMDFAttributeComponent>(PlayerController);
+}
+
+UMDFAttributeComponent* UMDFDebugWorldSubsystem::ResolveAttributeComponent(APlayerController* PlayerController) const
+{
+	return FMDFComponentHelpers::FindFromController<UMDFAttributeComponent>(PlayerController);
+}
+
 FString UMDFDebugWorldSubsystem::TagToDebugString(const FGameplayTag Tag)
 {
 	return Tag.IsValid() ? Tag.ToString() : TEXT("<None>");
@@ -51,6 +63,7 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 
 	const UMDFPlayerProgressionComponent* ProgressionComponent = ResolveProgressionComponent(PlayerController);
 	const UMDFPlayerSkillComponent* SkillComponent = ResolveSkillComponent(PlayerController);
+	const UMDFAttributeComponent* AttributeComponent = ResolveAttributeComponent(PlayerController);
 
 	if (!ProgressionComponent)
 	{
@@ -64,6 +77,24 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 			{
 				++OutSnapshot.UnlockedDisciplineCount;
 			}
+		}
+	}
+	
+	if (AttributeComponent)
+	{
+		for (const FMDFAttributeValueRuntime& Attribute : AttributeComponent->GetAttributes())
+		{
+			OutSnapshot.AttributeLines.Add(
+				FString::Printf(
+					TEXT("%s: %.1f / %.1f"),
+					*TagToDebugString(Attribute.AttributeTag),
+					Attribute.CurrentValue,
+					Attribute.MaxValue));
+		}
+
+		if (OutSnapshot.AttributeLines.Num() == 0)
+		{
+			OutSnapshot.AttributeLines.Add(TEXT("[None]"));
 		}
 	}
 
@@ -233,6 +264,20 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 			SkillComponent->GetLastSkillActivationDecision().Result == EMDFSkillActivationResult::BlockedByCooldown
 				? SkillComponent->GetLastSkillActivationDecision().CooldownRemainingSeconds
 				: 0.0f;
+		
+		if (SkillComponent->GetLastSkillActivationDecision().Result == EMDFSkillActivationResult::BlockedByCost)
+		{
+			OutSnapshot.LastBlockedCostResourceText =
+				TagToDebugString(SkillComponent->GetLastSkillActivationDecision().FailedCostResourceTag);
+
+			OutSnapshot.LastBlockedCostAmount =
+				SkillComponent->GetLastSkillActivationDecision().FailedCostAmount;
+		}
+		else
+		{
+			OutSnapshot.LastBlockedCostResourceText = TEXT("[None]");
+			OutSnapshot.LastBlockedCostAmount = 0.0f;
+		}
 	}
 	
 	if (const APawn* Pawn = PlayerController->GetPawn())

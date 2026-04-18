@@ -38,13 +38,12 @@ struct MDFFRAMEWORKCOMBAT_API FMDFSkillCostSpec
 {
 	GENERATED_BODY()
 
-public:
-	FMDFSkillCostSpec()
+FMDFSkillCostSpec()
 		: Amount(0.f)
 	{
 	}
 
-	/** Which resource this cost consumes, for example Resource.Mana or Resource.Stamina. */
+	/** Which resource this cost consumes, for example Attribute.Resource.Mana or Attribute.Resource.Stamina. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Cost")
 	FGameplayTag ResourceTag;
 

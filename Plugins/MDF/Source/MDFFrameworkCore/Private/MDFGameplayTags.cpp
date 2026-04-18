@@ -75,19 +75,19 @@ namespace MDFGameplayTags
 	
 	
 	// --------------------
-	// Stats / Resources
+	// Attributes
 	// --------------------
-	UE_DEFINE_GAMEPLAY_TAG(Resource_Health, "Resource.Health");
-	UE_DEFINE_GAMEPLAY_TAG(Resource_Mana, "Resource.Mana");
-	UE_DEFINE_GAMEPLAY_TAG(Resource_Stamina, "Resource.Stamina");
+	UE_DEFINE_GAMEPLAY_TAG(Attribute_Resource_Health, "Attribute.Resource.Health");
+	UE_DEFINE_GAMEPLAY_TAG(Attribute_Resource_Mana, "Attribute.Resource.Mana");
+	UE_DEFINE_GAMEPLAY_TAG(Attribute_Resource_Stamina, "Attribute.Resource.Stamina");
 	
-	UE_DEFINE_GAMEPLAY_TAG(Stat_Primary_Strength, "Stat.Primary.Strength");
-	UE_DEFINE_GAMEPLAY_TAG(Stat_Primary_Intelligence, "Stat.Primary.Intelligence");
-	UE_DEFINE_GAMEPLAY_TAG(Stat_Primary_Dexterity, "Stat.Primary.Dexterity");
+	UE_DEFINE_GAMEPLAY_TAG(Attribute_Primary_Strength, "Attribute.Primary.Strength");
+	UE_DEFINE_GAMEPLAY_TAG(Attribute_Primary_Intelligence, "Attribute.Primary.Intelligence");
+	UE_DEFINE_GAMEPLAY_TAG(Attribute_Primary_Dexterity, "Attribute.Primary.Dexterity");
 	
-	UE_DEFINE_GAMEPLAY_TAG(Stat_Secondary_Crit, "Stat.Secondary.Crit");
-	UE_DEFINE_GAMEPLAY_TAG(Stat_Secondary_Defense, "Stat.Secondary.Defense");
-	UE_DEFINE_GAMEPLAY_TAG(Stat_Secondary_Haste, "Stat.Secondary.Haste");
+	UE_DEFINE_GAMEPLAY_TAG(Attribute_Secondary_Crit, "Attribute.Secondary.Crit");
+	UE_DEFINE_GAMEPLAY_TAG(Attribute_Secondary_Defense, "Attribute.Secondary.Defense");
+	UE_DEFINE_GAMEPLAY_TAG(Attribute_Secondary_Haste, "Attribute.Secondary.Haste");
 
 	// --------------------
 	// Combat State

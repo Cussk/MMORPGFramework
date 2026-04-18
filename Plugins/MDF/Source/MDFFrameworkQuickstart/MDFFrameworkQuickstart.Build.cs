@@ -17,7 +17,7 @@ public class MDFFrameworkQuickstart : ModuleRules
                 "MDFFrameworkCore",
                 "MDFFrameworkProgression",
                 "MDFFrameworkCombat",
-                
+                "MDFFrameworkEntity",
             }
         );
 

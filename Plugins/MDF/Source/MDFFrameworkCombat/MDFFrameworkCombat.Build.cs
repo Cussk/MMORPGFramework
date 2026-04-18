@@ -15,7 +15,8 @@ public class MDFFrameworkCombat : ModuleRules
                 "GameplayTags",
                 "DeveloperSettings",
                 "MDFFrameworkCore",
-                "MDFFrameworkProgression"
+                "MDFFrameworkProgression",
+                "MDFFrameworkEntity"
             }
         );
 

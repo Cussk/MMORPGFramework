@@ -74,6 +74,14 @@ void AMDFDebugHUD::DrawHUD()
 	DrawLineText(FString::Printf(TEXT("Last Blocked Cooldown Remaining: %.2f"), Snapshot.LastBlockedCooldownRemainingSeconds), StartX, DrawY,
 	FLinearColor::White);
 	
+	DrawLineText(TEXT("Attributes:"), StartX, DrawY, FLinearColor::White);
+	for (const FString& Line : Snapshot.AttributeLines)
+	{
+		DrawLineText(FString::Printf(TEXT("  %s"), *Line), StartX, DrawY, FLinearColor::White);
+	}
+
+	DrawLineText(FString::Printf(TEXT("Last Blocked Cost: %s (%.2f)"), *Snapshot.LastBlockedCostResourceText, Snapshot.LastBlockedCostAmount), StartX, DrawY, FLinearColor::White);
+	
 	DrawY += LineHeight;
 
 	DrawLineText(TEXT("Combat Deck:"), StartX, DrawY, Cyan);
