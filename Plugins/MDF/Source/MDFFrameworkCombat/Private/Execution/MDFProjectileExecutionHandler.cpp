@@ -69,7 +69,7 @@ bool UMDFProjectileExecutionHandler::Execute(const FMDFSkillExecutionContext& Co
 		return false;
 	}
 
-	Projectile->InitializeFromSkillDefinition(ProjectileDefinition, Context.AvatarActor);
+	Projectile->InitializeFromSkillDefinition(ProjectileDefinition, Context.AvatarActor, Context.SkillComponent);
 
 #if !(UE_BUILD_SHIPPING)
 	Context.CombatantComponent->RecordProjectileDebugLine(

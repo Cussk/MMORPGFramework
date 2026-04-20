@@ -83,7 +83,7 @@ bool UMDFAreaPersistentExecutionHandler::Execute(const FMDFSkillExecutionContext
 		return false;
 	}
 
-	AreaActor->InitializeFromSkillDefinition(AreaPersistentSkillDefinition, Context.AvatarActor);
+	AreaActor->InitializeFromSkillDefinition(AreaPersistentSkillDefinition, Context.AvatarActor, Context.SkillComponent);
 
 	OutDecision.Result = EMDFSkillExecutionResult::Success;
 	

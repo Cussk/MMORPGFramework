@@ -54,7 +54,7 @@ void AMDFCombatProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME(AMDFCombatProjectile, SourceActor);
 }
 
-void AMDFCombatProjectile::InitializeFromSkillDefinition(const UMDFSkillDefinition* SkillDefinition, AActor* InSourceActor)
+void AMDFCombatProjectile::InitializeFromSkillDefinition(const UMDFSkillDefinition* SkillDefinition, AActor* InSourceActor, UMDFPlayerSkillComponent* InSkillComponent)
 {
 	if (!HasAuthority())
 	{
@@ -68,16 +68,12 @@ void AMDFCombatProjectile::InitializeFromSkillDefinition(const UMDFSkillDefiniti
 	}
 
 	SourceActor = InSourceActor;
+	SourceSkillComponent = InSkillComponent;
 	ImpactTimedStateTag = ProjectileDefinition->ImpactTimedStateTag;
 	ImpactTimedStateDurationSeconds = ProjectileDefinition->ImpactTimedStateDurationSeconds;
 	KnockbackStrength = ProjectileDefinition->KnockbackStrength;
 	MaxAffectedTargets = ProjectileDefinition->MaxAffectedTargets;
 	bPierces = ProjectileDefinition->bProjectilePierces;
-	
-	if (SourceActor)
-	{
-		SourceSkillComponent = FMDFComponentHelpers::FindOnActor<UMDFPlayerSkillComponent>(SourceActor);
-	}
 
 	if (CollisionComponent)
 	{

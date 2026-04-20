@@ -36,7 +36,7 @@ void AMDFPersistentSkillArea::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(AMDFPersistentSkillArea, SourceActor);
 }
 
-void AMDFPersistentSkillArea::InitializeFromSkillDefinition(const UMDFSkillDefinition* SkillDefinition, AActor* InSourceActor)
+void AMDFPersistentSkillArea::InitializeFromSkillDefinition(const UMDFSkillDefinition* SkillDefinition, AActor* InSourceActor, UMDFPlayerSkillComponent* InSkillComponent)
 {
 	if (!HasAuthority())
 	{
@@ -50,6 +50,7 @@ void AMDFPersistentSkillArea::InitializeFromSkillDefinition(const UMDFSkillDefin
 	}
 
 	SourceActor = InSourceActor;
+	SourceSkillComponent = InSkillComponent;
 	AreaRadius = AreaDefinition->PersistentAreaRadius;
 	PulseIntervalSeconds = AreaDefinition->PersistentAreaPulseIntervalSeconds;
 	ImpactTimedStateTag = AreaDefinition->ImpactTimedStateTag;
@@ -60,7 +61,6 @@ void AMDFPersistentSkillArea::InitializeFromSkillDefinition(const UMDFSkillDefin
 	if (SourceActor)
 	{
 		SourceCombatantComponent = SourceActor->FindComponentByClass<UMDFCombatantComponent>();
-		SourceSkillComponent = FMDFComponentHelpers::FindOnActor<UMDFPlayerSkillComponent>(SourceActor);
 	}
 
 	SetLifeSpan(AreaDefinition->PersistentAreaLifetimeSeconds);

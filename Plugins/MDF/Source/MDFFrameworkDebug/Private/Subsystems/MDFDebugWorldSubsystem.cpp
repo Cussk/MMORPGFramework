@@ -310,6 +310,16 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 			{
 				OutSnapshot.ActiveTimedStateLines.Add(TEXT("[None]"));
 			}
+			
+			for (const FGameplayTag& StateTag : Combatant->GetCombatStateTags())
+			{
+				OutSnapshot.CombatStateLines.Add(TagToDebugString(StateTag));
+			}
+
+			if (OutSnapshot.CombatStateLines.Num() == 0)
+			{
+				OutSnapshot.CombatStateLines.Add(TEXT("[None]"));
+			}
 		}
 	}
 	
