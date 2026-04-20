@@ -4,7 +4,7 @@
 
 #include "Components/MDFPlayerProgressionComponent.h"
 #include "Components/MDFPlayerSkillComponent.h"
-#include "MDFFrameworkEntity/Public/Components/MDFAttributeComponent.h"
+#include "Components/MDFAttributeComponent.h"
 
 AMDFPlayerState::AMDFPlayerState()
 {

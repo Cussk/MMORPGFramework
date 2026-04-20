@@ -8,6 +8,8 @@
 #include "Types/MDFSkillDebugTypes.h"
 #include "MDFCombatantComponent.generated.h"
 
+class UMDFAttributeComponent;
+
 USTRUCT(BlueprintType)
 struct MDFFRAMEWORKCOMBAT_API FMDFTimedStateRuntime
 {
@@ -31,6 +33,12 @@ public:
 	UMDFCombatantComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const FGameplayTagContainer& GetCombatStateTags() const
+	{
+		return CombatStateTags;
+	}
 
 	UFUNCTION(BlueprintPure, Category="Combat")
 	const TArray<FMDFTimedStateRuntime>& GetActiveTimedStates() const
@@ -68,16 +76,36 @@ public:
 		return LastAreaDebugSphere;
 	}
 	
+	UFUNCTION(BlueprintPure, Category="Combat")
+	UMDFAttributeComponent* ResolveOwnedAttributeComponent() const;
+	
+	UFUNCTION(BlueprintPure, Category="Combat")
+	bool HasCombatState(FGameplayTag StateTag) const;
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	bool IsDead() const;
+	
+	UFUNCTION(BlueprintPure, Category="Combat")
+	bool HasTimedState(FGameplayTag StateTag) const;
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	bool CanReceiveSkillEffectsFrom(const AActor* SourceActor) const;
+	
 	UFUNCTION(BlueprintPure, Category="Targeting")
 	bool CanBeTargetedBy(const AActor* RequestingActor) const;
 
 	UFUNCTION(BlueprintPure, Category="Targeting")
 	FVector GetPreferredTargetPoint() const;
 	
+	void AddCombatState(FGameplayTag StateTag);
+	void RemoveCombatState(FGameplayTag StateTag);
+	void HandleHealthDepleted(AActor* InstigatorActor);
+	
 	bool ApplyTimedState(FGameplayTag StateTag, float DurationSeconds);
 	bool ClearTimedState(FGameplayTag StateTag);
 	bool ApplyImpactTimedState(FGameplayTag StateTag, float DurationSeconds);
-	bool ApplyKnockback(const FVector& WorldDirection, float Strength);
+	bool ApplyKnockback(const FVector& WorldDirection, float Strength) const;
+	
 	bool CanReceiveImpactFrom(const AActor* InstigatorActor) const;
 	void SetLastAppliedImpactCount(int32 InCount);
 	
@@ -88,14 +116,14 @@ public:
 	void RecordTraceDebugVisual(const FVector& Center, float Radius, bool bHit, float Duration);
 	void RecordProjectileDebugLine(const FVector& Start, const FVector& End, float Duration);
 	void RecordAreaDebugSphere(const FVector& Center, float Radius, float Duration, bool bPositive);
-	
-	UFUNCTION(BlueprintPure, Category="Combat")
-	bool HasTimedState(FGameplayTag StateTag) const;
 
 	UPROPERTY(BlueprintAssignable, Category="Events")
 	FMDFCombatantStateChanged OnCombatantStateChanged;
 
 protected:
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_CombatStateTags, Category="Combat")
+	FGameplayTagContainer CombatStateTags;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_ActiveTimedStates, Category="Combat")
 	TArray<FMDFTimedStateRuntime> ActiveTimedStates;
@@ -116,24 +144,27 @@ protected:
 	FMDFDebugSphereVisual LastAreaDebugSphere;
 	
 	TMap<FGameplayTag, FTimerHandle> TimedStateExpiryHandles;
-
-	UFUNCTION()
-	void OnRep_ActiveTimedStates();
-
-	UFUNCTION()
-	void OnRep_LastFrontalMeleeHitCount();
 	
 	UFUNCTION()
-	void OnRep_LastAppliedImpactCount();
-	
-	UFUNCTION()
-	void OnRep_LastTraceDebugVisual();
-	
-	UFUNCTION()
-	void OnRep_LastProjectileDebugLine();
+	void OnRep_CombatStateTags() const;
 
 	UFUNCTION()
-	void OnRep_LastAreaDebugSphere();
+	void OnRep_ActiveTimedStates() const;
+
+	UFUNCTION()
+	void OnRep_LastFrontalMeleeHitCount() const;
+	
+	UFUNCTION()
+	void OnRep_LastAppliedImpactCount() const;
+	
+	UFUNCTION()
+	void OnRep_LastTraceDebugVisual() const;
+	
+	UFUNCTION()
+	void OnRep_LastProjectileDebugLine() const;
+
+	UFUNCTION()
+	void OnRep_LastAreaDebugSphere() const;
 
 	UFUNCTION()
 	void HandleTimedStateExpired(FGameplayTag ExpiredStateTag);

@@ -11,7 +11,7 @@
 #include "GameFramework/PlayerState.h"
 #include "Helpers/MDFCombatDefinitionLookup.h"
 #include "Helpers/MDFComponentHelpers.h"
-#include "MDFFrameworkEntity/Public/Components/MDFAttributeComponent.h"
+#include "Components/MDFAttributeComponent.h"
 #include "Net/UnrealNetwork.h"
 
 UMDFPlayerSkillComponent::UMDFPlayerSkillComponent()
@@ -42,6 +42,7 @@ void UMDFPlayerSkillComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastSwapDecision, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastSkillActivationDecision, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastSkillExecutionDecision, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, LastAppliedEffectEntries, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UMDFPlayerSkillComponent, SkillCooldowns, COND_OwnerOnly);
 }
 
@@ -175,6 +176,11 @@ bool UMDFPlayerSkillComponent::GetSkillInDisciplineSlot(const FGameplayTag Disci
 	}
 
 	return false;
+}
+
+const TArray<FMDFAppliedSkillEffectDebugEntry>& UMDFPlayerSkillComponent::GetLastAppliedEffectEntries() const
+{
+	return LastAppliedEffectEntries;
 }
 
 const TArray<FMDFSkillCooldownRuntime>& UMDFPlayerSkillComponent::GetSkillCooldowns() const
@@ -888,13 +894,13 @@ bool UMDFPlayerSkillComponent::BuildExecutionContext(
 
 UMDFAttributeComponent* UMDFPlayerSkillComponent::ResolveOwningAttributeComponent() const
 {
-	const APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner());
+	APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner());
 	if (!OwningPlayerState)
 	{
 		return nullptr;
 	}
 
-	return FMDFComponentHelpers::FindFromPawn<UMDFAttributeComponent>(OwningPlayerState->GetPawn());
+	return FMDFComponentHelpers::FindOnActor<UMDFAttributeComponent>(OwningPlayerState);
 }
 
 UMDFTargetingComponent* UMDFPlayerSkillComponent::ResolveOwningTargetingComponent() const
@@ -921,6 +927,8 @@ UMDFCombatantComponent* UMDFPlayerSkillComponent::ResolveAvatarCombatant() const
 
 bool UMDFPlayerSkillComponent::CommitAndExecuteSkillActivation(const FMDFSkillActivationDecision& ActivationDecision)
 {
+	ClearLastAppliedEffectEntries();
+	
 	LastSkillExecutionDecision = FMDFSkillExecutionDecision();
 	LastSkillExecutionDecision.SkillTag = ActivationDecision.Request.SkillTag;
 
@@ -1181,6 +1189,28 @@ void UMDFPlayerSkillComponent::CommitSkillCosts(const UMDFSkillDefinition* Skill
 	}
 }
 
+void UMDFPlayerSkillComponent::ClearLastAppliedEffectEntries()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	LastAppliedEffectEntries.Reset();
+	OnRep_LastAppliedEffectEntries();
+}
+
+void UMDFPlayerSkillComponent::AppendAppliedEffectDebugEntries(const TArray<FMDFAppliedSkillEffectDebugEntry>& NewEntries)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || NewEntries.Num() == 0)
+	{
+		return;
+	}
+
+	LastAppliedEffectEntries.Append(NewEntries);
+	OnRep_LastAppliedEffectEntries();
+}
+
 void UMDFPlayerSkillComponent::OnRep_SkillCooldowns()
 {
 	// Add a delegate broadcast later if the action bar/UI needs explicit notifications.
@@ -1223,4 +1253,8 @@ void UMDFPlayerSkillComponent::OnRep_ActiveSkillRuntime()
 void UMDFPlayerSkillComponent::OnRep_LastSkillExecutionDecision()
 {
 	OnSkillExecutionResolved.Broadcast(LastSkillExecutionDecision);
+}
+
+void UMDFPlayerSkillComponent::OnRep_LastAppliedEffectEntries()
+{
 }

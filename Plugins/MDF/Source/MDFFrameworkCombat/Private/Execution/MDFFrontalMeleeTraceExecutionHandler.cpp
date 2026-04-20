@@ -3,8 +3,10 @@
 #include "Execution/MDFFrontalMeleeTraceExecutionHandler.h"
 
 #include "Components/MDFCombatantComponent.h"
+#include "Components/MDFPlayerSkillComponent.h"
 #include "Data/MDFFrontalMeleeTraceSkillDefinition.h"
 #include "Data/MDFSkillDefinition.h"
+#include "Helpers/MDFSkillEffectApplicator.h"
 
 bool UMDFFrontalMeleeTraceExecutionHandler::Execute(const FMDFSkillExecutionContext& Context, FMDFSkillExecutionDecision& OutDecision) const
 {
@@ -72,6 +74,20 @@ bool UMDFFrontalMeleeTraceExecutionHandler::Execute(const FMDFSkillExecutionCont
 		if (FrontalMeleeSkillDefinition->KnockbackStrength > 0.0f)
 		{
 			TargetCombatant->ApplyKnockback(Forward, FrontalMeleeSkillDefinition->KnockbackStrength);
+		}
+		
+		TArray<FMDFAppliedSkillEffectDebugEntry> EffectEntries;
+		FMDFSkillEffectApplicationContext EffectContext;
+		EffectContext.SourceActor = Context.AvatarActor;
+		EffectContext.SourceSkillComponent = Context.SkillComponent;
+		EffectContext.SkillDefinition = Context.SkillDefinition;
+		EffectContext.TargetActor = HitActor;
+
+		FMDFSkillEffectApplicator::ApplyEffectsToTarget(EffectContext, &EffectEntries);
+
+		if (Context.SkillComponent && EffectEntries.Num() > 0)
+		{
+			Context.SkillComponent->AppendAppliedEffectDebugEntries(EffectEntries);
 		}
 
 		++AppliedCount;

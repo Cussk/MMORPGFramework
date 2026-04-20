@@ -7,6 +7,8 @@
 #include "GameplayTagContainer.h"
 #include "MDFPersistentSkillArea.generated.h"
 
+class UMDFAreaPersistentSkillDefinition;
+class UMDFPlayerSkillComponent;
 class UMDFCombatantComponent;
 class UMDFSkillDefinition;
 
@@ -52,6 +54,8 @@ protected:
 	FTimerHandle PulseTimerHandle;
 	
 	TWeakObjectPtr<UMDFCombatantComponent> SourceCombatantComponent;
+	TWeakObjectPtr<UMDFPlayerSkillComponent> SourceSkillComponent;
+	TWeakObjectPtr<const UMDFAreaPersistentSkillDefinition> AreaDefinition;
 
 	UFUNCTION()
 	void HandlePulse();

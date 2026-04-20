@@ -88,6 +88,12 @@ namespace MDFGameplayTags
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attribute_Secondary_Crit);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attribute_Secondary_Defense);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attribute_Secondary_Haste);
+	
+	// -------------------
+	// Effects
+	// -------------------
+	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Effect_Damage);
+	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Effect_Heal);
 
 	// --------------------
 	// Combat State
@@ -109,8 +115,6 @@ namespace MDFGameplayTags
 	// Timed State
 	// --------------------
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Timed_State_Guarding);
-	
-	
 
 	// --------------------
 	// Narrative

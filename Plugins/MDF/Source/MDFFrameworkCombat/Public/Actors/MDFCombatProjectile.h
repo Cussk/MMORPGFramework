@@ -7,6 +7,8 @@
 #include "GameplayTagContainer.h"
 #include "MDFCombatProjectile.generated.h"
 
+class UMDFPlayerSkillComponent;
+class UMDFProjectileSkillDefinition;
 class USphereComponent;
 class UProjectileMovementComponent;
 class UMDFSkillDefinition;
@@ -52,6 +54,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	int32 AppliedImpactCount = 0;
+	
+	TWeakObjectPtr<UMDFPlayerSkillComponent> SourceSkillComponent;
+	TWeakObjectPtr<const UMDFProjectileSkillDefinition> ProjectileDefinition;
 
 	TSet<TWeakObjectPtr<AActor>> ImpactedActors;
 

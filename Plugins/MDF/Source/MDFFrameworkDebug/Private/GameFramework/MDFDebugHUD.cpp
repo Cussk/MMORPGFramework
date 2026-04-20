@@ -82,6 +82,18 @@ void AMDFDebugHUD::DrawHUD()
 
 	DrawLineText(FString::Printf(TEXT("Last Blocked Cost: %s (%.2f)"), *Snapshot.LastBlockedCostResourceText, Snapshot.LastBlockedCostAmount), StartX, DrawY, FLinearColor::White);
 	
+	DrawLineText(TEXT("Combat States:"), StartX, DrawY, FLinearColor::White);
+	for (const FString& Line : Snapshot.CombatStateLines)
+	{
+		DrawLineText(FString::Printf(TEXT("  %s"), *Line), StartX, DrawY, FLinearColor::White);
+	}
+
+	DrawLineText(TEXT("Last Applied Effects:"), StartX, DrawY, FLinearColor::White);
+	for (const FString& Line : Snapshot.LastAppliedEffectLines)
+	{
+		DrawLineText(FString::Printf(TEXT("  %s"), *Line), StartX, DrawY, FLinearColor::White);
+	}
+	
 	DrawY += LineHeight;
 
 	DrawLineText(TEXT("Combat Deck:"), StartX, DrawY, Cyan);

@@ -15,11 +15,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMDFAttributesChanged);
  * Architectural role:
  * - Owns long-lived attribute/resource runtime.
  * - Lives on PlayerState so values survive embodiment changes and discipline swaps.
- * - Starts with simple resource ownership and can grow into the broader attribute system later.
- *
- * Phase 7B scope:
- * - Current / max values only.
- * - No regen, modifiers, derived stats, or buff math yet.
  */
 UCLASS(ClassGroup=(MDF), BlueprintType, Blueprintable, meta=(BlueprintSpawnableComponent))
 class MDFFRAMEWORKENTITY_API UMDFAttributeComponent : public UActorComponent
@@ -45,6 +40,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Attributes")
 	bool HasSufficientValue(FGameplayTag AttributeTag, float Amount) const;
+	
+	UFUNCTION(BlueprintPure, Category="Attributes")
+	bool IsDepleted(FGameplayTag AttributeTag) const;
 
 	UFUNCTION(BlueprintCallable, Category="Attributes")
 	bool TrySpend(FGameplayTag AttributeTag, float Amount);
@@ -54,6 +52,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Attributes")
 	bool SetCurrentValueClamped(FGameplayTag AttributeTag, float NewValue);
+	
+	UFUNCTION(BlueprintCallable, Category="Attributes")
+	float ApplyCurrentValueDelta(FGameplayTag AttributeTag, float Delta);
 
 	UPROPERTY(BlueprintAssignable, Category="Events")
 	FMDFAttributesChanged OnAttributesChanged;

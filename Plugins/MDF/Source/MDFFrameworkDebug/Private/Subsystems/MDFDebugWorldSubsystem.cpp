@@ -278,6 +278,18 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 			OutSnapshot.LastBlockedCostResourceText = TEXT("[None]");
 			OutSnapshot.LastBlockedCostAmount = 0.0f;
 		}
+		
+		for (const FMDFAppliedSkillEffectDebugEntry& Entry : SkillComponent->GetLastAppliedEffectEntries())
+		{
+			OutSnapshot.LastAppliedEffectLines.Add(
+				FString::Printf(
+					TEXT("%s | %s | %s | %.1f%s"),
+					*Entry.TargetName,
+					*TagToDebugString(Entry.EffectTypeTag),
+					*TagToDebugString(Entry.AttributeTag),
+					Entry.AppliedMagnitude,
+					Entry.bAddedDeadState ? TEXT(" [Dead]") : TEXT("")));
+		}
 	}
 	
 	if (const APawn* Pawn = PlayerController->GetPawn())

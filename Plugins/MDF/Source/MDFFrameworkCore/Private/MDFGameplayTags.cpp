@@ -73,7 +73,6 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Equipment_Tool_FishingRod, "Equipment.Tool.FishingRod");
 	UE_DEFINE_GAMEPLAY_TAG(Equipment_Tool_Hammer, "Equipment.Tool.Hammer");
 	
-	
 	// --------------------
 	// Attributes
 	// --------------------
@@ -88,6 +87,12 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Attribute_Secondary_Crit, "Attribute.Secondary.Crit");
 	UE_DEFINE_GAMEPLAY_TAG(Attribute_Secondary_Defense, "Attribute.Secondary.Defense");
 	UE_DEFINE_GAMEPLAY_TAG(Attribute_Secondary_Haste, "Attribute.Secondary.Haste");
+	
+	// -------------------
+	// Effects
+	// -------------------
+	UE_DEFINE_GAMEPLAY_TAG(Effect_Damage, "Effect.Damage");
+	UE_DEFINE_GAMEPLAY_TAG(Effect_Heal, "Effect.Heal");
 
 	// --------------------
 	// Combat State

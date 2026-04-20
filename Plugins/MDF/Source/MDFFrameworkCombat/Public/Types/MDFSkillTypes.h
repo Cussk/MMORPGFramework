@@ -80,36 +80,30 @@ public:
 	FGameplayTag CooldownGroupTag;
 };
 
-/**
- * Lightweight authored placeholder for one skill effect.
- *
- * Architectural intent:
- * - This is intentionally generic at Phase 0/early Phase 1.
- * - We are not committing to a full effect system yet.
- * - Tags identify the type/meaning of the effect while Magnitude/Duration give
- *   enough shape for sample assets and future execution plumbing.
- */
 USTRUCT(BlueprintType)
 struct MDFFRAMEWORKCOMBAT_API FMDFSkillEffectSpec
 {
 	GENERATED_BODY()
 
-public:
 	FMDFSkillEffectSpec()
-		: Magnitude(0.f)
-		, DurationSeconds(0.f)
+		: Magnitude(0.0f)
 	{
 	}
 
-	/** Semantic meaning for the effect, such as damage, heal, guard, buff, debuff, etc. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Effect")
-	FGameplayTagContainer EffectTags;
+	/** High-level effect type, for example Effect.Damage or Effect.Heal. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Effects")
+	FGameplayTag EffectTypeTag;
 
-	/** Generic numeric magnitude for the effect. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Effect")
+	/** Which attribute/resource this effect modifies, usually Attribute.Resource.Health for Phase 8. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Effects")
+	FGameplayTag AttributeTag;
+
+	/** Flat magnitude for the effect. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Effects", meta=(ClampMin="0.0"))
 	float Magnitude;
 
-	/** Duration used for timed effects. Zero can mean instant. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Effect", meta = (ClampMin = "0.0"))
-	float DurationSeconds;
+	bool IsValid() const
+	{
+		return EffectTypeTag.IsValid() && AttributeTag.IsValid() && Magnitude > 0.0f;
+	}
 };

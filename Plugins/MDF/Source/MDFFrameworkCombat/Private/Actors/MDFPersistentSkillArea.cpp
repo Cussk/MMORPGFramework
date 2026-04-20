@@ -5,7 +5,10 @@
 #include "Components/MDFCombatantComponent.h"
 #include "Data/MDFAreaPersistentSkillDefinition.h"
 #include "DrawDebugHelpers.h"
+#include "Components/MDFPlayerSkillComponent.h"
 #include "Engine/OverlapResult.h"
+#include "Helpers/MDFComponentHelpers.h"
+#include "Helpers/MDFSkillEffectApplicator.h"
 #include "Net/UnrealNetwork.h"
 
 AMDFPersistentSkillArea::AMDFPersistentSkillArea()
@@ -40,8 +43,8 @@ void AMDFPersistentSkillArea::InitializeFromSkillDefinition(const UMDFSkillDefin
 		return;
 	}
 
-	const UMDFAreaPersistentSkillDefinition* AreaDefinition = Cast<UMDFAreaPersistentSkillDefinition>(SkillDefinition);
-	if (!AreaDefinition)
+	AreaDefinition = Cast<UMDFAreaPersistentSkillDefinition>(SkillDefinition);
+	if (!AreaDefinition.Get())
 	{
 		return;
 	}
@@ -57,6 +60,7 @@ void AMDFPersistentSkillArea::InitializeFromSkillDefinition(const UMDFSkillDefin
 	if (SourceActor)
 	{
 		SourceCombatantComponent = SourceActor->FindComponentByClass<UMDFCombatantComponent>();
+		SourceSkillComponent = FMDFComponentHelpers::FindOnActor<UMDFPlayerSkillComponent>(SourceActor);
 	}
 
 	SetLifeSpan(AreaDefinition->PersistentAreaLifetimeSeconds);
@@ -120,6 +124,20 @@ void AMDFPersistentSkillArea::HandlePulse()
 		{
 			const FVector AwayDirection = (OtherActor->GetActorLocation() - Center).GetSafeNormal();
 			TargetCombatant->ApplyKnockback(AwayDirection, KnockbackStrength);
+		}
+		
+		TArray<FMDFAppliedSkillEffectDebugEntry> EffectEntries;
+		FMDFSkillEffectApplicationContext EffectContext;
+		EffectContext.SourceActor = SourceActor;
+		EffectContext.SourceSkillComponent = SourceSkillComponent.Get();
+		EffectContext.SkillDefinition = AreaDefinition.Get();
+		EffectContext.TargetActor = OtherActor;
+
+		FMDFSkillEffectApplicator::ApplyEffectsToTarget(EffectContext, &EffectEntries);
+
+		if (SourceSkillComponent.Get() && EffectEntries.Num() > 0)
+		{
+			SourceSkillComponent->AppendAppliedEffectDebugEntries(EffectEntries);
 		}
 
 		++LastPulseAppliedCount;

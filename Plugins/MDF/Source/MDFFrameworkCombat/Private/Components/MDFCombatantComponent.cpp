@@ -3,9 +3,12 @@
 #include "Components/MDFCombatantComponent.h"
 
 #include "DrawDebugHelpers.h"
+#include "MDFGameplayTags.h"
+#include "Components/MDFAttributeComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/GameStateBase.h"
+#include "Helpers/MDFComponentHelpers.h"
 #include "Net/UnrealNetwork.h"
 
 UMDFCombatantComponent::UMDFCombatantComponent()
@@ -19,6 +22,7 @@ void UMDFCombatantComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 
 	DOREPLIFETIME(UMDFCombatantComponent, ActiveTimedStates);
 	DOREPLIFETIME(UMDFCombatantComponent, LastFrontalMeleeHitCount);
+	DOREPLIFETIME(UMDFCombatantComponent, CombatStateTags);
 	DOREPLIFETIME_CONDITION(UMDFCombatantComponent, LastTraceDebugVisual, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UMDFCombatantComponent, LastProjectileDebugLine, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UMDFCombatantComponent, LastAreaDebugSphere, COND_OwnerOnly);
@@ -44,7 +48,7 @@ bool UMDFCombatantComponent::HasTimedState(const FGameplayTag StateTag) const
 
 bool UMDFCombatantComponent::CanBeTargetedBy(const AActor* RequestingActor) const
 {
-	if (!GetOwner() || !RequestingActor)
+	if (!GetOwner() || !RequestingActor || IsDead())
 	{
 		return false;
 	}
@@ -221,7 +225,7 @@ bool UMDFCombatantComponent::ApplyImpactTimedState(const FGameplayTag StateTag, 
 	return ApplyTimedState(StateTag, DurationSeconds);
 }
 
-bool UMDFCombatantComponent::ApplyKnockback(const FVector& WorldDirection, const float Strength)
+bool UMDFCombatantComponent::ApplyKnockback(const FVector& WorldDirection, const float Strength) const
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority() || Strength <= 0.0f)
 	{
@@ -265,9 +269,85 @@ void UMDFCombatantComponent::SetLastAppliedImpactCount(const int32 InCount)
 	OnRep_LastAppliedImpactCount();
 }
 
-void UMDFCombatantComponent::OnRep_LastAppliedImpactCount()
+bool UMDFCombatantComponent::HasCombatState(const FGameplayTag StateTag) const
 {
-	OnCombatantStateChanged.Broadcast();
+	return StateTag.IsValid() && CombatStateTags.HasTagExact(StateTag);
+}
+
+bool UMDFCombatantComponent::IsDead() const
+{
+	return CombatStateTags.HasTagExact(MDFGameplayTags::Combat_State_Dead);
+}
+
+void UMDFCombatantComponent::AddCombatState(const FGameplayTag StateTag)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !StateTag.IsValid() || CombatStateTags.HasTagExact(StateTag))
+	{
+		return;
+	}
+
+	CombatStateTags.AddTag(StateTag);
+	OnRep_CombatStateTags();
+}
+
+void UMDFCombatantComponent::RemoveCombatState(const FGameplayTag StateTag)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !StateTag.IsValid() || !CombatStateTags.HasTagExact(StateTag))
+	{
+		return;
+	}
+
+	CombatStateTags.RemoveTag(StateTag);
+	OnRep_CombatStateTags();
+}
+
+UMDFAttributeComponent* UMDFCombatantComponent::ResolveOwnedAttributeComponent() const
+{
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return nullptr;
+	}
+
+	if (UMDFAttributeComponent* DirectComponent = FMDFComponentHelpers::FindOnActor<UMDFAttributeComponent>(OwnerActor))
+	{
+		return DirectComponent;
+	}
+
+	if (const APawn* PawnOwner = Cast<APawn>(OwnerActor))
+	{
+		if (APlayerState* PlayerState = PawnOwner->GetPlayerState())
+		{
+			return FMDFComponentHelpers::FindOnActor<UMDFAttributeComponent>(PlayerState);
+		}
+	}
+
+	return nullptr;
+}
+
+bool UMDFCombatantComponent::CanReceiveSkillEffectsFrom(const AActor* SourceActor) const
+{
+	if (!GetOwner() || !SourceActor)
+	{
+		return false;
+	}
+
+	if (IsDead())
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void UMDFCombatantComponent::HandleHealthDepleted(AActor* InstigatorActor)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || IsDead())
+	{
+		return;
+	}
+
+	AddCombatState(MDFGameplayTags::Combat_State_Dead);
 }
 
 void UMDFCombatantComponent::HandleTimedStateExpired(const FGameplayTag ExpiredStateTag)
@@ -337,27 +417,37 @@ void UMDFCombatantComponent::RecordAreaDebugSphere(const FVector& Center, const 
 	OnRep_LastAreaDebugSphere();
 }
 
-auto UMDFCombatantComponent::OnRep_ActiveTimedStates() -> void
+auto UMDFCombatantComponent::OnRep_ActiveTimedStates() const -> void
 {
 	OnCombatantStateChanged.Broadcast();
 }
 
-void UMDFCombatantComponent::OnRep_LastFrontalMeleeHitCount()
+void UMDFCombatantComponent::OnRep_LastFrontalMeleeHitCount() const
 {
 	OnCombatantStateChanged.Broadcast();
 }
 
-void UMDFCombatantComponent::OnRep_LastTraceDebugVisual()
+void UMDFCombatantComponent::OnRep_LastTraceDebugVisual() const
 {
 	OnCombatantStateChanged.Broadcast();
 }
 
-void UMDFCombatantComponent::OnRep_LastProjectileDebugLine()
+void UMDFCombatantComponent::OnRep_LastProjectileDebugLine() const
 {
 	OnCombatantStateChanged.Broadcast();
 }
 
-void UMDFCombatantComponent::OnRep_LastAreaDebugSphere()
+void UMDFCombatantComponent::OnRep_LastAreaDebugSphere() const
+{
+	OnCombatantStateChanged.Broadcast();
+}
+
+void UMDFCombatantComponent::OnRep_CombatStateTags() const
+{
+	OnCombatantStateChanged.Broadcast();
+}
+
+void UMDFCombatantComponent::OnRep_LastAppliedImpactCount() const
 {
 	OnCombatantStateChanged.Broadcast();
 }

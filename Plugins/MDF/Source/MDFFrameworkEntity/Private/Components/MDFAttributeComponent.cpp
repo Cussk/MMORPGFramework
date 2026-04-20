@@ -166,6 +166,41 @@ bool UMDFAttributeComponent::SetCurrentValueClamped(const FGameplayTag Attribute
 	return true;
 }
 
+float UMDFAttributeComponent::ApplyCurrentValueDelta(const FGameplayTag AttributeTag, const float Delta)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return 0.0f;
+	}
+
+	if (!AttributeTag.IsValid() || FMath::IsNearlyZero(Delta))
+	{
+		return 0.0f;
+	}
+
+	FMDFAttributeValueRuntime* Entry = FindAttributeEntry(AttributeTag);
+	if (!Entry)
+	{
+		return 0.0f;
+	}
+
+	const float Before = Entry->CurrentValue;
+	Entry->CurrentValue = FMath::Clamp(Entry->CurrentValue + Delta, 0.0f, Entry->MaxValue);
+	const float AppliedDelta = Entry->CurrentValue - Before;
+
+	if (!FMath::IsNearlyZero(AppliedDelta))
+	{
+		OnRep_Attributes();
+	}
+
+	return AppliedDelta;
+}
+
+bool UMDFAttributeComponent::IsDepleted(const FGameplayTag AttributeTag) const
+{
+	return GetCurrentValue(AttributeTag) <= 0.0f;
+}
+
 void UMDFAttributeComponent::OnRep_Attributes()
 {
 	OnAttributesChanged.Broadcast();

@@ -3,9 +3,12 @@
 #include "Actors/MDFCombatProjectile.h"
 
 #include "Components/MDFCombatantComponent.h"
+#include "Components/MDFPlayerSkillComponent.h"
 #include "Components/SphereComponent.h"
 #include "Data/MDFProjectileSkillDefinition.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Helpers/MDFComponentHelpers.h"
+#include "Helpers/MDFSkillEffectApplicator.h"
 #include "Net/UnrealNetwork.h"
 
 AMDFCombatProjectile::AMDFCombatProjectile()
@@ -58,8 +61,8 @@ void AMDFCombatProjectile::InitializeFromSkillDefinition(const UMDFSkillDefiniti
 		return;
 	}
 
-	const UMDFProjectileSkillDefinition* ProjectileDefinition = Cast<UMDFProjectileSkillDefinition>(SkillDefinition);
-	if (!ProjectileDefinition)
+	ProjectileDefinition = Cast<UMDFProjectileSkillDefinition>(SkillDefinition);
+	if (!ProjectileDefinition.Get())
 	{
 		return;
 	}
@@ -70,6 +73,11 @@ void AMDFCombatProjectile::InitializeFromSkillDefinition(const UMDFSkillDefiniti
 	KnockbackStrength = ProjectileDefinition->KnockbackStrength;
 	MaxAffectedTargets = ProjectileDefinition->MaxAffectedTargets;
 	bPierces = ProjectileDefinition->bProjectilePierces;
+	
+	if (SourceActor)
+	{
+		SourceSkillComponent = FMDFComponentHelpers::FindOnActor<UMDFPlayerSkillComponent>(SourceActor);
+	}
 
 	if (CollisionComponent)
 	{
@@ -134,6 +142,20 @@ void AMDFCombatProjectile::ProcessImpactActor(AActor* OtherActor)
 			: GetActorForwardVector();
 
 		TargetCombatant->ApplyKnockback(KnockDirection, KnockbackStrength);
+	}
+	
+	TArray<FMDFAppliedSkillEffectDebugEntry> EffectEntries;
+	FMDFSkillEffectApplicationContext EffectContext;
+	EffectContext.SourceActor = SourceActor;
+	EffectContext.SourceSkillComponent = SourceSkillComponent.Get();
+	EffectContext.SkillDefinition = ProjectileDefinition.Get();
+	EffectContext.TargetActor = OtherActor;
+
+	FMDFSkillEffectApplicator::ApplyEffectsToTarget(EffectContext, &EffectEntries);
+
+	if (SourceSkillComponent.Get() && EffectEntries.Num() > 0)
+	{
+		SourceSkillComponent->AppendAppliedEffectDebugEntries(EffectEntries);
 	}
 
 	++AppliedImpactCount;

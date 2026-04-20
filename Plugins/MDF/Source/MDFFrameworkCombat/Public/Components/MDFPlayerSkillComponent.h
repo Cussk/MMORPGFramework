@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "Types/MDFCombatDeckTypes.h"
 #include "Types/MDFSkillActivationTypes.h"
+#include "Types/MDFSkillDebugTypes.h"
 #include "Types/MDFSkillExecutionTypes.h"
 #include "Types/MDFSkillLoadoutTypes.h"
 #include "Types/MDFSkillRuntimeTypes.h"
@@ -89,6 +90,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Skills")
 	bool GetSkillInDisciplineSlot(FGameplayTag DisciplineTag, int32 SlotIndex, FMDFDisciplineSkillSlotRuntime& OutSlot) const;
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const TArray<FMDFAppliedSkillEffectDebugEntry>& GetLastAppliedEffectEntries() const;
 	
 	UFUNCTION(BlueprintPure, Category="Combat")
 	const TArray<FMDFSkillCooldownRuntime>& GetSkillCooldowns() const;
@@ -134,6 +138,9 @@ public:
 
 	const FMDFPlayerSkillEntry* FindLearnedSkill(FGameplayTag SkillTag) const;
 	const FMDFDisciplineSkillLoadoutRuntime* FindDisciplineSkillLoadout(FGameplayTag DisciplineTag) const;
+	
+	void ClearLastAppliedEffectEntries();
+	void AppendAppliedEffectDebugEntries(const TArray<FMDFAppliedSkillEffectDebugEntry>& NewEntries);
 
 public:
 	UPROPERTY(BlueprintAssignable, Category="Events")
@@ -202,6 +209,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LastSkillExecutionDecision, Category="Combat", meta=(AllowPrivateAccess="true"))
 	FMDFSkillExecutionDecision LastSkillExecutionDecision;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LastAppliedEffectEntries, Category="Combat")
+	TArray<FMDFAppliedSkillEffectDebugEntry> LastAppliedEffectEntries;
+	
 	UFUNCTION(Server, Reliable)
 	void ServerRequestSetActiveDiscipline(FGameplayTag DisciplineTag);
 	
@@ -240,6 +250,9 @@ protected:
 	
 	UFUNCTION()
 	void OnRep_SkillCooldowns();
+	
+	UFUNCTION()
+	void OnRep_LastAppliedEffectEntries();
 
 protected:
 	void InitializeCombatDeckFromDefaults();
