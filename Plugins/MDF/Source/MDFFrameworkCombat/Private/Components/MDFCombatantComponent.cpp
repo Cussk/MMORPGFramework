@@ -28,6 +28,41 @@ void UMDFCombatantComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME_CONDITION(UMDFCombatantComponent, LastAreaDebugSphere, COND_OwnerOnly);
 }
 
+const FGameplayTagContainer& UMDFCombatantComponent::GetCombatStateTags() const
+{
+	return CombatStateTags;
+}
+
+const TArray<FMDFTimedStateRuntime>& UMDFCombatantComponent::GetActiveTimedStates() const
+{
+	return ActiveTimedStates;
+}
+
+int32 UMDFCombatantComponent::GetLastFrontalMeleeHitCount() const
+{
+	return LastFrontalMeleeHitCount;
+}
+
+int32 UMDFCombatantComponent::GetLastAppliedImpactCount() const
+{
+	return LastAppliedImpactCount;
+}
+
+const FMDFTraceDebugVisual& UMDFCombatantComponent::GetLastTraceDebugVisual() const
+{
+	return LastTraceDebugVisual;
+}
+
+const FMDFDebugLineVisual& UMDFCombatantComponent::GetLastProjectileDebugLine() const
+{
+	return LastProjectileDebugLine;
+}
+
+const FMDFDebugSphereVisual& UMDFCombatantComponent::GetLastAreaDebugSphere() const
+{
+	return LastAreaDebugSphere;
+}
+
 bool UMDFCombatantComponent::HasTimedState(const FGameplayTag StateTag) const
 {
 	if (!StateTag.IsValid())
@@ -78,6 +113,16 @@ FVector UMDFCombatantComponent::GetPreferredTargetPoint() const
 	}
 
 	return OwnerActor->GetActorLocation();
+}
+
+FVector UMDFCombatantComponent::GetPreferredCuePoint() const
+{
+	if (GetOwner())
+	{
+		return GetPreferredTargetPoint();
+	}
+
+	return FVector::ZeroVector;
 }
 
 bool UMDFCombatantComponent::ApplyTimedState(const FGameplayTag StateTag, const float DurationSeconds)

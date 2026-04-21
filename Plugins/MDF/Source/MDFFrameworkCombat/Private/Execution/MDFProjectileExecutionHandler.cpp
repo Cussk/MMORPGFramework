@@ -82,7 +82,11 @@ bool UMDFProjectileExecutionHandler::Execute(const FMDFSkillExecutionContext& Co
 			CueRequest.InstigatorActor = Context.AvatarActor;
 			CueRequest.TargetActor = Context.AvatarActor;
 			CueRequest.SkillDefinition = Context.SkillDefinition;
-			CueRequest.WorldLocation = Context.AvatarActor->GetActorLocation();
+			CueRequest.SourceWorldLocation = SpawnLocation;
+			CueRequest.ImpactWorldLocation = Context.AimResult.bHasResolvedPoint
+				? Context.AimResult.DesiredWorldPoint
+				: FVector::ZeroVector;
+			CueRequest.FallbackWorldLocation = SpawnLocation;
 
 			CueComponent->RequestSkillCue(CueRequest);
 		}

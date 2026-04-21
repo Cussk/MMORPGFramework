@@ -1004,7 +1004,11 @@ bool UMDFPlayerSkillComponent::CommitAndExecuteSkillActivation(const FMDFSkillAc
 				CueRequest.InstigatorActor = Combatant->GetOwner();
 				CueRequest.TargetActor = Combatant->GetOwner();
 				CueRequest.SkillDefinition = SkillDefinition;
-				CueRequest.WorldLocation = Combatant->GetOwner()->GetActorLocation();
+				CueRequest.SourceWorldLocation = Combatant->GetOwner()->GetActorLocation();
+				CueRequest.ImpactWorldLocation = ActivationDecision.Request.AimSnapshot.bHasResolvedPoint
+					? ActivationDecision.Request.AimSnapshot.DesiredWorldPoint
+					: FVector::ZeroVector;
+				CueRequest.FallbackWorldLocation = Combatant->GetOwner()->GetActorLocation();
 
 				CueComponent->RequestSkillCue(CueRequest);
 			}

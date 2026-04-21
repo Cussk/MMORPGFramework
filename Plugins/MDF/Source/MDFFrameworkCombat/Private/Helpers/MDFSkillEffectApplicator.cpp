@@ -37,7 +37,10 @@ void FMDFSkillEffectApplicator::ApplyEffectsToTarget(
 		bool bAnyAppliedEffect = false;
 	bool bDamagedHealth = false;
 	bool bAddedDeadState = false;
-	FVector CueLocation = Context.TargetActor->GetActorLocation();
+	const FVector CueLocation =
+	!Context.ImpactWorldLocation.IsNearlyZero()
+		? Context.ImpactWorldLocation
+		: (TargetCombatant ? TargetCombatant->GetPreferredCuePoint() : Context.TargetActor->GetActorLocation());
 
 	for (const FMDFSkillEffectSpec& Effect : Context.SkillDefinition->Effects)
 	{
@@ -105,14 +108,16 @@ void FMDFSkillEffectApplicator::ApplyEffectsToTarget(
 	if (UMDFCombatCueComponent* CueComponent = FMDFComponentHelpers::FindOnActor<UMDFCombatCueComponent>(Context.TargetActor))
 	{
 		if (bAnyAppliedEffect)
-		{
+		{			
 			FMDFCombatCueRequest ImpactCueRequest;
 			ImpactCueRequest.CueEventTag = MDFGameplayTags::Cue_Skill_Impact;
 			ImpactCueRequest.TargetRole = EMDFCueTargetRole::Target;
 			ImpactCueRequest.InstigatorActor = Context.SourceActor;
 			ImpactCueRequest.TargetActor = Context.TargetActor;
 			ImpactCueRequest.SkillDefinition = Context.SkillDefinition;
-			ImpactCueRequest.WorldLocation = CueLocation;
+			ImpactCueRequest.SourceWorldLocation = Context.SourceActor ? Context.SourceActor->GetActorLocation() : FVector::ZeroVector;
+			ImpactCueRequest.ImpactWorldLocation = CueLocation;
+			ImpactCueRequest.FallbackWorldLocation = CueLocation;
 
 			CueComponent->RequestSkillCue(ImpactCueRequest);
 		}

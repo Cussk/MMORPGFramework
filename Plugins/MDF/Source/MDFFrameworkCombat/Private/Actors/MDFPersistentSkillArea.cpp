@@ -132,6 +132,13 @@ void AMDFPersistentSkillArea::HandlePulse()
 		EffectContext.SourceSkillComponent = SourceSkillComponent.Get();
 		EffectContext.SkillDefinition = AreaDefinition.Get();
 		EffectContext.TargetActor = OtherActor;
+		
+		const FVector ImpactLocation =
+			TargetCombatant
+		? TargetCombatant->GetPreferredCuePoint()
+		: OtherActor->GetActorLocation();
+
+		EffectContext.ImpactWorldLocation = ImpactLocation;
 
 		FMDFSkillEffectApplicator::ApplyEffectsToTarget(EffectContext, &EffectEntries);
 

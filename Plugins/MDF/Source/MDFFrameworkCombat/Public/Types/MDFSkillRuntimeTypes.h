@@ -90,5 +90,11 @@ struct MDFFRAMEWORKCOMBAT_API FMDFCombatCueRequest
 	TObjectPtr<const UMDFSkillDefinition> SkillDefinition = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue")
-	FVector WorldLocation = FVector::ZeroVector;
+	FVector SourceWorldLocation = FVector::ZeroVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue")
+	FVector ImpactWorldLocation = FVector::ZeroVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue")
+	FVector FallbackWorldLocation = FVector::ZeroVector;
 };

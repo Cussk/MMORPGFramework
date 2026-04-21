@@ -42,6 +42,9 @@ protected:
 
 	const FMDFSkillCueSpec* FindMatchingCueSpec(const UMDFSkillDefinition* SkillDefinition, FGameplayTag CueEventTag, EMDFCueTargetRole TargetRole) const;
 	USkeletalMeshComponent* ResolveSkeletalMesh() const;
+	
+	FVector ResolveCuePlaybackLocation(const FMDFCombatCueRequest& CueRequest, const FMDFSkillCueSpec& CueSpec) const;
+	FVector ResolveDefaultCueLocation(const AActor* ReferenceActor, const FVector& PreferredLocation) const;
 
 	void PlayMontageIfValid(UAnimMontage* Montage);
 	void PlayNiagaraIfValid(const FMDFSkillCueSpec& CueSpec, const FVector& WorldLocation);

@@ -98,6 +98,53 @@ USkeletalMeshComponent* UMDFCombatCueComponent::ResolveSkeletalMesh() const
 	return GetOwner() ? GetOwner()->FindComponentByClass<USkeletalMeshComponent>() : nullptr;
 }
 
+FVector UMDFCombatCueComponent::ResolveCuePlaybackLocation(
+	const FMDFCombatCueRequest& CueRequest,
+	const FMDFSkillCueSpec& CueSpec) const
+{
+	if (CueSpec.TargetRole == EMDFCueTargetRole::Target && !CueRequest.ImpactWorldLocation.IsNearlyZero())
+	{
+		return CueRequest.ImpactWorldLocation;
+	}
+
+	if (CueSpec.TargetRole == EMDFCueTargetRole::Source && !CueRequest.SourceWorldLocation.IsNearlyZero())
+	{
+		return CueRequest.SourceWorldLocation;
+	}
+
+	if (!CueRequest.FallbackWorldLocation.IsNearlyZero())
+	{
+		return CueRequest.FallbackWorldLocation;
+	}
+
+	if (GetOwner())
+	{
+		return GetOwner()->GetActorLocation();
+	}
+
+	return FVector::ZeroVector;
+}
+
+FVector UMDFCombatCueComponent::ResolveDefaultCueLocation(const AActor* ReferenceActor, const FVector& PreferredLocation) const
+{
+	if (!PreferredLocation.IsNearlyZero())
+	{
+		return PreferredLocation;
+	}
+
+	if (ReferenceActor)
+	{
+		return ReferenceActor->GetActorLocation();
+	}
+
+	if (GetOwner())
+	{
+		return GetOwner()->GetActorLocation();
+	}
+
+	return FVector::ZeroVector;
+}
+
 void UMDFCombatCueComponent::PlayMontageIfValid(UAnimMontage* Montage)
 {
 	if (!Montage)
@@ -175,39 +222,43 @@ void UMDFCombatCueComponent::PlayCueLocal(const FMDFCombatCueRequest& CueRequest
 		return;
 	}
 
+	const FVector PlaybackLocation = ResolveCuePlaybackLocation(CueRequest, *CueSpec);
+
 	PlayMontageIfValid(CueSpec->Montage);
-	PlayNiagaraIfValid(*CueSpec, CueRequest.WorldLocation);
-	PlaySoundIfValid(*CueSpec, CueRequest.WorldLocation);
+	PlayNiagaraIfValid(*CueSpec, PlaybackLocation);
+	PlaySoundIfValid(*CueSpec, PlaybackLocation);
 }
 
 void UMDFCombatCueComponent::PlayDefaultHitReactLocal(AActor* InstigatorActor, const FVector& HitLocation)
 {
+	const FVector PlaybackLocation = ResolveDefaultCueLocation(GetOwner(), HitLocation);
+
 	PlayMontageIfValid(DefaultHitReactMontage);
 
 	if (DefaultHitReactEffect && GetWorld())
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DefaultHitReactEffect, HitLocation);
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DefaultHitReactEffect, PlaybackLocation);
 	}
 
 	if (DefaultHitReactSound)
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, DefaultHitReactSound, HitLocation);
+		UGameplayStatics::PlaySoundAtLocation(this, DefaultHitReactSound, PlaybackLocation);
 	}
 }
 
 void UMDFCombatCueComponent::PlayDefaultDeathLocal(AActor* InstigatorActor)
 {
-	PlayMontageIfValid(DefaultDeathMontage);
+	const FVector PlaybackLocation = ResolveDefaultCueLocation(GetOwner(), GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector);
 
-	const FVector WorldLocation = GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
+	PlayMontageIfValid(DefaultDeathMontage);
 
 	if (DefaultDeathEffect && GetWorld())
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DefaultDeathEffect, WorldLocation);
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DefaultDeathEffect, PlaybackLocation);
 	}
 
 	if (DefaultDeathSound)
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, DefaultDeathSound, WorldLocation);
+		UGameplayStatics::PlaySoundAtLocation(this, DefaultDeathSound, PlaybackLocation);
 	}
 }

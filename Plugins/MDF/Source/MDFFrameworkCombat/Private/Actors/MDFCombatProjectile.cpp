@@ -103,10 +103,10 @@ void AMDFCombatProjectile::HandleProjectileOverlap(
 		return;
 	}
 
-	ProcessImpactActor(OtherActor);
+	ProcessImpactActor(OtherActor, SweepResult);
 }
 
-void AMDFCombatProjectile::ProcessImpactActor(AActor* OtherActor)
+void AMDFCombatProjectile::ProcessImpactActor(AActor* OtherActor, const FHitResult& HitResult)
 {
 	if (!OtherActor || OtherActor == SourceActor || ImpactedActors.Contains(OtherActor))
 	{
@@ -140,12 +140,17 @@ void AMDFCombatProjectile::ProcessImpactActor(AActor* OtherActor)
 		TargetCombatant->ApplyKnockback(KnockDirection, KnockbackStrength);
 	}
 	
+	const FVector ImpactLocation = HitResult.ImpactPoint.IsNearlyZero()
+	? HitResult.Location
+	: HitResult.ImpactPoint;
+	
 	TArray<FMDFAppliedSkillEffectDebugEntry> EffectEntries;
 	FMDFSkillEffectApplicationContext EffectContext;
 	EffectContext.SourceActor = SourceActor;
 	EffectContext.SourceSkillComponent = SourceSkillComponent.Get();
 	EffectContext.SkillDefinition = ProjectileDefinition.Get();
 	EffectContext.TargetActor = OtherActor;
+	EffectContext.ImpactWorldLocation = ImpactLocation;
 
 	FMDFSkillEffectApplicator::ApplyEffectsToTarget(EffectContext, &EffectEntries);
 

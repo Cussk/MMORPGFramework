@@ -15,6 +15,7 @@ struct FMDFSkillEffectApplicationContext
 	UMDFPlayerSkillComponent* SourceSkillComponent = nullptr;
 	const UMDFSkillDefinition* SkillDefinition = nullptr;
 	AActor* TargetActor = nullptr;
+	FVector ImpactWorldLocation = FVector::ZeroVector;
 };
 
 class MDFFRAMEWORKCOMBAT_API FMDFSkillEffectApplicator

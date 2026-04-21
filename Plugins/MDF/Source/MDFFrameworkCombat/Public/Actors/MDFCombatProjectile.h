@@ -69,5 +69,5 @@ protected:
 		bool bFromSweep,
 		const FHitResult& SweepResult);
 
-	void ProcessImpactActor(AActor* OtherActor);
+	void ProcessImpactActor(AActor* OtherActor, const FHitResult& HitResult);
 };

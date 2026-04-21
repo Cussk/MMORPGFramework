@@ -35,47 +35,26 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UFUNCTION(BlueprintPure, Category="Combat")
-	const FGameplayTagContainer& GetCombatStateTags() const
-	{
-		return CombatStateTags;
-	}
+	const FGameplayTagContainer& GetCombatStateTags() const;
 
 	UFUNCTION(BlueprintPure, Category="Combat")
-	const TArray<FMDFTimedStateRuntime>& GetActiveTimedStates() const
-	{
-		return ActiveTimedStates;
-	}
+	const TArray<FMDFTimedStateRuntime>& GetActiveTimedStates() const;
 
 	UFUNCTION(BlueprintPure, Category="Combat")
-	int32 GetLastFrontalMeleeHitCount() const
-	{
-		return LastFrontalMeleeHitCount;
-	}
-	
-	UFUNCTION(BlueprintPure, Category="Combat")
-	int32 GetLastAppliedImpactCount() const
-	{
-		return LastAppliedImpactCount;
-	}
-	
-	UFUNCTION(BlueprintPure, Category="Combat")
-	const FMDFTraceDebugVisual& GetLastTraceDebugVisual() const
-	{
-		return LastTraceDebugVisual;
-	}
-	
-	UFUNCTION(BlueprintPure, Category="Combat")
-	const FMDFDebugLineVisual& GetLastProjectileDebugLine() const
-	{
-		return LastProjectileDebugLine;
-	}
+	int32 GetLastFrontalMeleeHitCount() const;
 
 	UFUNCTION(BlueprintPure, Category="Combat")
-	const FMDFDebugSphereVisual& GetLastAreaDebugSphere() const
-	{
-		return LastAreaDebugSphere;
-	}
-	
+	int32 GetLastAppliedImpactCount() const;
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const FMDFTraceDebugVisual& GetLastTraceDebugVisual() const;
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const FMDFDebugLineVisual& GetLastProjectileDebugLine() const;
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const FMDFDebugSphereVisual& GetLastAreaDebugSphere() const;
+
 	UFUNCTION(BlueprintPure, Category="Combat")
 	UMDFAttributeComponent* ResolveOwnedAttributeComponent() const;
 	
@@ -96,6 +75,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Targeting")
 	FVector GetPreferredTargetPoint() const;
+	
+	UFUNCTION(BlueprintPure, Category="Combat")
+	FVector GetPreferredCuePoint() const;
 	
 	void AddCombatState(FGameplayTag StateTag);
 	void RemoveCombatState(FGameplayTag StateTag);
