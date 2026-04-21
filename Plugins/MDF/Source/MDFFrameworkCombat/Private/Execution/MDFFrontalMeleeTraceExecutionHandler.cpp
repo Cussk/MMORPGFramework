@@ -82,9 +82,15 @@ bool UMDFFrontalMeleeTraceExecutionHandler::Execute(const FMDFSkillExecutionCont
 		EffectContext.SourceSkillComponent = Context.SkillComponent;
 		EffectContext.SkillDefinition = Context.SkillDefinition;
 		EffectContext.TargetActor = HitActor;
-		EffectContext.ImpactWorldLocation = Hit.ImpactPoint.IsNearlyZero()
-	? Hit.Location
-	: Hit.ImpactPoint;
+		
+		if (TargetCombatant)
+		{
+			EffectContext.ImpactWorldLocation = TargetCombatant->GetPreferredCuePoint();
+		}
+		else
+		{
+			EffectContext.ImpactWorldLocation = HitActor->GetActorLocation();
+		}
 
 		FMDFSkillEffectApplicator::ApplyEffectsToTarget(EffectContext, &EffectEntries);
 
