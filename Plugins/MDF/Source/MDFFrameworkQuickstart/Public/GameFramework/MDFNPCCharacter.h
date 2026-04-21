@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "MDFNPCCharacter.generated.h"
 
+class UMDFCombatCueComponent;
 class UMDFAttributeComponent;
 /**
  * Optional quickstart/reference NPC character for MDF sample maps.
@@ -40,10 +41,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "MDF|NPC")
 	FText NPCDisplayName;
 
-UFUNCTION(BlueprintPure, Category="MDF")
+	UFUNCTION(BlueprintPure, Category="MDF")
 	UMDFAttributeComponent* GetMDFAttributeComponent() const;
+	
+	UFUNCTION(BlueprintPure, Category="MDF")
+	UMDFCombatCueComponent* GetMDFCombatCueComponent() const;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UMDFAttributeComponent> MDFAttributeComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UMDFCombatCueComponent> MDFCombatCueComponent;
 };

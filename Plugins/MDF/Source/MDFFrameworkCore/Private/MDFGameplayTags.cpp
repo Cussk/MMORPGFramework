@@ -93,6 +93,15 @@ namespace MDFGameplayTags
 	// -------------------
 	UE_DEFINE_GAMEPLAY_TAG(Effect_Damage, "Effect.Damage");
 	UE_DEFINE_GAMEPLAY_TAG(Effect_Heal, "Effect.Heal");
+	
+	// -------------------
+	// Cues
+	// -------------------
+	UE_DEFINE_GAMEPLAY_TAG(Cue_Skill_Execute, "Cue.Skill.Execute");
+	UE_DEFINE_GAMEPLAY_TAG(Cue_Skill_Projectile_Spawn, "Cue.Skill.Projectile.Spawn");
+	UE_DEFINE_GAMEPLAY_TAG(Cue_Skill_Impact, "Cue.Skill.Impact");
+	UE_DEFINE_GAMEPLAY_TAG(Cue_Combat_HitReact, "Cue.Combat.HitReact");
+	UE_DEFINE_GAMEPLAY_TAG(Cue_Combat_Death, "Cue.Combat.Death");
 
 	// --------------------
 	// Combat State

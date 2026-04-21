@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "MDFCharacter.generated.h"
 
+class UMDFCombatCueComponent;
 class UMDFCombatantComponent;
 struct FInputActionValue;
 class UCameraComponent;
@@ -40,9 +41,6 @@ class MDFFRAMEWORKQUICKSTART_API AMDFCharacter : public ACharacter
 public:
 	AMDFCharacter();
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
-	UMDFCombatantComponent* CombatantComponent;
-	
 	UFUNCTION(BlueprintPure, Category = "MDF")
 	AMDFPlayerController* GetMDFPlayerController() const;
 
@@ -54,6 +52,19 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "MDF")
 	UMDFPlayerSkillComponent* GetMDFSkillComponent() const;
+	
+	UFUNCTION(BlueprintPure, Category="MDF")
+	UMDFCombatCueComponent* GetMDFCombatCueComponent() const;
+	
+	UFUNCTION(BlueprintPure, Category="MDF")
+	UMDFCombatantComponent* GetMDFCombatantComponent() const;
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	TObjectPtr<UMDFCombatantComponent> MDFCombatantComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UMDFCombatCueComponent> MDFCombatCueComponent;
 	
 	
 	/// Third Person Template placeholder movement ///

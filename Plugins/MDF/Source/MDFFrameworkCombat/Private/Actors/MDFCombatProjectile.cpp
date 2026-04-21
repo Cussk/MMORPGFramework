@@ -69,10 +69,10 @@ void AMDFCombatProjectile::InitializeFromSkillDefinition(const UMDFSkillDefiniti
 
 	SourceActor = InSourceActor;
 	SourceSkillComponent = InSkillComponent;
-	ImpactTimedStateTag = ProjectileDefinition->ImpactTimedStateTag;
-	ImpactTimedStateDurationSeconds = ProjectileDefinition->ImpactTimedStateDurationSeconds;
-	KnockbackStrength = ProjectileDefinition->KnockbackStrength;
-	MaxAffectedTargets = ProjectileDefinition->MaxAffectedTargets;
+	ImpactTimedStateTag = ProjectileDefinition->Impact.ImpactTimedStateTag;
+	ImpactTimedStateDurationSeconds = ProjectileDefinition->Impact.ImpactTimedStateDurationSeconds;
+	KnockbackStrength = ProjectileDefinition->Impact.KnockbackStrength;
+	MaxAffectedTargets = ProjectileDefinition->Impact.MaxAffectedTargets;
 	bPierces = ProjectileDefinition->bProjectilePierces;
 
 	if (CollisionComponent)

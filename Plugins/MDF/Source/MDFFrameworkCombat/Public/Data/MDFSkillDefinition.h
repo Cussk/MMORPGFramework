@@ -54,19 +54,12 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	TArray<FMDFSkillEffectSpec> Effects;
-
-	// Shared impact payload used by multiple delivery families.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact", meta=(ClampMin="0"))
-	int32 MaxAffectedTargets = 1;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact")
-	FGameplayTag ImpactTimedStateTag;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact", meta=(ClampMin="0.0"))
-	float ImpactTimedStateDurationSeconds = 0.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact", meta=(ClampMin="0.0"))
-	float KnockbackStrength = 0.0f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
+	FMDFSkillCueContainer Cues;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
+	FMDFSkillImpactSpec Impact;
 
 	UFUNCTION(BlueprintPure, Category="Skills")
 	bool IsOwnedByDiscipline(FGameplayTag DisciplineTag) const;

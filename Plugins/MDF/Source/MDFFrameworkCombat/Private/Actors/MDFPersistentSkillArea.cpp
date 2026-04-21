@@ -53,10 +53,10 @@ void AMDFPersistentSkillArea::InitializeFromSkillDefinition(const UMDFSkillDefin
 	SourceSkillComponent = InSkillComponent;
 	AreaRadius = AreaDefinition->PersistentAreaRadius;
 	PulseIntervalSeconds = AreaDefinition->PersistentAreaPulseIntervalSeconds;
-	ImpactTimedStateTag = AreaDefinition->ImpactTimedStateTag;
-	ImpactTimedStateDurationSeconds = AreaDefinition->ImpactTimedStateDurationSeconds;
-	KnockbackStrength = AreaDefinition->KnockbackStrength;
-	MaxAffectedTargets = AreaDefinition->MaxAffectedTargets;
+	ImpactTimedStateTag = AreaDefinition->Impact.ImpactTimedStateTag;
+	ImpactTimedStateDurationSeconds = AreaDefinition->Impact.ImpactTimedStateDurationSeconds;
+	KnockbackStrength = AreaDefinition->Impact.KnockbackStrength;
+	MaxAffectedTargets = AreaDefinition->Impact.MaxAffectedTargets;
 	
 	if (SourceActor)
 	{

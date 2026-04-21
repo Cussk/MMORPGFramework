@@ -13,6 +13,7 @@ public class MDFFrameworkCombat : ModuleRules
                 "CoreUObject",
                 "Engine",
                 "GameplayTags",
+                "Niagara",
                 "DeveloperSettings",
                 "MDFFrameworkCore",
                 "MDFFrameworkProgression",

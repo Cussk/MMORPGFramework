@@ -1,9 +1,12 @@
 ﻿#include "Execution/MDFProjectileExecutionHandler.h"
 
+#include "MDFGameplayTags.h"
 #include "Actors/MDFCombatProjectile.h"
 #include "Components/MDFCombatantComponent.h"
+#include "Components/MDFCombatCueComponent.h"
 #include "Data/MDFProjectileSkillDefinition.h"
 #include "Data/MDFSkillDefinition.h"
+#include "Helpers/MDFComponentHelpers.h"
 
 bool UMDFProjectileExecutionHandler::Execute(const FMDFSkillExecutionContext& Context, FMDFSkillExecutionDecision& OutDecision) const
 {
@@ -67,6 +70,22 @@ bool UMDFProjectileExecutionHandler::Execute(const FMDFSkillExecutionContext& Co
 	{
 		OutDecision.Result = EMDFSkillExecutionResult::ExecutionFailed;
 		return false;
+	}
+	
+	if (Context.AvatarActor)
+	{
+		if (UMDFCombatCueComponent* CueComponent = FMDFComponentHelpers::FindOnActor<UMDFCombatCueComponent>(Context.AvatarActor))
+		{
+			FMDFCombatCueRequest CueRequest;
+			CueRequest.CueEventTag = MDFGameplayTags::Cue_Skill_Projectile_Spawn;
+			CueRequest.TargetRole = EMDFCueTargetRole::Source;
+			CueRequest.InstigatorActor = Context.AvatarActor;
+			CueRequest.TargetActor = Context.AvatarActor;
+			CueRequest.SkillDefinition = Context.SkillDefinition;
+			CueRequest.WorldLocation = Context.AvatarActor->GetActorLocation();
+
+			CueComponent->RequestSkillCue(CueRequest);
+		}
 	}
 
 	Projectile->InitializeFromSkillDefinition(ProjectileDefinition, Context.AvatarActor, Context.SkillComponent);

@@ -2,6 +2,7 @@
 
 #include "Components/MDFPlayerSkillComponent.h"
 
+#include "MDFGameplayTags.h"
 #include "Components/MDFCombatantComponent.h"
 #include "Components/MDFTargetingComponent.h"
 #include "Data/MDFSkillDefinition.h"
@@ -12,6 +13,7 @@
 #include "Helpers/MDFCombatDefinitionLookup.h"
 #include "Helpers/MDFComponentHelpers.h"
 #include "Components/MDFAttributeComponent.h"
+#include "Components/MDFCombatCueComponent.h"
 #include "Net/UnrealNetwork.h"
 
 UMDFPlayerSkillComponent::UMDFPlayerSkillComponent()
@@ -992,6 +994,22 @@ bool UMDFPlayerSkillComponent::CommitAndExecuteSkillActivation(const FMDFSkillAc
 	
 	if (LastSkillExecutionDecision.Result == EMDFSkillExecutionResult::Success)
 	{
+		if (Combatant && Combatant->GetOwner())
+		{
+			if (UMDFCombatCueComponent* CueComponent = FMDFComponentHelpers::FindOnActor<UMDFCombatCueComponent>(Combatant->GetOwner()))
+			{
+				FMDFCombatCueRequest CueRequest;
+				CueRequest.CueEventTag = MDFGameplayTags::Cue_Skill_Execute;
+				CueRequest.TargetRole = EMDFCueTargetRole::Source;
+				CueRequest.InstigatorActor = Combatant->GetOwner();
+				CueRequest.TargetActor = Combatant->GetOwner();
+				CueRequest.SkillDefinition = SkillDefinition;
+				CueRequest.WorldLocation = Combatant->GetOwner()->GetActorLocation();
+
+				CueComponent->RequestSkillCue(CueRequest);
+			}
+		}
+
 		CommitSkillCosts(SkillDefinition);
 		CommitSkillCooldown(ActivationDecision.Request.ActiveDisciplineTag, SkillDefinition);
 	}

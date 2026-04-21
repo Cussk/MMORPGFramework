@@ -6,6 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "MDFSkillTypes.generated.h"
 
+class UNiagaraSystem;
 /**
  * High-level targeting mode for a skill.
  *
@@ -22,6 +23,13 @@ enum class EMDFSkillTargetingMode : uint8
 	SingleTarget	UMETA(DisplayName = "Single Target"),
 	GroundTarget	UMETA(DisplayName = "Ground Target"),
 	Area			UMETA(DisplayName = "Area")
+};
+
+UENUM(BlueprintType)
+enum class EMDFCueTargetRole : uint8
+{
+	Source,
+	Target
 };
 
 /**
@@ -106,4 +114,64 @@ struct MDFFRAMEWORKCOMBAT_API FMDFSkillEffectSpec
 	{
 		return EffectTypeTag.IsValid() && AttributeTag.IsValid() && Magnitude > 0.0f;
 	}
+};
+
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFSkillCueSpec
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Cue")
+	FGameplayTag CueEventTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Cue")
+	EMDFCueTargetRole TargetRole = EMDFCueTargetRole::Source;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Cue")
+	TObjectPtr<UAnimMontage> Montage = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Cue")
+	TObjectPtr<UNiagaraSystem> NiagaraSystem = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Cue")
+	TObjectPtr<USoundBase> Sound = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Cue")
+	FName AttachSocketName = NAME_None;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Cue")
+	bool bAttachEffect = true;
+
+	bool IsValid() const
+	{
+		return CueEventTag.IsValid() && (Montage || NiagaraSystem || Sound);
+	}
+};
+
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFSkillCueContainer
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Cue")
+	TArray<FMDFSkillCueSpec> CueSpecs;
+};
+
+// Shared impact payload used by multiple delivery families.
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFSkillImpactSpec
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact", meta=(ClampMin="0"))
+	int32 MaxAffectedTargets = 1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact")
+	FGameplayTag ImpactTimedStateTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact", meta=(ClampMin="0.0"))
+	float ImpactTimedStateDurationSeconds = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact", meta=(ClampMin="0.0"))
+	float KnockbackStrength = 0.0f;
 };

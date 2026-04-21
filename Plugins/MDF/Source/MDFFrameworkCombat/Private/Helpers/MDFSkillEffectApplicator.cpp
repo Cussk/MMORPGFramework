@@ -9,6 +9,7 @@
 #include "Data/MDFSkillDefinition.h"
 #include "Helpers/MDFComponentHelpers.h"
 #include "MDFGameplayTags.h"
+#include "Components/MDFCombatCueComponent.h"
 
 void FMDFSkillEffectApplicator::ApplyEffectsToTarget(
 	const FMDFSkillEffectApplicationContext& Context,
@@ -33,6 +34,11 @@ void FMDFSkillEffectApplicator::ApplyEffectsToTarget(
 		return;
 	}
 
+		bool bAnyAppliedEffect = false;
+	bool bDamagedHealth = false;
+	bool bAddedDeadState = false;
+	FVector CueLocation = Context.TargetActor->GetActorLocation();
+
 	for (const FMDFSkillEffectSpec& Effect : Context.SkillDefinition->Effects)
 	{
 		if (!Effect.IsValid())
@@ -41,23 +47,39 @@ void FMDFSkillEffectApplicator::ApplyEffectsToTarget(
 		}
 
 		float AppliedDelta;
-		bool bAddedDeadState = false;
+		bool bThisEffectAddedDeadState = false;
 
 		if (Effect.EffectTypeTag == MDFGameplayTags::Effect_Damage)
 		{
 			AppliedDelta = AttributeComponent->ApplyCurrentValueDelta(Effect.AttributeTag, -Effect.Magnitude);
+
+			if (!FMath::IsNearlyZero(AppliedDelta))
+			{
+				bAnyAppliedEffect = true;
+
+				if (Effect.AttributeTag == MDFGameplayTags::Attribute_Resource_Health)
+				{
+					bDamagedHealth = true;
+				}
+			}
 
 			if (Effect.AttributeTag == MDFGameplayTags::Attribute_Resource_Health &&
 				AttributeComponent->IsDepleted(MDFGameplayTags::Attribute_Resource_Health) &&
 				!TargetCombatant->IsDead())
 			{
 				TargetCombatant->HandleHealthDepleted(Context.SourceActor);
-				bAddedDeadState = TargetCombatant->IsDead();
+				bThisEffectAddedDeadState = TargetCombatant->IsDead();
+				bAddedDeadState = bAddedDeadState || bThisEffectAddedDeadState;
 			}
 		}
 		else if (Effect.EffectTypeTag == MDFGameplayTags::Effect_Heal)
 		{
 			AppliedDelta = AttributeComponent->ApplyCurrentValueDelta(Effect.AttributeTag, Effect.Magnitude);
+
+			if (!FMath::IsNearlyZero(AppliedDelta))
+			{
+				bAnyAppliedEffect = true;
+			}
 		}
 		else
 		{
@@ -76,7 +98,33 @@ void FMDFSkillEffectApplicator::ApplyEffectsToTarget(
 			Entry.EffectTypeTag = Effect.EffectTypeTag;
 			Entry.AttributeTag = Effect.AttributeTag;
 			Entry.AppliedMagnitude = FMath::Abs(AppliedDelta);
-			Entry.bAddedDeadState = bAddedDeadState;
+			Entry.bAddedDeadState = bThisEffectAddedDeadState;
+		}
+	}
+
+	if (UMDFCombatCueComponent* CueComponent = FMDFComponentHelpers::FindOnActor<UMDFCombatCueComponent>(Context.TargetActor))
+	{
+		if (bAnyAppliedEffect)
+		{
+			FMDFCombatCueRequest ImpactCueRequest;
+			ImpactCueRequest.CueEventTag = MDFGameplayTags::Cue_Skill_Impact;
+			ImpactCueRequest.TargetRole = EMDFCueTargetRole::Target;
+			ImpactCueRequest.InstigatorActor = Context.SourceActor;
+			ImpactCueRequest.TargetActor = Context.TargetActor;
+			ImpactCueRequest.SkillDefinition = Context.SkillDefinition;
+			ImpactCueRequest.WorldLocation = CueLocation;
+
+			CueComponent->RequestSkillCue(ImpactCueRequest);
+		}
+
+		if (bDamagedHealth && !bAddedDeadState)
+		{
+			CueComponent->RequestDefaultHitReactCue(Context.SourceActor, CueLocation);
+		}
+
+		if (bAddedDeadState)
+		{
+			CueComponent->RequestDefaultDeathCue(Context.SourceActor);
 		}
 	}
 }

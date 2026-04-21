@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "MDFSkillTypes.h"
+#include "Data/MDFSkillDefinition.h"
 #include "MDFSkillRuntimeTypes.generated.h"
 
 /**
@@ -65,4 +67,28 @@ struct MDFFRAMEWORKCOMBAT_API FMDFSkillCooldownRuntime
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cooldown")
 	float CooldownEndServerTime = 0.0f;
+};
+
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFCombatCueRequest
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue")
+	FGameplayTag CueEventTag;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue")
+	EMDFCueTargetRole TargetRole = EMDFCueTargetRole::Source;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue")
+	TObjectPtr<AActor> InstigatorActor = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue")
+	TObjectPtr<AActor> TargetActor = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue")
+	TObjectPtr<const UMDFSkillDefinition> SkillDefinition = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue")
+	FVector WorldLocation = FVector::ZeroVector;
 };

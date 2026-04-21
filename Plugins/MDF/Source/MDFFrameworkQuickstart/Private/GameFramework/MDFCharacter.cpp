@@ -6,6 +6,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/MDFCombatantComponent.h"
+#include "Components/MDFCombatCueComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/MDFPlayerController.h"
 #include "GameFramework/MDFPlayerState.h"
@@ -39,7 +40,8 @@ AMDFCharacter::AMDFCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 	
-	CombatantComponent = CreateDefaultSubobject<UMDFCombatantComponent>(TEXT("CombatantComponent"));
+	MDFCombatantComponent = CreateDefaultSubobject<UMDFCombatantComponent>(TEXT("CombatantComponent"));
+	MDFCombatCueComponent = CreateDefaultSubobject<UMDFCombatCueComponent>(TEXT("CombatCueComponent"));
 }
 
 AMDFPlayerController* AMDFCharacter::GetMDFPlayerController() const
@@ -77,7 +79,17 @@ UMDFPlayerSkillComponent* AMDFCharacter::GetMDFSkillComponent() const
 	return nullptr;
 }
 
-      /// Third Person Template placeholder movement ///
+UMDFCombatCueComponent* AMDFCharacter::GetMDFCombatCueComponent() const
+{
+	return MDFCombatCueComponent;
+}
+
+UMDFCombatantComponent* AMDFCharacter::GetMDFCombatantComponent() const
+{
+	return MDFCombatantComponent;
+}
+
+/// Third Person Template placeholder movement ///
 
 void AMDFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {

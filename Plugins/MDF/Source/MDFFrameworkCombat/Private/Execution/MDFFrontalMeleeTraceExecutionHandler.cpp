@@ -64,16 +64,16 @@ bool UMDFFrontalMeleeTraceExecutionHandler::Execute(const FMDFSkillExecutionCont
 			continue;
 		}
 
-		if (FrontalMeleeSkillDefinition->ImpactTimedStateTag.IsValid() && FrontalMeleeSkillDefinition->ImpactTimedStateDurationSeconds > 0.0f)
+		if (FrontalMeleeSkillDefinition->Impact.ImpactTimedStateTag.IsValid() && FrontalMeleeSkillDefinition->Impact.ImpactTimedStateDurationSeconds > 0.0f)
 		{
 			TargetCombatant->ApplyImpactTimedState(
-				FrontalMeleeSkillDefinition->ImpactTimedStateTag,
-				FrontalMeleeSkillDefinition->ImpactTimedStateDurationSeconds);
+				FrontalMeleeSkillDefinition->Impact.ImpactTimedStateTag,
+				FrontalMeleeSkillDefinition->Impact.ImpactTimedStateDurationSeconds);
 		}
 
-		if (FrontalMeleeSkillDefinition->KnockbackStrength > 0.0f)
+		if (FrontalMeleeSkillDefinition->Impact.KnockbackStrength > 0.0f)
 		{
-			TargetCombatant->ApplyKnockback(Forward, FrontalMeleeSkillDefinition->KnockbackStrength);
+			TargetCombatant->ApplyKnockback(Forward, FrontalMeleeSkillDefinition->Impact.KnockbackStrength);
 		}
 		
 		TArray<FMDFAppliedSkillEffectDebugEntry> EffectEntries;
@@ -92,7 +92,7 @@ bool UMDFFrontalMeleeTraceExecutionHandler::Execute(const FMDFSkillExecutionCont
 
 		++AppliedCount;
 
-		if (FrontalMeleeSkillDefinition->MaxAffectedTargets > 0 && AppliedCount >= FrontalMeleeSkillDefinition->MaxAffectedTargets)
+		if (FrontalMeleeSkillDefinition->Impact.MaxAffectedTargets > 0 && AppliedCount >= FrontalMeleeSkillDefinition->Impact.MaxAffectedTargets)
 		{
 			break;
 		}
