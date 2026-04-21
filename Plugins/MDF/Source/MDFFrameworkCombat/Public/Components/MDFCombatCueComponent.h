@@ -8,6 +8,7 @@
 #include "Types/MDFSkillTypes.h"
 #include "MDFCombatCueComponent.generated.h"
 
+class UMDFCombatantComponent;
 class UAnimMontage;
 class UNiagaraSystem;
 class USkeletalMeshComponent;
@@ -27,6 +28,11 @@ public:
 	void RequestDefaultDeathCue(AActor* InstigatorActor);
 
 protected:
+	// Add near the public/protected function declarations.
+
+protected:
+	virtual void BeginPlay() override;
+	
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastPlayCue(FMDFCombatCueRequest CueRequest);
 
@@ -49,6 +55,12 @@ protected:
 	void PlayMontageIfValid(UAnimMontage* Montage);
 	void PlayNiagaraIfValid(const FMDFSkillCueSpec& CueSpec, const FVector& WorldLocation);
 	void PlaySoundIfValid(const FMDFSkillCueSpec& CueSpec, const FVector& WorldLocation);
+	
+	bool CanPlayDefaultHitReactCue() const;
+	bool CanPlayDefaultDeathCue() const;
+	void RefreshCueGateState();
+
+	UMDFCombatantComponent* ResolveOwningCombatant() const;
 
 	UPROPERTY(EditDefaultsOnly, Category="Cue Defaults")
 	TObjectPtr<UAnimMontage> DefaultHitReactMontage = nullptr;
@@ -67,4 +79,25 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Cue Defaults")
 	TObjectPtr<USoundBase> DefaultDeathSound = nullptr;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Cue Rules", meta=(ClampMin="0.0"))
+	float HitReactMinIntervalSeconds = 0.20f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Cue Rules")
+	bool bBlockHitReactWhileDead = true;
+
+	UPROPERTY(EditDefaultsOnly, Category="Cue Rules")
+	bool bBlockHitReactAfterDeathCue = true;
+
+	UPROPERTY(EditDefaultsOnly, Category="Cue Rules")
+	bool bBlockDeathReplay = true;
+
+	UPROPERTY(EditDefaultsOnly, Category="Cue Rules")
+	bool bBlockHitReactWhileDeathMontagePlaying = true;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue Runtime")
+	float LastHitReactPlayWorldTime = -1.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue Runtime")
+	bool bDeathCuePlayedForCurrentDeadState = false;
 };

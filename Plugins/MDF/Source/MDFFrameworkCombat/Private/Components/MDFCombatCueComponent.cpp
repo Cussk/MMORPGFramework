@@ -9,12 +9,20 @@
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Components/MDFCombatantComponent.h"
 #include "Sound/SoundBase.h"
 
 UMDFCombatCueComponent::UMDFCombatCueComponent()
 {
 	SetIsReplicatedByDefault(true);
 	PrimaryComponentTick.bCanEverTick = false;
+}
+
+void UMDFCombatCueComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	RefreshCueGateState();
 }
 
 void UMDFCombatCueComponent::RequestSkillCue(const FMDFCombatCueRequest& CueRequest)
@@ -34,12 +42,26 @@ void UMDFCombatCueComponent::RequestDefaultHitReactCue(AActor* InstigatorActor, 
 		return;
 	}
 
+	RefreshCueGateState();
+
+	if (!CanPlayDefaultHitReactCue())
+	{
+		return;
+	}
+
 	MulticastPlayDefaultHitReactCue(InstigatorActor, HitLocation);
 }
 
 void UMDFCombatCueComponent::RequestDefaultDeathCue(AActor* InstigatorActor)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	RefreshCueGateState();
+
+	if (!CanPlayDefaultDeathCue())
 	{
 		return;
 	}
@@ -214,6 +236,79 @@ void UMDFCombatCueComponent::PlaySoundIfValid(const FMDFSkillCueSpec& CueSpec, c
 	UGameplayStatics::PlaySoundAtLocation(this, CueSpec.Sound, WorldLocation);
 }
 
+UMDFCombatantComponent* UMDFCombatCueComponent::ResolveOwningCombatant() const
+{
+	return GetOwner() ? GetOwner()->FindComponentByClass<UMDFCombatantComponent>() : nullptr;
+}
+
+void UMDFCombatCueComponent::RefreshCueGateState()
+{
+	const UMDFCombatantComponent* Combatant = ResolveOwningCombatant();
+	if (!Combatant || !Combatant->IsDead())
+	{
+		bDeathCuePlayedForCurrentDeadState = false;
+	}
+}
+
+bool UMDFCombatCueComponent::CanPlayDefaultHitReactCue() const
+{
+	const UMDFCombatantComponent* Combatant = ResolveOwningCombatant();
+
+	if (bBlockHitReactWhileDead && Combatant && Combatant->IsDead())
+	{
+		return false;
+	}
+
+	if (bBlockHitReactAfterDeathCue && bDeathCuePlayedForCurrentDeadState)
+	{
+		return false;
+	}
+
+	if (const UWorld* World = GetWorld())
+	{
+		if (HitReactMinIntervalSeconds > 0.0f && LastHitReactPlayWorldTime >= 0.0f)
+		{
+			const float Elapsed = World->GetTimeSeconds() - LastHitReactPlayWorldTime;
+			if (Elapsed < HitReactMinIntervalSeconds)
+			{
+				return false;
+			}
+		}
+	}
+
+	if (bBlockHitReactWhileDeathMontagePlaying && DefaultDeathMontage)
+	{
+		if (USkeletalMeshComponent* Mesh = ResolveSkeletalMesh())
+		{
+			if (UAnimInstance* AnimInstance = Mesh->GetAnimInstance())
+			{
+				if (AnimInstance->Montage_IsPlaying(DefaultDeathMontage))
+				{
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+bool UMDFCombatCueComponent::CanPlayDefaultDeathCue() const
+{
+	const UMDFCombatantComponent* Combatant = ResolveOwningCombatant();
+	if (Combatant && !Combatant->IsDead())
+	{
+		return false;
+	}
+
+	if (bBlockDeathReplay && bDeathCuePlayedForCurrentDeadState)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 void UMDFCombatCueComponent::PlayCueLocal(const FMDFCombatCueRequest& CueRequest)
 {
 	const FMDFSkillCueSpec* CueSpec = FindMatchingCueSpec(CueRequest.SkillDefinition, CueRequest.CueEventTag, CueRequest.TargetRole);
@@ -231,6 +326,13 @@ void UMDFCombatCueComponent::PlayCueLocal(const FMDFCombatCueRequest& CueRequest
 
 void UMDFCombatCueComponent::PlayDefaultHitReactLocal(AActor* InstigatorActor, const FVector& HitLocation)
 {
+	RefreshCueGateState();
+
+	if (!CanPlayDefaultHitReactCue())
+	{
+		return;
+	}
+
 	const FVector PlaybackLocation = ResolveDefaultCueLocation(GetOwner(), HitLocation);
 
 	PlayMontageIfValid(DefaultHitReactMontage);
@@ -244,10 +346,22 @@ void UMDFCombatCueComponent::PlayDefaultHitReactLocal(AActor* InstigatorActor, c
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, DefaultHitReactSound, PlaybackLocation);
 	}
+
+	if (const UWorld* World = GetWorld())
+	{
+		LastHitReactPlayWorldTime = World->GetTimeSeconds();
+	}
 }
 
 void UMDFCombatCueComponent::PlayDefaultDeathLocal(AActor* InstigatorActor)
 {
+	RefreshCueGateState();
+
+	if (!CanPlayDefaultDeathCue())
+	{
+		return;
+	}
+
 	const FVector PlaybackLocation = ResolveDefaultCueLocation(GetOwner(), GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector);
 
 	PlayMontageIfValid(DefaultDeathMontage);
@@ -261,4 +375,6 @@ void UMDFCombatCueComponent::PlayDefaultDeathLocal(AActor* InstigatorActor)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, DefaultDeathSound, PlaybackLocation);
 	}
+
+	bDeathCuePlayedForCurrentDeadState = true;
 }
