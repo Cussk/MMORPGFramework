@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "MDFCharacter.generated.h"
 
+class UMDFCombatActionComponent;
 class UMDFCombatCueComponent;
 class UMDFCombatantComponent;
 struct FInputActionValue;
@@ -59,9 +60,15 @@ public:
 	UFUNCTION(BlueprintPure, Category="MDF")
 	UMDFCombatantComponent* GetMDFCombatantComponent() const;
 
+	UFUNCTION(BlueprintPure, Category="MDF")
+	UMDFCombatActionComponent* GetMDFCombatActionComponent() const;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	TObjectPtr<UMDFCombatantComponent> MDFCombatantComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UMDFCombatActionComponent> MDFCombatActionComponent;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UMDFCombatCueComponent> MDFCombatCueComponent;

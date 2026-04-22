@@ -133,7 +133,7 @@ void AMDFDebugHUD::DrawLineText(const FString& Text, const float X, float& Y, co
 
 void AMDFDebugHUD::DrawSummaryPanel(const FMDFPlayerDebugSnapshot& Snapshot, const float X, float& Y)
 {
-	const int32 BodyLineCount = 10;
+	const int32 BodyLineCount = 14;
 	const float PanelHeight = GetPanelHeight(BodyLineCount);
 
 	DrawPanelBackground(X, Y, PanelWidth, PanelHeight, PanelBackgroundColor);
@@ -148,6 +148,10 @@ void AMDFDebugHUD::DrawSummaryPanel(const FMDFPlayerDebugSnapshot& Snapshot, con
 	DrawKeyValueLine(TEXT("Active Skill"), Snapshot.ActiveSkillText, X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Skill Phase"), Snapshot.ActiveSkillPhaseText, X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Last Exec"), Snapshot.LastExecutionResultText, X + PanelPadding, DrawY);
+	DrawKeyValueLine(TEXT("Action"), Snapshot.ActiveCombatActionText, X + PanelPadding, DrawY);
+	DrawKeyValueLine(TEXT("Action Phase"), Snapshot.ActiveCombatActionPhaseText, X + PanelPadding, DrawY);
+	DrawKeyValueLine(TEXT("Queued Action"), Snapshot.QueuedCombatActionText, X + PanelPadding, DrawY);
+	DrawKeyValueLine(TEXT("Pending Swap"), Snapshot.PendingDisciplineSwapText, X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Melee Hits"), FString::Printf(TEXT("%d"), Snapshot.LastFrontalMeleeHitCount), X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Impact Count"), FString::Printf(TEXT("%d"), Snapshot.LastAppliedImpactCount), X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Last Activation"), FString::Printf(TEXT("Slot %d | %s | %s"), Snapshot.LastActivationSlotIndex, *Snapshot.LastActivationSkillText, *Snapshot.LastActivationResultText), X + PanelPadding, DrawY);

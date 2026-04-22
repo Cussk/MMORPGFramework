@@ -5,6 +5,7 @@
 #include "EnhancedInputComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/MDFCombatActionComponent.h"
 #include "Components/MDFCombatantComponent.h"
 #include "Components/MDFCombatCueComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -42,6 +43,7 @@ AMDFCharacter::AMDFCharacter()
 	
 	MDFCombatantComponent = CreateDefaultSubobject<UMDFCombatantComponent>(TEXT("CombatantComponent"));
 	MDFCombatCueComponent = CreateDefaultSubobject<UMDFCombatCueComponent>(TEXT("CombatCueComponent"));
+	MDFCombatActionComponent = CreateDefaultSubobject<UMDFCombatActionComponent>(TEXT("CombatActionComponent"));
 }
 
 AMDFPlayerController* AMDFCharacter::GetMDFPlayerController() const
@@ -87,6 +89,11 @@ UMDFCombatCueComponent* AMDFCharacter::GetMDFCombatCueComponent() const
 UMDFCombatantComponent* AMDFCharacter::GetMDFCombatantComponent() const
 {
 	return MDFCombatantComponent;
+}
+
+UMDFCombatActionComponent* AMDFCharacter::GetMDFCombatActionComponent() const
+{
+	return MDFCombatActionComponent;
 }
 
 /// Third Person Template placeholder movement ///

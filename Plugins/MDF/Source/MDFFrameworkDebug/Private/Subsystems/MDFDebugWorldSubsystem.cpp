@@ -4,8 +4,8 @@
 
 #include "Algo/Sort.h"
 #include "Components/MDFAttributeComponent.h"
+#include "Components/MDFCombatActionComponent.h"
 #include "Components/MDFCombatantComponent.h"
-#include "Components/MDFPCDebugComponent.h"
 #include "Components/MDFPlayerProgressionComponent.h"
 #include "Components/MDFPlayerSkillComponent.h"
 #include "Components/MDFTargetingComponent.h"
@@ -15,6 +15,51 @@
 #include "Types/MDFDebugTypes.h"
 #include "Types/MDFDisciplineTypes.h"
 #include "Types/MDFSkillRuntimeTypes.h"
+
+static FString CombatActionTypeToDebugString(const EMDFCombatActionType ActionType)
+{
+	switch (ActionType)
+	{
+	case EMDFCombatActionType::Skill:
+		return TEXT("Skill");
+	case EMDFCombatActionType::Basic:
+		return TEXT("Basic");
+	case EMDFCombatActionType::Identity:
+		return TEXT("Identity");
+	case EMDFCombatActionType::Transition:
+		return TEXT("Transition");
+	default:
+		return TEXT("[None]");
+	}
+}
+
+static FString CombatActionPhaseToDebugString(const EMDFCombatActionPhase Phase)
+{
+	switch (Phase)
+	{
+	case EMDFCombatActionPhase::Startup:
+		return TEXT("Startup");
+	case EMDFCombatActionPhase::Executing:
+		return TEXT("Executing");
+	case EMDFCombatActionPhase::Recovery:
+		return TEXT("Recovery");
+	default:
+		return TEXT("[None]");
+	}
+}
+
+static FString DisciplineSwapTypeToDebugString(const EMDFDisciplineSwapType SwapType)
+{
+	switch (SwapType)
+	{
+	case EMDFDisciplineSwapType::Normal:
+		return TEXT("Normal");
+	case EMDFDisciplineSwapType::Transition:
+		return TEXT("Transition");
+	default:
+		return TEXT("[None]");
+	}
+}
 
 const UMDFPlayerProgressionComponent* UMDFDebugWorldSubsystem::ResolveProgressionComponent(const APlayerController* PlayerController) const
 {
@@ -320,6 +365,47 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 			{
 				OutSnapshot.CombatStateLines.Add(TEXT("[None]"));
 			}
+		}
+		
+		if (const UMDFCombatActionComponent* CombatActionComponent = Pawn->FindComponentByClass<UMDFCombatActionComponent>())
+		{
+			const FMDFActiveCombatActionRuntime& ActiveAction = CombatActionComponent->GetActiveCombatActionRuntime();
+			const FMDFQueuedCombatActionRuntime& QueuedAction = CombatActionComponent->GetQueuedCombatActionRuntime();
+			const FMDFPendingDisciplineSwapRuntime& PendingSwap = CombatActionComponent->GetPendingDisciplineSwapRuntime();
+
+			OutSnapshot.ActiveCombatActionText = ActiveAction.IsValid()
+				? FString::Printf(
+					TEXT("%s | %s | Step %d"),
+					*TagToDebugString(ActiveAction.ActionTag),
+					*CombatActionTypeToDebugString(ActiveAction.ActionType),
+					ActiveAction.ComboStepIndex)
+				: TEXT("[None]");
+
+			OutSnapshot.ActiveCombatActionPhaseText = CombatActionPhaseToDebugString(ActiveAction.Phase);
+
+			OutSnapshot.QueuedCombatActionText = QueuedAction.IsValid()
+				? FString::Printf(
+					TEXT("%s | %s | Step %d"),
+					*TagToDebugString(QueuedAction.ActionTag),
+					*CombatActionTypeToDebugString(QueuedAction.ActionType),
+					QueuedAction.ComboStepIndex)
+				: TEXT("[None]");
+
+			OutSnapshot.PendingDisciplineSwapText = PendingSwap.IsValid()
+				? FString::Printf(
+					TEXT("%s -> %s | %s | Commit %.2f"),
+					*TagToDebugString(PendingSwap.SourceDisciplineTag),
+					*TagToDebugString(PendingSwap.DestinationDisciplineTag),
+					*DisciplineSwapTypeToDebugString(PendingSwap.SwapType),
+					PendingSwap.CommitServerWorldTime)
+				: TEXT("[None]");
+		}
+		else
+		{
+			OutSnapshot.ActiveCombatActionText = TEXT("[None]");
+			OutSnapshot.ActiveCombatActionPhaseText = TEXT("[None]");
+			OutSnapshot.QueuedCombatActionText = TEXT("[None]");
+			OutSnapshot.PendingDisciplineSwapText = TEXT("[None]");
 		}
 	}
 	

@@ -6,6 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "Components/MDFAttributeComponent.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "Types/MDFCombatActionTypes.h"
 #include "Types/MDFDebugTypes.h"
 #include "MDFDebugWorldSubsystem.generated.h"
 

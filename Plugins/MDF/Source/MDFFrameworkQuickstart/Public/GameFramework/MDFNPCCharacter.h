@@ -7,6 +7,8 @@
 #include "GameFramework/Character.h"
 #include "MDFNPCCharacter.generated.h"
 
+class UMDFCombatActionComponent;
+class UMDFCombatantComponent;
 class UMDFCombatCueComponent;
 class UMDFAttributeComponent;
 /**
@@ -46,6 +48,13 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category="MDF")
 	UMDFCombatCueComponent* GetMDFCombatCueComponent() const;
+	
+	UFUNCTION(BlueprintPure, Category="MDF")
+	UMDFCombatantComponent* GetMDFCombatantComponent() const;
+
+	UFUNCTION(BlueprintPure, Category="MDF")
+	UMDFCombatActionComponent* GetMDFCombatActionComponent() const;
+	
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
@@ -53,4 +62,10 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UMDFCombatCueComponent> MDFCombatCueComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	TObjectPtr<UMDFCombatantComponent> MDFCombatantComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UMDFCombatActionComponent> MDFCombatActionComponent;
 };

@@ -125,4 +125,16 @@ struct MDFFRAMEWORKDEBUG_API FMDFPlayerDebugSnapshot
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	TArray<FString> LastAppliedEffectLines;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	FString ActiveCombatActionText;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	FString ActiveCombatActionPhaseText;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	FString QueuedCombatActionText;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	FString PendingDisciplineSwapText;
 };

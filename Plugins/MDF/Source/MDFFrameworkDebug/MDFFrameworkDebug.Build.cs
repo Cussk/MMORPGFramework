@@ -12,7 +12,7 @@ public class MDFFrameworkDebug : ModuleRules
                 "Core",
                 "CoreUObject",
                 "Engine",
-                "GameplayTags",
+                "GameplayTags", 
             }
         );
 
