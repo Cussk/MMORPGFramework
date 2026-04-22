@@ -12,6 +12,7 @@
 #include "Types/MDFSkillRuntimeTypes.h"
 #include "MDFPlayerSkillComponent.generated.h"
 
+class UMDFCombatActionComponent;
 class UMDFAttributeComponent;
 class UMDFTargetingComponent;
 class APlayerController;
@@ -284,9 +285,13 @@ protected:
 	void CommitSkillCooldown(FGameplayTag DisciplineTag, const UMDFSkillDefinition* SkillDefinition);
 	
 	bool CanPaySkillCosts(const UMDFSkillDefinition* SkillDefinition, FGameplayTag& OutFailedResourceTag, float& OutFailedAmount) const;
-	void CommitSkillCosts(const UMDFSkillDefinition* SkillDefinition);
+	void CommitSkillCosts(const UMDFSkillDefinition* SkillDefinition);	
+
+	bool ExecuteCommittedSkillActivation(const FMDFSkillActivationDecision& ActivationDecision);
+	void PlaySourceExecuteCue(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition, const UMDFCombatantComponent* Combatant);
 
 	UMDFAttributeComponent* ResolveOwningAttributeComponent() const;
 	UMDFTargetingComponent* ResolveOwningTargetingComponent() const;
-	UMDFCombatantComponent* ResolveAvatarCombatant() const;
+	UMDFCombatActionComponent* ResolveOwningCombatActionComponent() const;
+	UMDFCombatantComponent* ResolveOwningCombatantComponent() const;
 };

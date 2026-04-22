@@ -399,6 +399,33 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 					*DisciplineSwapTypeToDebugString(PendingSwap.SwapType),
 					PendingSwap.CommitServerWorldTime)
 				: TEXT("[None]");
+			
+			const float Now = CombatActionComponent->GetServerWorldTimeSecondsSafe();
+
+			OutSnapshot.ActiveActionExecuteTimeRemaining = ActiveAction.IsValid() && !ActiveAction.bExecuteTriggered
+				? FMath::Max(0.0f, ActiveAction.ExecuteServerWorldTime - Now)
+				: 0.0f;
+
+			OutSnapshot.ActiveActionRecoveryTimeRemaining = ActiveAction.IsValid()
+				? FMath::Max(0.0f, ActiveAction.RecoveryEndServerWorldTime - Now)
+				: 0.0f;
+
+			if (ActiveAction.IsValid() && ActiveAction.HasComboQueueWindow())
+			{
+				const bool bComboWindowOpen =
+					Now >= ActiveAction.ComboQueueOpenServerWorldTime &&
+					Now <= ActiveAction.ComboQueueCloseServerWorldTime;
+
+				OutSnapshot.ActiveActionComboWindowText = FString::Printf(
+					TEXT("%s | %.2f -> %.2f"),
+					bComboWindowOpen ? TEXT("Open") : TEXT("Closed"),
+					ActiveAction.ComboQueueOpenServerWorldTime,
+					ActiveAction.ComboQueueCloseServerWorldTime);
+			}
+			else
+			{
+				OutSnapshot.ActiveActionComboWindowText = TEXT("[None]");
+			}
 		}
 		else
 		{

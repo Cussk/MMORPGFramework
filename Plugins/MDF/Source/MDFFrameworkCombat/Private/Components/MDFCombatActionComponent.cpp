@@ -74,6 +74,88 @@ float UMDFCombatActionComponent::GetServerWorldTimeSecondsSafe() const
 	return World->GetTimeSeconds();
 }
 
+bool UMDFCombatActionComponent::StartTimedSkillAction(
+	const FMDFSkillActivationDecision& ActivationDecision,
+	const UMDFSkillDefinition* SkillDefinition)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !SkillDefinition)
+	{
+		return false;
+	}
+
+	if (ActivationDecision.Result != EMDFSkillActivationResult::Success)
+	{
+		return false;
+	}
+
+	if (HasActiveCombatAction())
+	{
+		return false;
+	}
+
+	const float StartTime = GetServerWorldTimeSecondsSafe();
+	const FMDFSkillTimingSpec& Timing = SkillDefinition->Timing;
+
+	FMDFActiveCombatActionRuntime Runtime;
+	Runtime.ActionTag = SkillDefinition->SkillTag;
+	Runtime.OwningDisciplineTag = ActivationDecision.Request.ActiveDisciplineTag;
+	Runtime.ActionType = EMDFCombatActionType::Skill;
+	Runtime.Phase = Timing.ExecuteTimeSeconds > 0.0f
+		? EMDFCombatActionPhase::Startup
+		: EMDFCombatActionPhase::Executing;
+	Runtime.StartServerWorldTime = StartTime;
+	Runtime.ExecuteServerWorldTime = StartTime + Timing.ExecuteTimeSeconds;
+	Runtime.RecoveryEndServerWorldTime = StartTime + Timing.GetActionEndTimeSeconds();
+
+	if (Timing.HasComboQueueWindow())
+	{
+		Runtime.ComboQueueOpenServerWorldTime = StartTime + Timing.ComboQueueWindowOpenTimeSeconds;
+		Runtime.ComboQueueCloseServerWorldTime = StartTime + Timing.ComboQueueWindowCloseTimeSeconds;
+	}
+
+	if (!StartCombatAction(Runtime))
+	{
+		return false;
+	}
+
+	ScheduledSkillActivationDecision = ActivationDecision;
+	bHasScheduledSkillActivation = true;
+
+	ClearScheduledActionTimers();
+
+	if (UWorld* World = GetWorld())
+	{
+		FTimerManager& TimerManager = World->GetTimerManager();
+
+		if (Timing.ExecuteTimeSeconds > 0.0f)
+		{
+			TimerManager.SetTimer(
+				ScheduledSkillExecuteTimerHandle,
+				this,
+				&UMDFCombatActionComponent::HandleScheduledSkillExecute,
+				Timing.ExecuteTimeSeconds,
+				false);
+		}
+		else
+		{
+			HandleScheduledSkillExecute();
+		}
+
+		const float ActionEndDelay = Timing.GetActionEndTimeSeconds();
+		if (ActionEndDelay > 0.0f)
+		{
+			TimerManager.SetTimer(
+				ScheduledSkillRecoveryTimerHandle,
+				this,
+				&UMDFCombatActionComponent::HandleScheduledSkillRecoveryEnd,
+				ActionEndDelay,
+				false);
+		}
+	}
+
+	return true;
+}
+
 bool UMDFCombatActionComponent::StartCombatAction(const FMDFActiveCombatActionRuntime& InRuntime)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority() || !InRuntime.IsValid() || HasActiveCombatAction())
@@ -134,6 +216,9 @@ void UMDFCombatActionComponent::EndActiveCombatAction()
 	{
 		return;
 	}
+
+	ClearScheduledActionTimers();
+	ClearScheduledSkillAuthorityData();
 
 	ActiveCombatActionRuntime = FMDFActiveCombatActionRuntime();
 	OnRep_ActiveCombatActionRuntime();
@@ -211,6 +296,66 @@ void UMDFCombatActionComponent::ClearPendingDisciplineSwap()
 
 	PendingDisciplineSwapRuntime = FMDFPendingDisciplineSwapRuntime();
 	OnRep_PendingDisciplineSwapRuntime();
+}
+
+void UMDFCombatActionComponent::HandleScheduledSkillExecute()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !HasActiveCombatAction() || !bHasScheduledSkillActivation)
+	{
+		return;
+	}
+
+	MarkActiveCombatActionExecuteTriggered();
+
+	UMDFPlayerSkillComponent* SkillComponent = ResolveOwningSkillComponent();
+	if (!SkillComponent)
+	{
+		EndActiveCombatAction();
+		return;
+	}
+
+	const bool bExecuted = SkillComponent->ExecuteCommittedSkillActivation(ScheduledSkillActivationDecision);
+
+	if (!bExecuted)
+	{
+		EndActiveCombatAction();
+		return;
+	}
+
+	const float Now = GetServerWorldTimeSecondsSafe();
+	if (ActiveCombatActionRuntime.RecoveryEndServerWorldTime > Now)
+	{
+		SetActiveCombatActionPhase(EMDFCombatActionPhase::Recovery);
+	}
+	else
+	{
+		EndActiveCombatAction();
+	}
+}
+
+void UMDFCombatActionComponent::HandleScheduledSkillRecoveryEnd()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	EndActiveCombatAction();
+}
+
+void UMDFCombatActionComponent::ClearScheduledActionTimers()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(ScheduledSkillExecuteTimerHandle);
+		World->GetTimerManager().ClearTimer(ScheduledSkillRecoveryTimerHandle);
+	}
+}
+
+void UMDFCombatActionComponent::ClearScheduledSkillAuthorityData()
+{
+	ScheduledSkillActivationDecision = FMDFSkillActivationDecision();
+	bHasScheduledSkillActivation = false;
 }
 
 void UMDFCombatActionComponent::OnRep_ActiveCombatActionRuntime() const

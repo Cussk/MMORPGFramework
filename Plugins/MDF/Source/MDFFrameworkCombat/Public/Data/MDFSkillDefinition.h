@@ -40,11 +40,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	FGameplayTag ExecutionTypeTag;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
-	float CastTimeSeconds = 0.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills", meta=(ClampMin="0.0"))
-	float RecoveryTimeSeconds = 0.0f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
+	FMDFSkillTimingSpec Timing;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Skills")
 	TArray<FMDFSkillCostSpec> Costs;

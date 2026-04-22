@@ -133,7 +133,7 @@ void AMDFDebugHUD::DrawLineText(const FString& Text, const float X, float& Y, co
 
 void AMDFDebugHUD::DrawSummaryPanel(const FMDFPlayerDebugSnapshot& Snapshot, const float X, float& Y)
 {
-	const int32 BodyLineCount = 14;
+	constexpr int32 BodyLineCount = 17;
 	const float PanelHeight = GetPanelHeight(BodyLineCount);
 
 	DrawPanelBackground(X, Y, PanelWidth, PanelHeight, PanelBackgroundColor);
@@ -152,6 +152,9 @@ void AMDFDebugHUD::DrawSummaryPanel(const FMDFPlayerDebugSnapshot& Snapshot, con
 	DrawKeyValueLine(TEXT("Action Phase"), Snapshot.ActiveCombatActionPhaseText, X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Queued Action"), Snapshot.QueuedCombatActionText, X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Pending Swap"), Snapshot.PendingDisciplineSwapText, X + PanelPadding, DrawY);
+	DrawKeyValueLine(TEXT("Exec In"), FString::Printf(TEXT("%.2f"), Snapshot.ActiveActionExecuteTimeRemaining), X + PanelPadding, DrawY);
+	DrawKeyValueLine(TEXT("Recovery In"), FString::Printf(TEXT("%.2f"), Snapshot.ActiveActionRecoveryTimeRemaining), X + PanelPadding, DrawY);
+	DrawKeyValueLine(TEXT("Combo Window"), Snapshot.ActiveActionComboWindowText, X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Melee Hits"), FString::Printf(TEXT("%d"), Snapshot.LastFrontalMeleeHitCount), X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Impact Count"), FString::Printf(TEXT("%d"), Snapshot.LastAppliedImpactCount), X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Last Activation"), FString::Printf(TEXT("Slot %d | %s | %s"), Snapshot.LastActivationSlotIndex, *Snapshot.LastActivationSkillText, *Snapshot.LastActivationResultText), X + PanelPadding, DrawY);
@@ -161,7 +164,7 @@ void AMDFDebugHUD::DrawSummaryPanel(const FMDFPlayerDebugSnapshot& Snapshot, con
 
 void AMDFDebugHUD::DrawTargetingPanel(const FMDFPlayerDebugSnapshot& Snapshot, const float X, float& Y)
 {
-	const int32 BodyLineCount = 4;
+	constexpr int32 BodyLineCount = 4;
 	const float PanelHeight = GetPanelHeight(BodyLineCount);
 
 	DrawPanelBackground(X, Y, PanelWidth, PanelHeight, PanelBackgroundColor);

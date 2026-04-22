@@ -137,4 +137,13 @@ struct MDFFRAMEWORKDEBUG_API FMDFPlayerDebugSnapshot
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	FString PendingDisciplineSwapText;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	float ActiveActionExecuteTimeRemaining = 0.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	float ActiveActionRecoveryTimeRemaining = 0.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	FString ActiveActionComboWindowText;
 };

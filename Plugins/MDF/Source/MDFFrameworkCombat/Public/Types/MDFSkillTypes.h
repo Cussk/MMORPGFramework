@@ -175,3 +175,54 @@ struct MDFFRAMEWORKCOMBAT_API FMDFSkillImpactSpec
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Impact", meta=(ClampMin="0.0"))
 	float KnockbackStrength = 0.0f;
 };
+
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFSkillTimingSpec
+{
+	GENERATED_BODY()
+
+	/**
+	 * Time from action start to gameplay execution.
+	 *
+	 * This is effectively the startup duration for current MDF skill actions.
+	 * At this timestamp the gameplay execution handler runs:
+	 * - projectile spawns
+	 * - melee trace triggers
+	 * - self/area skill gameplay resolves
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Timing", meta=(ClampMin="0.0"))
+	float ExecuteTimeSeconds = 0.0f;
+
+	/**
+	 * Time after execution before the action fully ends.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Timing", meta=(ClampMin="0.0"))
+	float RecoveryDurationSeconds = 0.0f;
+
+	/**
+	 * Optional combo queue window open timestamp, measured from action start.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Timing", meta=(ClampMin="0.0"))
+	float ComboQueueWindowOpenTimeSeconds = 0.0f;
+
+	/**
+	 * Optional combo queue window close timestamp, measured from action start.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Timing", meta=(ClampMin="0.0"))
+	float ComboQueueWindowCloseTimeSeconds = 0.0f;
+
+	float GetStartupDurationSeconds() const
+	{
+		return FMath::Max(0.0f, ExecuteTimeSeconds);
+	}
+
+	float GetActionEndTimeSeconds() const
+	{
+		return FMath::Max(0.0f, ExecuteTimeSeconds) + FMath::Max(0.0f, RecoveryDurationSeconds);
+	}
+
+	bool HasComboQueueWindow() const
+	{
+		return ComboQueueWindowCloseTimeSeconds > ComboQueueWindowOpenTimeSeconds;
+	}
+};

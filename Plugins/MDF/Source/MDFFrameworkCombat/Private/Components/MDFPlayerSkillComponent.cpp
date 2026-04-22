@@ -13,6 +13,7 @@
 #include "Helpers/MDFCombatDefinitionLookup.h"
 #include "Helpers/MDFComponentHelpers.h"
 #include "Components/MDFAttributeComponent.h"
+#include "Components/MDFCombatActionComponent.h"
 #include "Components/MDFCombatCueComponent.h"
 #include "Net/UnrealNetwork.h"
 
@@ -782,6 +783,15 @@ FMDFSkillActivationDecision UMDFPlayerSkillComponent::EvaluateSkillActivationFro
 		Decision.FailedCostAmount = FailedCostAmount;
 		return Decision;
 	}
+	
+	if (const UMDFCombatActionComponent* CombatActionComponent = ResolveOwningCombatActionComponent())
+	{
+		if (CombatActionComponent->HasActiveCombatAction())
+		{
+			Decision.Result = EMDFSkillActivationResult::BlockedByRuntimeState;
+			return Decision;
+		}
+	}
 
 	Decision.Result = EMDFSkillActivationResult::Success;
 	return Decision;
@@ -916,7 +926,18 @@ UMDFTargetingComponent* UMDFPlayerSkillComponent::ResolveOwningTargetingComponen
 	return FMDFComponentHelpers::FindFromPawn<UMDFTargetingComponent>(OwningPlayerState->GetPawn());
 }
 
-UMDFCombatantComponent* UMDFPlayerSkillComponent::ResolveAvatarCombatant() const
+UMDFCombatActionComponent* UMDFPlayerSkillComponent::ResolveOwningCombatActionComponent() const
+{
+	APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner());
+	if (!OwningPlayerState)
+	{
+		return nullptr;
+	}
+	
+	return FMDFComponentHelpers::FindFromPawn<UMDFCombatActionComponent>(OwningPlayerState->GetPawn());
+}
+
+UMDFCombatantComponent* UMDFPlayerSkillComponent::ResolveOwningCombatantComponent() const
 {
 	const APlayerState* OwningPlayerState = Cast<APlayerState>(GetOwner());
 	if (!OwningPlayerState)
@@ -929,97 +950,60 @@ UMDFCombatantComponent* UMDFPlayerSkillComponent::ResolveAvatarCombatant() const
 
 bool UMDFPlayerSkillComponent::CommitAndExecuteSkillActivation(const FMDFSkillActivationDecision& ActivationDecision)
 {
-	ClearLastAppliedEffectEntries();
-	
-	LastSkillExecutionDecision = FMDFSkillExecutionDecision();
-	LastSkillExecutionDecision.SkillTag = ActivationDecision.Request.SkillTag;
+	if (!GetOwner() || !GetOwner()->HasAuthority() || ActivationDecision.Result != EMDFSkillActivationResult::Success)
+	{
+		return false;
+	}
 
 	const UMDFSkillDefinition* SkillDefinition = MDFCombatDefinitionLookup::ResolveSkillDefinition(ActivationDecision.Request.SkillTag);
 	if (!SkillDefinition)
 	{
 		ActiveSkillRuntime = FMDFActiveSkillRuntime();
+		LastSkillExecutionDecision = FMDFSkillExecutionDecision();
+		LastSkillExecutionDecision.SkillTag = ActivationDecision.Request.SkillTag;
 		LastSkillExecutionDecision.Result = EMDFSkillExecutionResult::SkillDefinitionMissing;
 		OnRep_ActiveSkillRuntime();
 		OnRep_LastSkillExecutionDecision();
 		return false;
 	}
 
-	UMDFCombatantComponent* Combatant = ResolveAvatarCombatant();
-	if (!Combatant)
+	UMDFCombatantComponent* Combatant = ResolveOwningCombatantComponent();
+	UMDFCombatActionComponent* CombatActionComponent = ResolveOwningCombatActionComponent();
+	if (!Combatant || !CombatActionComponent)
 	{
 		ActiveSkillRuntime = FMDFActiveSkillRuntime();
+		LastSkillExecutionDecision = FMDFSkillExecutionDecision();
+		LastSkillExecutionDecision.SkillTag = ActivationDecision.Request.SkillTag;
 		LastSkillExecutionDecision.Result = EMDFSkillExecutionResult::MissingCombatant;
 		OnRep_ActiveSkillRuntime();
 		OnRep_LastSkillExecutionDecision();
 		return false;
 	}
 
-	const UMDFSkillExecutionHandler* Handler = MDFSkillExecutionRegistry::ResolveHandler(SkillDefinition->ExecutionTypeTag);
-	if (!Handler)
-	{
-		ActiveSkillRuntime = FMDFActiveSkillRuntime();
-		LastSkillExecutionDecision.Result = EMDFSkillExecutionResult::MissingExecutionHandler;
-		OnRep_ActiveSkillRuntime();
-		OnRep_LastSkillExecutionDecision();
-		return false;
-	}
+	ClearLastAppliedEffectEntries();
+
+	LastSkillExecutionDecision = FMDFSkillExecutionDecision();
+	LastSkillExecutionDecision.SkillTag = ActivationDecision.Request.SkillTag;
+	OnRep_LastSkillExecutionDecision();
 
 	ActiveSkillRuntime.SkillTag = ActivationDecision.Request.SkillTag;
 	ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Committed;
 	ActiveSkillRuntime.ServerStartTime = GetServerWorldTimeSecondsSafe();
 	OnRep_ActiveSkillRuntime();
 
-	FMDFSkillExecutionContext Context;
-	if (!BuildExecutionContext(ActivationDecision, SkillDefinition, Combatant, Context))
+	PlaySourceExecuteCue(ActivationDecision, SkillDefinition, Combatant);
+
+	const bool bStarted = CombatActionComponent->StartTimedSkillAction(ActivationDecision, SkillDefinition);
+	if (!bStarted)
 	{
-		ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Failed;
+		ActiveSkillRuntime = FMDFActiveSkillRuntime();
 		LastSkillExecutionDecision.Result = EMDFSkillExecutionResult::ExecutionFailed;
 		OnRep_ActiveSkillRuntime();
 		OnRep_LastSkillExecutionDecision();
 		return false;
 	}
-	
-	ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Executing;
-	OnRep_ActiveSkillRuntime();
 
-	const bool bExecuted = Handler->Execute(Context, LastSkillExecutionDecision);
-
-	ActiveSkillRuntime.Phase = bExecuted ? EMDFActiveSkillPhase::Completed : EMDFActiveSkillPhase::Failed;
-	OnRep_ActiveSkillRuntime();
-
-	if (LastSkillExecutionDecision.SkillTag != ActivationDecision.Request.SkillTag)
-	{
-		LastSkillExecutionDecision.SkillTag = ActivationDecision.Request.SkillTag;
-	}
-	
-	if (LastSkillExecutionDecision.Result == EMDFSkillExecutionResult::Success)
-	{
-		if (Combatant && Combatant->GetOwner())
-		{
-			if (UMDFCombatCueComponent* CueComponent = FMDFComponentHelpers::FindOnActor<UMDFCombatCueComponent>(Combatant->GetOwner()))
-			{
-				FMDFCombatCueRequest CueRequest;
-				CueRequest.CueEventTag = MDFGameplayTags::Cue_Skill_Execute;
-				CueRequest.TargetRole = EMDFCueTargetRole::Source;
-				CueRequest.InstigatorActor = Combatant->GetOwner();
-				CueRequest.TargetActor = Combatant->GetOwner();
-				CueRequest.SkillDefinition = SkillDefinition;
-				CueRequest.SourceWorldLocation = Combatant->GetOwner()->GetActorLocation();
-				CueRequest.ImpactWorldLocation = ActivationDecision.Request.AimSnapshot.bHasResolvedPoint
-					? ActivationDecision.Request.AimSnapshot.DesiredWorldPoint
-					: FVector::ZeroVector;
-				CueRequest.FallbackWorldLocation = Combatant->GetOwner()->GetActorLocation();
-
-				CueComponent->RequestSkillCue(CueRequest);
-			}
-		}
-
-		CommitSkillCosts(SkillDefinition);
-		CommitSkillCooldown(ActivationDecision.Request.ActiveDisciplineTag, SkillDefinition);
-	}
-
-	OnRep_LastSkillExecutionDecision();
-	return bExecuted;
+	return true;
 }
 
 FMDFSkillCooldownRuntime* UMDFPlayerSkillComponent::FindSkillCooldownEntry(
@@ -1208,6 +1192,99 @@ void UMDFPlayerSkillComponent::CommitSkillCosts(const UMDFSkillDefinition* Skill
 
 		// This should have already been validated during activation.
 		ensureMsgf(bSpent, TEXT("Skill cost spend failed after successful activation for resource [%s]."), *Cost.ResourceTag.ToString());
+	}
+}
+
+bool UMDFPlayerSkillComponent::ExecuteCommittedSkillActivation(const FMDFSkillActivationDecision& ActivationDecision)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return false;
+	}
+
+	const UMDFSkillDefinition* SkillDefinition = MDFCombatDefinitionLookup::ResolveSkillDefinition(ActivationDecision.Request.SkillTag);
+	if (!SkillDefinition)
+	{
+		ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Failed;
+		LastSkillExecutionDecision.Result = EMDFSkillExecutionResult::SkillDefinitionMissing;
+		OnRep_ActiveSkillRuntime();
+		OnRep_LastSkillExecutionDecision();
+		return false;
+	}
+
+	UMDFCombatantComponent* Combatant = ResolveOwningCombatantComponent();
+	if (!Combatant)
+	{
+		ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Failed;
+		LastSkillExecutionDecision.Result = EMDFSkillExecutionResult::MissingCombatant;
+		OnRep_ActiveSkillRuntime();
+		OnRep_LastSkillExecutionDecision();
+		return false;
+	}
+
+	const UMDFSkillExecutionHandler* Handler = MDFSkillExecutionRegistry::ResolveHandler(SkillDefinition->ExecutionTypeTag);
+	if (!Handler)
+	{
+		ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Failed;
+		LastSkillExecutionDecision.Result = EMDFSkillExecutionResult::MissingExecutionHandler;
+		OnRep_ActiveSkillRuntime();
+		OnRep_LastSkillExecutionDecision();
+		return false;
+	}
+
+	FMDFSkillExecutionContext Context;
+	if (!BuildExecutionContext(ActivationDecision, SkillDefinition, Combatant, Context))
+	{
+		ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Failed;
+		LastSkillExecutionDecision.Result = EMDFSkillExecutionResult::ExecutionFailed;
+		OnRep_ActiveSkillRuntime();
+		OnRep_LastSkillExecutionDecision();
+		return false;
+	}
+
+	ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Executing;
+	OnRep_ActiveSkillRuntime();
+
+	const bool bExecuted = Handler->Execute(Context, LastSkillExecutionDecision);
+
+	ActiveSkillRuntime.Phase = bExecuted ? EMDFActiveSkillPhase::Completed : EMDFActiveSkillPhase::Failed;
+	OnRep_ActiveSkillRuntime();
+
+	if (LastSkillExecutionDecision.SkillTag != ActivationDecision.Request.SkillTag)
+	{
+		LastSkillExecutionDecision.SkillTag = ActivationDecision.Request.SkillTag;
+	}
+
+	if (LastSkillExecutionDecision.Result == EMDFSkillExecutionResult::Success)
+	{
+		CommitSkillCosts(SkillDefinition);
+		CommitSkillCooldown(ActivationDecision.Request.ActiveDisciplineTag, SkillDefinition);
+	}
+
+	OnRep_LastSkillExecutionDecision();
+	return bExecuted;
+}
+
+void UMDFPlayerSkillComponent::PlaySourceExecuteCue(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition, const UMDFCombatantComponent* Combatant)
+{
+	if (!SkillDefinition || !Combatant || !Combatant->GetOwner())
+	{
+		return;
+	}
+
+	if (UMDFCombatCueComponent* CueComponent = FMDFComponentHelpers::FindOnActor<UMDFCombatCueComponent>(Combatant->GetOwner()))
+	{
+		FMDFCombatCueRequest CueRequest;
+		CueRequest.CueEventTag = MDFGameplayTags::Cue_Skill_Execute;
+		CueRequest.TargetRole = EMDFCueTargetRole::Source;
+		CueRequest.InstigatorActor = Combatant->GetOwner();
+		CueRequest.TargetActor = Combatant->GetOwner();
+		CueRequest.SkillDefinition = SkillDefinition;
+		CueRequest.SourceWorldLocation = Combatant->GetOwner()->GetActorLocation();
+		CueRequest.ImpactWorldLocation = FVector::ZeroVector;
+		CueRequest.FallbackWorldLocation = Combatant->GetOwner()->GetActorLocation();
+
+		CueComponent->RequestSkillCue(CueRequest);
 	}
 }
 

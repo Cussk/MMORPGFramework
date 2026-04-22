@@ -5,8 +5,10 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Types/MDFCombatActionTypes.h"
+#include "Types/MDFSkillActivationTypes.h"
 #include "MDFCombatActionComponent.generated.h"
 
+class UMDFSkillDefinition;
 class UMDFPlayerSkillComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMDFCombatActionStateChanged);
@@ -78,6 +80,8 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Combat")
 	float GetServerWorldTimeSecondsSafe() const;
+	
+	bool StartTimedSkillAction(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition);
 
 	UPROPERTY(BlueprintAssignable, Category="Events")
 	FMDFCombatActionStateChanged OnCombatActionStateChanged;
@@ -94,6 +98,19 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_PendingDisciplineSwapRuntime, Category="Combat")
 	FMDFPendingDisciplineSwapRuntime PendingDisciplineSwapRuntime;
+	
+	FTimerHandle ScheduledSkillExecuteTimerHandle;
+	FTimerHandle ScheduledSkillRecoveryTimerHandle;
+
+	FMDFSkillActivationDecision ScheduledSkillActivationDecision;
+	bool bHasScheduledSkillActivation = false;
+
+	void HandleScheduledSkillExecute();
+	void HandleScheduledSkillRecoveryEnd();
+	void ClearScheduledActionTimers();
+	void ClearScheduledSkillAuthorityData();
+	
+	UMDFPlayerSkillComponent* ResolveOwningSkillComponent() const;
 
 	UFUNCTION()
 	void OnRep_ActiveCombatActionRuntime() const;
@@ -103,6 +120,4 @@ protected:
 
 	UFUNCTION()
 	void OnRep_PendingDisciplineSwapRuntime() const;
-
-	UMDFPlayerSkillComponent* ResolveOwningSkillComponent() const;
 };
