@@ -140,6 +140,8 @@ public:
 	const FMDFPlayerSkillEntry* FindLearnedSkill(FGameplayTag SkillTag) const;
 	const FMDFDisciplineSkillLoadoutRuntime* FindDisciplineSkillLoadout(FGameplayTag DisciplineTag) const;
 	
+	bool ExecuteCommittedSkillActivation(const FMDFSkillActivationDecision& ActivationDecision);
+	
 	void ClearLastAppliedEffectEntries();
 	void AppendAppliedEffectDebugEntries(const TArray<FMDFAppliedSkillEffectDebugEntry>& NewEntries);
 
@@ -286,8 +288,7 @@ protected:
 	
 	bool CanPaySkillCosts(const UMDFSkillDefinition* SkillDefinition, FGameplayTag& OutFailedResourceTag, float& OutFailedAmount) const;
 	void CommitSkillCosts(const UMDFSkillDefinition* SkillDefinition);	
-
-	bool ExecuteCommittedSkillActivation(const FMDFSkillActivationDecision& ActivationDecision);
+	
 	void PlaySourceExecuteCue(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition, const UMDFCombatantComponent* Combatant);
 
 	UMDFAttributeComponent* ResolveOwningAttributeComponent() const;
