@@ -219,6 +219,9 @@ struct MDFFRAMEWORKCOMBAT_API FMDFActiveIdentityActionRuntime
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	EMDFIdentityActionType IdentityType = EMDFIdentityActionType::None;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	bool bConsumesCombatAction = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	float FocusDrainPerSecond = 0.0f;

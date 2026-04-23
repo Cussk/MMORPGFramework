@@ -440,9 +440,10 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 
 			OutSnapshot.ActiveIdentityText = IdentityRuntime.IsValid()
 				? FString::Printf(
-					TEXT("%s | %s | Drain %.2f/s"),
+					TEXT("%s | %s | %s | Drain %.2f/s"),
 					*TagToDebugString(IdentityRuntime.IdentityTag),
 					*StaticEnum<EMDFIdentityActionType>()->GetValueAsString(IdentityRuntime.IdentityType),
+					IdentityRuntime.bConsumesCombatAction ? TEXT("Exclusive") : TEXT("Overlay"),
 					IdentityRuntime.FocusDrainPerSecond)
 				: TEXT("[None]");
 		}

@@ -19,6 +19,13 @@ enum class EMDFIdentityActionType : uint8
 	Intercept
 };
 
+UENUM(BlueprintType)
+enum class EMDFIdentityConcurrencyMode : uint8
+{
+	ExclusiveAction,
+	Overlay
+};
+
 USTRUCT(BlueprintType)
 struct MDFFRAMEWORKPROGRESSION_API FMDFBlockIdentitySpec
 {
@@ -92,6 +99,17 @@ struct MDFFRAMEWORKPROGRESSION_API FMDFIdentityActionDefinition
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity")
 	EMDFIdentityActionType IdentityType = EMDFIdentityActionType::None;
+	
+	/** 
+	* ExclusiveAction:
+	* identity owns the body and blocks other combat actions while held.
+	*
+	* Overlay:
+	* identity stays active alongside normal skills/basics and only contributes
+	* state/drain/presentation/gameplay modifiers.
+	*/
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity")
+	EMDFIdentityConcurrencyMode ConcurrencyMode = EMDFIdentityConcurrencyMode::ExclusiveAction;
 
 	/** Shared hold resource drain per second. Uses Attribute.Resource.Focus for all identities. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity", meta=(ClampMin="0.0"))

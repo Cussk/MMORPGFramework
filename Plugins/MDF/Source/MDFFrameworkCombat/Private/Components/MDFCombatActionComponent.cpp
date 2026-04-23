@@ -691,28 +691,40 @@ bool UMDFCombatActionComponent::StartIdentityAction(const FMDFSkillActivationAim
 		return false;
 	}
 
-	if (HasActiveCombatAction() || HasActiveIdentityAction())
+	if (HasActiveIdentityAction())
 	{
 		return false;
 	}
 
-	UMDFPlayerSkillComponent* SkillComponent = ResolveOwningSkillComponent();
 	const FMDFIdentityActionDefinition* IdentityDefinition = ResolveActiveDisciplineIdentityAction();
-	if (!SkillComponent || !IdentityDefinition)
+	UMDFPlayerSkillComponent* SkillComponent = ResolveOwningSkillComponent();
+	if (!IdentityDefinition || !SkillComponent)
 	{
 		return false;
 	}
 
-	FMDFActiveCombatActionRuntime Runtime;
-	Runtime.ActionTag = IdentityDefinition->IdentityTag;
-	Runtime.OwningDisciplineTag = SkillComponent->GetActiveDisciplineTag();
-	Runtime.ActionType = EMDFCombatActionType::Identity;
-	Runtime.Phase = EMDFCombatActionPhase::Executing;
-	Runtime.StartServerWorldTime = GetServerWorldTimeSecondsSafe();
+	const bool bConsumesCombatAction = DoesIdentityConsumeCombatAction(*IdentityDefinition);
 
-	if (!StartCombatAction(Runtime))
+	// Exclusive identities own the body while held.
+	// Overlay identities only add sustained state and modifiers.
+	if (bConsumesCombatAction && HasActiveCombatAction())
 	{
 		return false;
+	}
+
+	if (bConsumesCombatAction)
+	{
+		FMDFActiveCombatActionRuntime Runtime;
+		Runtime.ActionTag = IdentityDefinition->IdentityTag;
+		Runtime.OwningDisciplineTag = SkillComponent->GetActiveDisciplineTag();
+		Runtime.ActionType = EMDFCombatActionType::Identity;
+		Runtime.Phase = EMDFCombatActionPhase::Executing;
+		Runtime.StartServerWorldTime = GetServerWorldTimeSecondsSafe();
+
+		if (!StartCombatAction(Runtime))
+		{
+			return false;
+		}
 	}
 
 	ActiveIdentityRuntime = FMDFActiveIdentityActionRuntime();
@@ -727,6 +739,7 @@ bool UMDFCombatActionComponent::StartIdentityAction(const FMDFSkillActivationAim
 	ActiveIdentityRuntime.HeadshotDamageMultiplier = IdentityDefinition->Zoom.HeadshotDamageMultiplier;
 	ActiveIdentityRuntime.HeadBoneName = IdentityDefinition->Zoom.HeadBoneName;
 	ActiveIdentityRuntime.ChannelSkillTag = IdentityDefinition->Channel.ChannelSkillTag;
+	ActiveIdentityRuntime.bConsumesCombatAction = bConsumesCombatAction;
 
 	ApplyIdentityCombatState();
 	OnRep_ActiveIdentityRuntime();
@@ -744,6 +757,11 @@ bool UMDFCombatActionComponent::StartIdentityAction(const FMDFSkillActivationAim
 	return true;
 }
 
+bool UMDFCombatActionComponent::DoesIdentityConsumeCombatAction(const FMDFIdentityActionDefinition& IdentityDefinition) const
+{
+	return IdentityDefinition.ConcurrencyMode == EMDFIdentityConcurrencyMode::ExclusiveAction;
+}
+
 void UMDFCombatActionComponent::EndIdentityAction()
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority() || !HasActiveIdentityAction())
@@ -751,13 +769,19 @@ void UMDFCombatActionComponent::EndIdentityAction()
 		return;
 	}
 
+	const bool bConsumesCombatAction = ActiveIdentityRuntime.bConsumesCombatAction;
+
 	ClearIdentityDrainTimer();
 	RemoveIdentityCombatState();
 
 	ActiveIdentityRuntime = FMDFActiveIdentityActionRuntime();
 	OnRep_ActiveIdentityRuntime();
 
-	EndActiveCombatAction();
+	// Only exclusive identities should tear down action ownership.
+	if (bConsumesCombatAction && HasActiveCombatAction())
+	{
+		EndActiveCombatAction();
+	}
 }
 
 bool UMDFCombatActionComponent::CanAffordIdentityFocusTick(const float DeltaSeconds) const

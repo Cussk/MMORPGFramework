@@ -149,6 +149,7 @@ protected:
 	void ClearBasicComboRuntime();
 	
 	bool StartIdentityAction(const FMDFSkillActivationAimSnapshot& AimSnapshot);
+	bool DoesIdentityConsumeCombatAction(const FMDFIdentityActionDefinition& IdentityDefinition) const;
 	void EndIdentityAction();
 
 	bool CanAffordIdentityFocusTick(float DeltaSeconds) const;
