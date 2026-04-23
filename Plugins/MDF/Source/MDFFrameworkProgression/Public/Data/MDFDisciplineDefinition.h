@@ -4,9 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "MDFComboTypes.h"
+#include "Types/MDFComboTypes.h"
 #include "Data/MDFDefinitionAsset.h"
 #include "Types/MDFDisciplineTypes.h"
+#include "Types/MDFIdentityTypes.h"
 #include "MDFDisciplineDefinition.generated.h"
 
 UCLASS(BlueprintType)
@@ -34,6 +35,9 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat")
 	FMDFBasicComboDefinition BasicCombo;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat")
+	FMDFIdentityActionDefinition IdentityAction;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline|Skills")
 	FGameplayTagContainer StartingSkillTags;

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "Types/MDFIdentityTypes.h"
 #include "MDFCombatActionTypes.generated.h"
 
 /**
@@ -199,5 +200,49 @@ struct MDFFRAMEWORKCOMBAT_API FMDFBasicComboRuntime
 	bool IsValid() const
 	{
 		return bComboActive && DisciplineTag.IsValid() && CurrentStepIndex != INDEX_NONE;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFActiveIdentityActionRuntime
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FGameplayTag IdentityTag;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FGameplayTag OwningDisciplineTag;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FGameplayTag ActiveStateTag;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	EMDFIdentityActionType IdentityType = EMDFIdentityActionType::None;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	float FocusDrainPerSecond = 0.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	float BlockHalfAngleDegrees = 0.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	float BlockedDamageMultiplier = 1.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	float ZoomedFOV = 0.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	float HeadshotDamageMultiplier = 1.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FName HeadBoneName = NAME_None;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FGameplayTag ChannelSkillTag;
+
+	bool IsValid() const
+	{
+		return IdentityTag.IsValid() && IdentityType != EMDFIdentityActionType::None;
 	}
 };

@@ -435,6 +435,16 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 					*TagToDebugString(BasicComboRuntime.DisciplineTag),
 					BasicComboRuntime.CurrentStepIndex)
 				: TEXT("[None]");
+			
+			const FMDFActiveIdentityActionRuntime& IdentityRuntime = CombatActionComponent->GetActiveIdentityRuntime();
+
+			OutSnapshot.ActiveIdentityText = IdentityRuntime.IsValid()
+				? FString::Printf(
+					TEXT("%s | %s | Drain %.2f/s"),
+					*TagToDebugString(IdentityRuntime.IdentityTag),
+					*StaticEnum<EMDFIdentityActionType>()->GetValueAsString(IdentityRuntime.IdentityType),
+					IdentityRuntime.FocusDrainPerSecond)
+				: TEXT("[None]");
 		}
 		else
 		{

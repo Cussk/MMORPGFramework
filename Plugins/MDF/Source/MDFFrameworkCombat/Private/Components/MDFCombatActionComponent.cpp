@@ -2,6 +2,9 @@
 
 #include "Components/MDFCombatActionComponent.h"
 
+#include "MDFGameplayTags.h"
+#include "Components/MDFAttributeComponent.h"
+#include "Components/MDFCombatantComponent.h"
 #include "Components/MDFCombatCueComponent.h"
 #include "Components/MDFPlayerSkillComponent.h"
 #include "Data/MDFDisciplineDefinition.h"
@@ -46,6 +49,16 @@ const FMDFBasicComboRuntime& UMDFCombatActionComponent::GetBasicComboRuntime() c
 	return BasicComboRuntime;
 }
 
+const FMDFActiveIdentityActionRuntime& UMDFCombatActionComponent::GetActiveIdentityRuntime() const
+{
+	return ActiveIdentityRuntime;
+}
+
+bool UMDFCombatActionComponent::HasActiveIdentityAction() const
+{
+	return ActiveIdentityRuntime.IsValid();
+}
+
 bool UMDFCombatActionComponent::HasActiveCombatAction() const
 {
 	return ActiveCombatActionRuntime.IsValid();
@@ -86,6 +99,17 @@ const FMDFBasicComboDefinition* UMDFCombatActionComponent::ResolveActiveDiscipli
 	}
 
 	return &DisciplineDefinition->BasicCombo;
+}
+
+const FMDFIdentityActionDefinition* UMDFCombatActionComponent::ResolveActiveDisciplineIdentityAction() const
+{
+	const UMDFDisciplineDefinition* DisciplineDefinition = ResolveActiveDisciplineDefinition();
+	if (!DisciplineDefinition || !DisciplineDefinition->IdentityAction.IsValid())
+	{
+		return nullptr;
+	}
+
+	return &DisciplineDefinition->IdentityAction;
 }
 
 float UMDFCombatActionComponent::GetServerWorldTimeSecondsSafe() const
@@ -237,9 +261,89 @@ void UMDFCombatActionComponent::RequestBasicAttackFromInput(const FMDFSkillActiv
 	ServerRequestBasicAttack(AimSnapshot);
 }
 
+void UMDFCombatActionComponent::RequestIdentityPressedFromInput(const FMDFSkillActivationAimSnapshot& AimSnapshot)
+{
+	if (!GetOwner())
+	{
+		return;
+	}
+
+	if (GetOwner()->HasAuthority())
+	{
+		StartIdentityAction(AimSnapshot);
+		return;
+	}
+
+	ServerRequestIdentityPressed(AimSnapshot);
+}
+
+void UMDFCombatActionComponent::RequestIdentityReleasedFromInput()
+{
+	if (!GetOwner())
+	{
+		return;
+	}
+
+	if (GetOwner()->HasAuthority())
+	{
+		EndIdentityAction();
+		return;
+	}
+
+	ServerRequestIdentityReleased();
+}
+
+bool UMDFCombatActionComponent::IsBlockingDamageFrom(const AActor* SourceActor) const
+{
+	if (!HasActiveIdentityAction() || ActiveIdentityRuntime.IdentityType != EMDFIdentityActionType::Block)
+	{
+		return false;
+	}
+
+	if (!GetOwner() || !SourceActor)
+	{
+		return false;
+	}
+
+	const FVector OwnerForward2D = GetOwner()->GetActorForwardVector().GetSafeNormal2D();
+	const FVector ToSource2D = (SourceActor->GetActorLocation() - GetOwner()->GetActorLocation()).GetSafeNormal2D();
+	const float Dot = FVector::DotProduct(OwnerForward2D, ToSource2D);
+	const float AngleDegrees = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(Dot, -1.0f, 1.0f)));
+
+	return AngleDegrees <= ActiveIdentityRuntime.BlockHalfAngleDegrees;
+}
+
+bool UMDFCombatActionComponent::CanApplyZoomHeadshotBonus(const FHitResult& HitResult, float& OutDamageMultiplier) const
+{
+	OutDamageMultiplier = 1.0f;
+
+	if (!HasActiveIdentityAction() || ActiveIdentityRuntime.IdentityType != EMDFIdentityActionType::Zoom)
+	{
+		return false;
+	}
+
+	if (ActiveIdentityRuntime.HeadBoneName.IsNone() || HitResult.BoneName != ActiveIdentityRuntime.HeadBoneName)
+	{
+		return false;
+	}
+
+	OutDamageMultiplier = ActiveIdentityRuntime.HeadshotDamageMultiplier;
+	return true;
+}
+
 void UMDFCombatActionComponent::ServerRequestBasicAttack_Implementation(FMDFSkillActivationAimSnapshot AimSnapshot)
 {
 	RequestBasicAttack(AimSnapshot);
+}
+
+void UMDFCombatActionComponent::ServerRequestIdentityPressed_Implementation(FMDFSkillActivationAimSnapshot AimSnapshot)
+{
+	StartIdentityAction(AimSnapshot);
+}
+
+void UMDFCombatActionComponent::ServerRequestIdentityReleased_Implementation()
+{
+	EndIdentityAction();
 }
 
 bool UMDFCombatActionComponent::StartCombatAction(const FMDFActiveCombatActionRuntime& InRuntime)
@@ -580,6 +684,184 @@ void UMDFCombatActionComponent::ClearBasicComboRuntime()
 	OnRep_BasicComboRuntime();
 }
 
+bool UMDFCombatActionComponent::StartIdentityAction(const FMDFSkillActivationAimSnapshot& AimSnapshot)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return false;
+	}
+
+	if (HasActiveCombatAction() || HasActiveIdentityAction())
+	{
+		return false;
+	}
+
+	UMDFPlayerSkillComponent* SkillComponent = ResolveOwningSkillComponent();
+	const FMDFIdentityActionDefinition* IdentityDefinition = ResolveActiveDisciplineIdentityAction();
+	if (!SkillComponent || !IdentityDefinition)
+	{
+		return false;
+	}
+
+	FMDFActiveCombatActionRuntime Runtime;
+	Runtime.ActionTag = IdentityDefinition->IdentityTag;
+	Runtime.OwningDisciplineTag = SkillComponent->GetActiveDisciplineTag();
+	Runtime.ActionType = EMDFCombatActionType::Identity;
+	Runtime.Phase = EMDFCombatActionPhase::Executing;
+	Runtime.StartServerWorldTime = GetServerWorldTimeSecondsSafe();
+
+	if (!StartCombatAction(Runtime))
+	{
+		return false;
+	}
+
+	ActiveIdentityRuntime = FMDFActiveIdentityActionRuntime();
+	ActiveIdentityRuntime.IdentityTag = IdentityDefinition->IdentityTag;
+	ActiveIdentityRuntime.OwningDisciplineTag = SkillComponent->GetActiveDisciplineTag();
+	ActiveIdentityRuntime.ActiveStateTag = IdentityDefinition->ActiveStateTag;
+	ActiveIdentityRuntime.IdentityType = IdentityDefinition->IdentityType;
+	ActiveIdentityRuntime.FocusDrainPerSecond = IdentityDefinition->FocusDrainPerSecond;
+	ActiveIdentityRuntime.BlockHalfAngleDegrees = IdentityDefinition->Block.BlockHalfAngleDegrees;
+	ActiveIdentityRuntime.BlockedDamageMultiplier = IdentityDefinition->Block.BlockedDamageMultiplier;
+	ActiveIdentityRuntime.ZoomedFOV = IdentityDefinition->Zoom.ZoomedFOV;
+	ActiveIdentityRuntime.HeadshotDamageMultiplier = IdentityDefinition->Zoom.HeadshotDamageMultiplier;
+	ActiveIdentityRuntime.HeadBoneName = IdentityDefinition->Zoom.HeadBoneName;
+	ActiveIdentityRuntime.ChannelSkillTag = IdentityDefinition->Channel.ChannelSkillTag;
+
+	ApplyIdentityCombatState();
+	OnRep_ActiveIdentityRuntime();
+
+	if (ActiveIdentityRuntime.FocusDrainPerSecond > 0.0f)
+	{
+		GetWorld()->GetTimerManager().SetTimer(
+			IdentityDrainTimerHandle,
+			this,
+			&UMDFCombatActionComponent::HandleIdentityDrainTick,
+			IdentityDrainTickIntervalSeconds,
+			true);
+	}
+
+	return true;
+}
+
+void UMDFCombatActionComponent::EndIdentityAction()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !HasActiveIdentityAction())
+	{
+		return;
+	}
+
+	ClearIdentityDrainTimer();
+	RemoveIdentityCombatState();
+
+	ActiveIdentityRuntime = FMDFActiveIdentityActionRuntime();
+	OnRep_ActiveIdentityRuntime();
+
+	EndActiveCombatAction();
+}
+
+bool UMDFCombatActionComponent::CanAffordIdentityFocusTick(const float DeltaSeconds) const
+{
+	const UMDFPlayerSkillComponent* SkillComponent = ResolveOwningSkillComponent();
+	if (!SkillComponent)
+	{
+		return false;
+	}
+
+	const APlayerState* OwningPlayerState = Cast<APlayerState>(SkillComponent->GetOwner());
+	if (!OwningPlayerState)
+	{
+		return false;
+	}
+
+	const UMDFAttributeComponent* AttributeComponent = OwningPlayerState->FindComponentByClass<UMDFAttributeComponent>();
+	if (!AttributeComponent)
+	{
+		return false;
+	}
+
+	const float TickCost = ActiveIdentityRuntime.FocusDrainPerSecond * DeltaSeconds;
+	return AttributeComponent->GetCurrentValue(MDFGameplayTags::Attribute_Resource_Focus) >= TickCost;
+}
+
+bool UMDFCombatActionComponent::ConsumeIdentityFocusTick(const float DeltaSeconds)
+{
+	UMDFPlayerSkillComponent* SkillComponent = ResolveOwningSkillComponent();
+	if (!SkillComponent)
+	{
+		return false;
+	}
+
+	APlayerState* OwningPlayerState = Cast<APlayerState>(SkillComponent->GetOwner());
+	if (!OwningPlayerState)
+	{
+		return false;
+	}
+
+	UMDFAttributeComponent* AttributeComponent = OwningPlayerState->FindComponentByClass<UMDFAttributeComponent>();
+	if (!AttributeComponent)
+	{
+		return false;
+	}
+
+	const float TickCost = ActiveIdentityRuntime.FocusDrainPerSecond * DeltaSeconds;
+	const float AppliedDelta = AttributeComponent->ApplyCurrentValueDelta(
+		MDFGameplayTags::Attribute_Resource_Focus,
+		-TickCost);
+
+	return !FMath::IsNearlyZero(AppliedDelta);
+}
+
+void UMDFCombatActionComponent::ApplyIdentityCombatState()
+{
+	UMDFCombatantComponent* Combatant = GetOwner()->FindComponentByClass<UMDFCombatantComponent>();
+	if (!Combatant || !ActiveIdentityRuntime.ActiveStateTag.IsValid())
+	{
+		return;
+	}
+	
+	Combatant->AddCombatState(ActiveIdentityRuntime.ActiveStateTag);
+}
+
+void UMDFCombatActionComponent::RemoveIdentityCombatState()
+{
+	UMDFCombatantComponent* Combatant = GetOwner()->FindComponentByClass<UMDFCombatantComponent>();
+	if (!Combatant || !ActiveIdentityRuntime.ActiveStateTag.IsValid())
+	{
+		return;
+	}
+	
+	Combatant->RemoveCombatState(ActiveIdentityRuntime.ActiveStateTag);
+}
+
+void UMDFCombatActionComponent::HandleIdentityDrainTick()
+{
+	if (!HasActiveIdentityAction())
+	{
+		EndIdentityAction();
+		return;
+	}
+
+	if (!CanAffordIdentityFocusTick(IdentityDrainTickIntervalSeconds))
+	{
+		EndIdentityAction();
+		return;
+	}
+
+	if (!ConsumeIdentityFocusTick(IdentityDrainTickIntervalSeconds))
+	{
+		EndIdentityAction();
+	}
+}
+
+void UMDFCombatActionComponent::ClearIdentityDrainTimer()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(IdentityDrainTimerHandle);
+	}
+}
+
 void UMDFCombatActionComponent::OnRep_ActiveCombatActionRuntime() const
 {
 	OnCombatActionStateChanged.Broadcast();
@@ -596,6 +878,11 @@ void UMDFCombatActionComponent::OnRep_PendingDisciplineSwapRuntime() const
 }
 
 void UMDFCombatActionComponent::OnRep_BasicComboRuntime() const
+{
+	OnCombatActionStateChanged.Broadcast();
+}
+
+void UMDFCombatActionComponent::OnRep_ActiveIdentityRuntime() const
 {
 	OnCombatActionStateChanged.Broadcast();
 }

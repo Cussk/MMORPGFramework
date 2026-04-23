@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Data/MDFComboTypes.h"
+#include "Types/MDFComboTypes.h"
 #include "Types/MDFCombatActionTypes.h"
 #include "Types/MDFSkillActivationTypes.h"
 #include "MDFCombatActionComponent.generated.h"
@@ -46,6 +46,12 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category="Combat")
 	const FMDFBasicComboRuntime& GetBasicComboRuntime() const;
+	
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const FMDFActiveIdentityActionRuntime& GetActiveIdentityRuntime() const;
+
+	UFUNCTION(BlueprintPure, Category="Combat")
+	bool HasActiveIdentityAction() const;
 
 	UFUNCTION(BlueprintPure, Category="Combat")
 	bool HasActiveCombatAction() const;
@@ -90,6 +96,12 @@ public:
 
 	bool RequestBasicAttack(const FMDFSkillActivationAimSnapshot& AimSnapshot);
 	void RequestBasicAttackFromInput(const FMDFSkillActivationAimSnapshot& AimSnapshot);
+	
+	void RequestIdentityPressedFromInput(const FMDFSkillActivationAimSnapshot& AimSnapshot);
+	void RequestIdentityReleasedFromInput();
+
+	bool IsBlockingDamageFrom(const AActor* SourceActor) const;
+	bool CanApplyZoomHeadshotBonus(const FHitResult& HitResult, float& OutDamageMultiplier) const;
 
 	UPROPERTY(BlueprintAssignable, Category="Events")
 	FMDFCombatActionStateChanged OnCombatActionStateChanged;
@@ -107,35 +119,60 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_PendingDisciplineSwapRuntime, Category="Combat")
 	FMDFPendingDisciplineSwapRuntime PendingDisciplineSwapRuntime;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_BasicComboRuntime, Category="Combat")
+	FMDFBasicComboRuntime BasicComboRuntime;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_ActiveIdentityRuntime, Category="Combat")
+	FMDFActiveIdentityActionRuntime ActiveIdentityRuntime;
+	
 	FTimerHandle ScheduledSkillExecuteTimerHandle;
 	FTimerHandle ScheduledSkillRecoveryTimerHandle;
+	FTimerHandle IdentityDrainTimerHandle;
+	
+	static constexpr float IdentityDrainTickIntervalSeconds = 0.1f;
 
 	FMDFSkillActivationDecision ScheduledSkillActivationDecision;
 	bool bHasScheduledSkillActivation = false;
+	
+	// Used so queued basics can carry the original/local aim through to the next step.
+	FMDFSkillActivationAimSnapshot LastBasicAimSnapshot;
+	bool bHasLastBasicAimSnapshot = false;
 
 	void HandleScheduledSkillExecute();
 	void HandleScheduledSkillRecoveryEnd();
 	void ClearScheduledActionTimers();
 	void ClearScheduledSkillAuthorityData();
 	
-protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_BasicComboRuntime, Category="Combat")
-	FMDFBasicComboRuntime BasicComboRuntime;
 
 	bool StartBasicComboStep(FGameplayTag DisciplineTag, int32 StepIndex, const FMDFSkillActivationAimSnapshot& AimSnapshot);
 	bool TryQueueNextBasicComboStep(const FMDFSkillActivationAimSnapshot& AimSnapshot);
 	void ClearBasicComboRuntime();
+	
+	bool StartIdentityAction(const FMDFSkillActivationAimSnapshot& AimSnapshot);
+	void EndIdentityAction();
 
-	// Used so queued basics can carry the original/local aim through to the next step.
-	FMDFSkillActivationAimSnapshot LastBasicAimSnapshot;
-	bool bHasLastBasicAimSnapshot = false;
+	bool CanAffordIdentityFocusTick(float DeltaSeconds) const;
+	bool ConsumeIdentityFocusTick(float DeltaSeconds);
+
+	void ApplyIdentityCombatState();
+	void RemoveIdentityCombatState();
+
+	void HandleIdentityDrainTick();
+	void ClearIdentityDrainTimer();
 	
 	UMDFPlayerSkillComponent* ResolveOwningSkillComponent() const;
 	const UMDFDisciplineDefinition* ResolveActiveDisciplineDefinition() const;
 	const FMDFBasicComboDefinition* ResolveActiveDisciplineBasicCombo() const;
+	const FMDFIdentityActionDefinition* ResolveActiveDisciplineIdentityAction() const;
 	
 	UFUNCTION(Server, Reliable)
 	void ServerRequestBasicAttack(FMDFSkillActivationAimSnapshot AimSnapshot);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRequestIdentityPressed(FMDFSkillActivationAimSnapshot AimSnapshot);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestIdentityReleased();
 
 	UFUNCTION()
 	void OnRep_ActiveCombatActionRuntime() const;
@@ -148,4 +185,7 @@ protected:
 	
 	UFUNCTION()
 	void OnRep_BasicComboRuntime() const;
+	
+	UFUNCTION()
+	void OnRep_ActiveIdentityRuntime() const;
 };

@@ -42,6 +42,8 @@ class MDFFRAMEWORKQUICKSTART_API AMDFCharacter : public ACharacter
 public:
 	AMDFCharacter();
 	
+	
+	
 	UFUNCTION(BlueprintPure, Category = "MDF")
 	AMDFPlayerController* GetMDFPlayerController() const;
 
@@ -81,11 +83,21 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UMDFCombatCueComponent> MDFCombatCueComponent;
 	
+	UPROPERTY(EditDefaultsOnly, Category="Camera")
+	float DefaultCombatFOV = 90.0f;
+	
+	virtual void BeginPlay() override;
+	
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoMove(float Right, float Forward);
 	
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoLook(float Yaw, float Pitch);
+	
+	UFUNCTION()
+	void HandleCombatActionStateChanged();
+	
+	void RefreshIdentityCameraState();
 	
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))

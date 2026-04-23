@@ -39,6 +39,11 @@ void UMDFPlayerInputComponent::SetupInputComponent(UInputComponent* InputCompone
 	//Combos
 	BindTaggedAction(EnhancedInput, MDFGameplayTags::Input_BasicCombo, ETriggerEvent::Started, &UMDFPlayerInputComponent::InputActivateBasicCombo);
 	
+	//Identity Skill
+	BindTaggedAction(EnhancedInput, MDFGameplayTags::Input_IdentitySkill, ETriggerEvent::Started, &UMDFPlayerInputComponent::InputActivateIdentitySkill);
+	BindTaggedAction(EnhancedInput, MDFGameplayTags::Input_IdentitySkill, ETriggerEvent::Completed, &UMDFPlayerInputComponent::InputReleaseIdentitySkill);
+	BindTaggedAction(EnhancedInput, MDFGameplayTags::Input_IdentitySkill, ETriggerEvent::Canceled, &UMDFPlayerInputComponent::InputReleaseIdentitySkill);
+	
 	//Skill Slots
 	BindTaggedAction(EnhancedInput, MDFGameplayTags::Input_SkillSlot_One, ETriggerEvent::Started, &UMDFPlayerInputComponent::InputActivateSkillSlot, static_cast<uint8>(0));
 	BindTaggedAction(EnhancedInput, MDFGameplayTags::Input_SkillSlot_Two, ETriggerEvent::Started, &UMDFPlayerInputComponent::InputActivateSkillSlot, static_cast<uint8>(1));
@@ -100,6 +105,28 @@ void UMDFPlayerInputComponent::InputActivateBasicCombo()
 	if (UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get())
 	{
 		CombatActionComponent->RequestBasicAttackFromInput(AimSnapshot);
+	}
+}
+
+void UMDFPlayerInputComponent::InputActivateIdentitySkill()
+{
+	FMDFSkillActivationAimSnapshot AimSnapshot;
+	if (UMDFTargetingComponent* TargetingComponent = CachedTargetingComponent.Get())
+	{
+		TargetingComponent->BuildLocalActivationAimSnapshot(AimSnapshot);
+	}
+
+	if (UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get())
+	{
+		CombatActionComponent->RequestIdentityPressedFromInput(AimSnapshot);
+	}
+}
+
+void UMDFPlayerInputComponent::InputReleaseIdentitySkill()
+{
+	if (UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get())
+	{
+		CombatActionComponent->RequestIdentityReleasedFromInput();
 	}
 }
 

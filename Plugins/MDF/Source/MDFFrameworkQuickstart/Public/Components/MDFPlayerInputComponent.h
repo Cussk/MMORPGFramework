@@ -52,6 +52,12 @@ public:
 	void InputActivateBasicCombo();
 	
 	UFUNCTION(BlueprintCallable, Category="Input")
+	void InputActivateIdentitySkill();
+	
+	UFUNCTION(BlueprintCallable, Category="Input")
+	void InputReleaseIdentitySkill();
+	
+	UFUNCTION(BlueprintCallable, Category="Input")
 	void InputActivateSkillSlot(const FInputActionValue& Value, const uint8 SlotIndex);
 
 	UFUNCTION(BlueprintCallable, Category="Input")

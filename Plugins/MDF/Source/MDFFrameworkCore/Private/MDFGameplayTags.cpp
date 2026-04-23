@@ -45,6 +45,12 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Basic_Combo_Archer_Three, "Basic.Combo.Archer.Three");
 	
 	// --------------------
+	// Identity
+	// --------------------
+	UE_DEFINE_GAMEPLAY_TAG(Identity_Guardian_Block, "Identity.Guardian.Block");
+	UE_DEFINE_GAMEPLAY_TAG(Identity_Archer_Zoom, "Identity.Archer.Zoom");
+	
+	// --------------------
 	// Skills
 	// --------------------
 	UE_DEFINE_GAMEPLAY_TAG(Skill_Category_Attack, "Skill.Category.Attack");
@@ -90,6 +96,7 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Attribute_Resource_Health, "Attribute.Resource.Health");
 	UE_DEFINE_GAMEPLAY_TAG(Attribute_Resource_Mana, "Attribute.Resource.Mana");
 	UE_DEFINE_GAMEPLAY_TAG(Attribute_Resource_Stamina, "Attribute.Resource.Stamina");
+	UE_DEFINE_GAMEPLAY_TAG(Attribute_Resource_Focus, "Attribute.Resource.Focus");
 	
 	UE_DEFINE_GAMEPLAY_TAG(Attribute_Primary_Strength, "Attribute.Primary.Strength");
 	UE_DEFINE_GAMEPLAY_TAG(Attribute_Primary_Intelligence, "Attribute.Primary.Intelligence");
@@ -119,6 +126,9 @@ namespace MDFGameplayTags
 	// --------------------
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_InCombat, "Combat.State.InCombat");
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Casting, "Combat.State.Casting");
+	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Blocking, "Combat.State.Blocking");
+	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Zooming, "Combat.State.Zooming");
+	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Stealthed, "Combat.State.Stealthed");
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Channeling, "Combat.State.Channeling");
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Dead, "Combat.State.Dead");
 	UE_DEFINE_GAMEPLAY_TAG(Combat_State_Stunned, "Combat.State.Stunned");

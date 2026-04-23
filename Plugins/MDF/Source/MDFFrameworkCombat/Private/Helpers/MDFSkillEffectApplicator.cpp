@@ -9,10 +9,11 @@
 #include "Data/MDFSkillDefinition.h"
 #include "Helpers/MDFComponentHelpers.h"
 #include "MDFGameplayTags.h"
+#include "Components/MDFCombatActionComponent.h"
 #include "Components/MDFCombatCueComponent.h"
 
 void FMDFSkillEffectApplicator::ApplyEffectsToTarget(
-	const FMDFSkillEffectApplicationContext& Context,
+	FMDFSkillEffectApplicationContext& Context,
 	TArray<FMDFAppliedSkillEffectDebugEntry>* OutDebugEntries)
 {
 	if (!Context.SourceActor || !Context.SkillDefinition || !Context.TargetActor)
@@ -34,7 +35,7 @@ void FMDFSkillEffectApplicator::ApplyEffectsToTarget(
 		return;
 	}
 
-		bool bAnyAppliedEffect = false;
+	bool bAnyAppliedEffect = false;
 	bool bDamagedHealth = false;
 	bool bAddedDeadState = false;
 	const FVector CueLocation =
@@ -54,7 +55,24 @@ void FMDFSkillEffectApplicator::ApplyEffectsToTarget(
 
 		if (Effect.EffectTypeTag == MDFGameplayTags::Effect_Damage)
 		{
-			AppliedDelta = AttributeComponent->ApplyCurrentValueDelta(Effect.AttributeTag, -Effect.Magnitude);
+			float FinalMagnitude = Effect.Magnitude * FMath::Max(0.0f, Context.MagnitudeMultiplier);
+
+			if (Effect.AttributeTag == MDFGameplayTags::Attribute_Resource_Health)
+			{
+				if (const AActor* TargetActor = Context.TargetActor)
+				{
+					if (const UMDFCombatActionComponent* TargetActionComponent = TargetActor->FindComponentByClass<UMDFCombatActionComponent>())
+					{
+						if (TargetActionComponent->IsBlockingDamageFrom(Context.SourceActor))
+						{
+							FinalMagnitude *= TargetActionComponent->GetActiveIdentityRuntime().BlockedDamageMultiplier;
+							Context.bWasBlocked = true;
+						}
+					}
+				}
+			}
+			
+			AppliedDelta = AttributeComponent->ApplyCurrentValueDelta(Effect.AttributeTag, -FinalMagnitude);
 
 			if (!FMath::IsNearlyZero(AppliedDelta))
 			{

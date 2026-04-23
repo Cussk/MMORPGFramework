@@ -16,12 +16,14 @@ struct FMDFSkillEffectApplicationContext
 	const UMDFSkillDefinition* SkillDefinition = nullptr;
 	AActor* TargetActor = nullptr;
 	FVector ImpactWorldLocation = FVector::ZeroVector;
+	float MagnitudeMultiplier = 1.0f;
+	bool bHeadshot = false;
+	bool bWasBlocked = false;
 };
 
 class MDFFRAMEWORKCOMBAT_API FMDFSkillEffectApplicator
 {
+	
 public:
-	static void ApplyEffectsToTarget(
-		const FMDFSkillEffectApplicationContext& Context,
-		TArray<FMDFAppliedSkillEffectDebugEntry>* OutDebugEntries = nullptr);
+	static void ApplyEffectsToTarget(FMDFSkillEffectApplicationContext& Context, TArray<FMDFAppliedSkillEffectDebugEntry>* OutDebugEntries = nullptr);
 };

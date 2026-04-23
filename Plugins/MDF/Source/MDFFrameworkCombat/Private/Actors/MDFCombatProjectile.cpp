@@ -2,6 +2,7 @@
 
 #include "Actors/MDFCombatProjectile.h"
 
+#include "Components/MDFCombatActionComponent.h"
 #include "Components/MDFCombatantComponent.h"
 #include "Components/MDFPlayerSkillComponent.h"
 #include "Components/SphereComponent.h"
@@ -151,6 +152,15 @@ void AMDFCombatProjectile::ProcessImpactActor(AActor* OtherActor, const FHitResu
 	EffectContext.SkillDefinition = ProjectileDefinition.Get();
 	EffectContext.TargetActor = OtherActor;
 	EffectContext.ImpactWorldLocation = ImpactLocation;
+	
+	UMDFCombatActionComponent* SourceActionComponent = EffectContext.SourceActor ? EffectContext.SourceActor->FindComponentByClass<UMDFCombatActionComponent>() : nullptr;
+
+	float HeadshotMultiplier = 1.0f;
+	if (SourceActionComponent && SourceActionComponent->CanApplyZoomHeadshotBonus(HitResult, HeadshotMultiplier))
+	{
+		EffectContext.MagnitudeMultiplier *= HeadshotMultiplier;
+		EffectContext.bHeadshot = true;
+	}
 
 	FMDFSkillEffectApplicator::ApplyEffectsToTarget(EffectContext, &EffectEntries);
 

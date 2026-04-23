@@ -149,4 +149,7 @@ struct MDFFRAMEWORKDEBUG_API FMDFPlayerDebugSnapshot
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	FString BasicComboText;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	FString ActiveIdentityText;
 };

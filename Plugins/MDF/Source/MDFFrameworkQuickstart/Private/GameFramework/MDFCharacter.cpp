@@ -46,6 +46,21 @@ AMDFCharacter::AMDFCharacter()
 	MDFCombatActionComponent = CreateDefaultSubobject<UMDFCombatActionComponent>(TEXT("CombatActionComponent"));
 }
 
+void AMDFCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (MDFCombatActionComponent)
+	{
+		MDFCombatActionComponent->OnCombatActionStateChanged.AddDynamic(this, &AMDFCharacter::HandleCombatActionStateChanged);
+	}
+
+	if (FollowCamera)
+	{
+		DefaultCombatFOV = FollowCamera->FieldOfView;
+	}
+}
+
 AMDFPlayerController* AMDFCharacter::GetMDFPlayerController() const
 {
 	return Cast<AMDFPlayerController>(GetController());
@@ -130,6 +145,35 @@ void AMDFCharacter::DoLook(float Yaw, float Pitch)
 	{
 		AddControllerYawInput(Yaw);
 		AddControllerPitchInput(Pitch);
+	}
+}
+
+void AMDFCharacter::HandleCombatActionStateChanged()
+{
+	RefreshIdentityCameraState();
+}
+
+void AMDFCharacter::RefreshIdentityCameraState()
+{
+	if (!IsLocallyControlled() || !FollowCamera)
+	{
+		return;
+	}
+	
+	if (!MDFCombatActionComponent || !MDFCombatActionComponent->HasActiveIdentityAction())
+	{
+		FollowCamera->SetFieldOfView(DefaultCombatFOV);
+		return;
+	}
+
+	const FMDFActiveIdentityActionRuntime& IdentityRuntime = MDFCombatActionComponent->GetActiveIdentityRuntime();
+	if (IdentityRuntime.IdentityType == EMDFIdentityActionType::Zoom && IdentityRuntime.ZoomedFOV > 0.0f)
+	{
+		FollowCamera->SetFieldOfView(IdentityRuntime.ZoomedFOV);
+	}
+	else
+	{
+		FollowCamera->SetFieldOfView(DefaultCombatFOV);
 	}
 }
 
