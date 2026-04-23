@@ -26,13 +26,6 @@ enum class EMDFCombatActionType : uint8
 	Transition
 };
 
-/**
- * Current runtime phase for the active combat action.
- *
- * Phase 10A does not schedule timings yet.
- * This exists now so the action runtime has a stable shape before we wire
- * authored startup / execute / recovery times in Phase 10B.
- */
 UENUM(BlueprintType)
 enum class EMDFCombatActionPhase : uint8
 {
@@ -186,5 +179,25 @@ struct MDFFRAMEWORKCOMBAT_API FMDFPendingDisciplineSwapRuntime
 	bool IsValid() const
 	{
 		return DestinationDisciplineTag.IsValid() && SwapType != EMDFDisciplineSwapType::None;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFBasicComboRuntime
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FGameplayTag DisciplineTag;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	int32 CurrentStepIndex = INDEX_NONE;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	bool bComboActive = false;
+
+	bool IsValid() const
+	{
+		return bComboActive && DisciplineTag.IsValid() && CurrentStepIndex != INDEX_NONE;
 	}
 };

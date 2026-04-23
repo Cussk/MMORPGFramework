@@ -3,10 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "EnhancedInputComponent.h"
 #include "Components/ActorComponent.h"
 #include "Types/MDFSkillActivationTypes.h"
 #include "MDFPlayerInputComponent.generated.h"
 
+class AMDFCharacter;
+class UMDFInputConfig;
+class UMDFCombatActionComponent;
 class APlayerController;
 class UMDFPlayerSkillComponent;
 class UMDFTargetingComponent;
@@ -33,18 +37,43 @@ public:
 	UMDFPlayerInputComponent();
 
 	UFUNCTION(BlueprintCallable, Category="Input")
-	void InputActivateSkillSlot(int32 SlotIndex);
+	void InputMove(const FInputActionValue& Value);
+	
+	UFUNCTION(BlueprintCallable, Category="Input")
+	void InputLook(const FInputActionValue& Value);
+	
+	UFUNCTION(BlueprintCallable, Category="Input")
+	void InputJumpStart();
+	
+	UFUNCTION(BlueprintCallable, Category="Input")
+	void InputJumpEnd();
+	
+	UFUNCTION(BlueprintCallable, Category="Input")
+	void InputActivateBasicCombo();
+	
+	UFUNCTION(BlueprintCallable, Category="Input")
+	void InputActivateSkillSlot(const FInputActionValue& Value, const uint8 SlotIndex);
 
 	UFUNCTION(BlueprintCallable, Category="Input")
 	void InputToggleTargetLock();
 
 	UFUNCTION(BlueprintCallable, Category="Input")
 	void InputCycleTargetRight();
+	
+	void SetupInputComponent(UInputComponent* InputComponent);
+	
+	TWeakObjectPtr<AMDFCharacter> CachedMDFCharacter;
+	TWeakObjectPtr<UMDFTargetingComponent> CachedTargetingComponent;
+	TWeakObjectPtr<UMDFPlayerSkillComponent> CachedPlayerSkillComponent;
+	TWeakObjectPtr<UMDFCombatActionComponent> CachedCombatActionComponent;
 
 protected:
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	TObjectPtr<UMDFInputConfig> InputConfig;
+	
 	APlayerController* GetOwningPlayerController() const;
-	bool IsOwningControllerLocal() const;
-
-	UMDFPlayerSkillComponent* ResolveSkillComponent() const;
-	UMDFTargetingComponent* ResolveTargetingComponent() const;
+	bool IsOwningControllerLocal() const;	
+	
+	template <typename FuncType, typename... ArgTypes>
+	void BindTaggedAction(UEnhancedInputComponent* EIC, const FGameplayTag& Tag, ETriggerEvent TriggerEvent, FuncType Func, ArgTypes... Args);
 };

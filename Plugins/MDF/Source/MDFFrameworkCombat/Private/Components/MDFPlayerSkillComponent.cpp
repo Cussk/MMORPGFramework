@@ -993,7 +993,7 @@ bool UMDFPlayerSkillComponent::CommitAndExecuteSkillActivation(const FMDFSkillAc
 
 	PlaySourceExecuteCue(ActivationDecision, SkillDefinition, Combatant);
 
-	const bool bStarted = CombatActionComponent->StartTimedSkillAction(ActivationDecision, SkillDefinition);
+	const bool bStarted = CombatActionComponent->StartTimedSkillBackedAction(ActivationDecision, SkillDefinition, EMDFCombatActionType::Skill, INDEX_NONE);
 	if (!bStarted)
 	{
 		ActiveSkillRuntime = FMDFActiveSkillRuntime();
@@ -1263,6 +1263,86 @@ bool UMDFPlayerSkillComponent::ExecuteCommittedSkillActivation(const FMDFSkillAc
 
 	OnRep_LastSkillExecutionDecision();
 	return bExecuted;
+}
+
+FMDFSkillActivationDecision UMDFPlayerSkillComponent::EvaluateSkillActivationForExplicitSkill(
+	const FGameplayTag SkillTag,
+	const FGameplayTag DisciplineTag,
+	const FMDFSkillActivationAimSnapshot& AimSnapshot) const
+{
+	FMDFSkillActivationDecision Decision;
+	Decision.Request.SkillTag = SkillTag;
+	Decision.Request.ActiveDisciplineTag = DisciplineTag;
+	Decision.Request.AimSnapshot = AimSnapshot;
+
+	if (!SkillTag.IsValid() || !DisciplineTag.IsValid())
+	{
+		Decision.Result = EMDFSkillActivationResult::SkillDefinitionMissing;
+		return Decision;
+	}
+
+	const FMDFPlayerSkillEntry* LearnedSkill = FindLearnedSkill(SkillTag);
+	if (!LearnedSkill)
+	{
+		Decision.Result = EMDFSkillActivationResult::SkillNotLearned;
+		return Decision;
+	}
+
+	const UMDFSkillDefinition* SkillDefinition = MDFCombatDefinitionLookup::ResolveSkillDefinition(SkillTag);
+	if (!SkillDefinition)
+	{
+		Decision.Result = EMDFSkillActivationResult::SkillDefinitionMissing;
+		return Decision;
+	}
+
+	if (!SkillDefinition->IsOwnedByDiscipline(DisciplineTag))
+	{
+		Decision.Result = EMDFSkillActivationResult::SkillDisciplineMismatch;
+		return Decision;
+	}
+
+	if (IsSkillOnCooldown(DisciplineTag, SkillTag))
+	{
+		Decision.Result = EMDFSkillActivationResult::BlockedByCooldown;
+		Decision.CooldownRemainingSeconds = GetRemainingCooldownSecondsForSkill(DisciplineTag, SkillTag);
+		return Decision;
+	}
+
+	FGameplayTag FailedCostResourceTag;
+	float FailedCostAmount = 0.0f;
+	if (!CanPaySkillCosts(SkillDefinition, FailedCostResourceTag, FailedCostAmount))
+	{
+		Decision.Result = EMDFSkillActivationResult::BlockedByCost;
+		Decision.FailedCostResourceTag = FailedCostResourceTag;
+		Decision.FailedCostAmount = FailedCostAmount;
+		return Decision;
+	}
+
+	if (const UMDFCombatActionComponent* CombatActionComponent = ResolveOwningCombatActionComponent())
+	{
+		if (CombatActionComponent->HasActiveCombatAction())
+		{
+			Decision.Result = EMDFSkillActivationResult::BlockedByRuntimeState;
+			return Decision;
+		}
+	}
+
+	Decision.Result = EMDFSkillActivationResult::Success;
+	return Decision;
+}
+
+bool UMDFPlayerSkillComponent::PlaySourceExecuteCueForAction(
+	const FMDFSkillActivationDecision& ActivationDecision,
+	const UMDFSkillDefinition* SkillDefinition)
+{
+	UMDFCombatantComponent* Combatant = ResolveOwningCombatantComponent();
+	if (!Combatant || !SkillDefinition)
+	{
+		return false;
+	}
+
+	PlaySourceExecuteCue(ActivationDecision, SkillDefinition, Combatant);
+	return true;
 }
 
 void UMDFPlayerSkillComponent::PlaySourceExecuteCue(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition, const UMDFCombatantComponent* Combatant)

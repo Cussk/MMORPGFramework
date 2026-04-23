@@ -7,6 +7,9 @@
 #include "Components/MDFPCDebugComponent.h"
 #include "Components/MDFPlayerInputComponent.h"
 #include "Components/MDFTargetingComponent.h"
+#include "Components/MDFPlayerSkillComponent.h"
+#include "Components/MDFCombatActionComponent.h"
+#include "GameFramework/MDFCharacter.h"
 #include "GameFramework/MDFPlayerState.h"
 
 AMDFPlayerController::AMDFPlayerController()
@@ -30,6 +33,36 @@ void AMDFPlayerController::BeginPlay()
 	{
 		CenterDotWidget->AddToViewport(10);
 	}
+}
+
+void AMDFPlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+	
+	MDFPlayerInputComponent->CachedMDFCharacter = Cast<AMDFCharacter>(InPawn);
+	MDFPlayerInputComponent->CachedPlayerSkillComponent = GetMDFSkillComponent();
+	MDFPlayerInputComponent->CachedCombatActionComponent = GetMDFCombatActionComponent();
+	MDFPlayerInputComponent->CachedTargetingComponent = MDFTargetingComponent;
+}
+
+void AMDFPlayerController::AcknowledgePossession(class APawn* P)
+{
+	Super::AcknowledgePossession(P);
+	
+	MDFPlayerInputComponent->CachedMDFCharacter = Cast<AMDFCharacter>(P);
+	MDFPlayerInputComponent->CachedPlayerSkillComponent = GetMDFSkillComponent();
+	MDFPlayerInputComponent->CachedCombatActionComponent = GetMDFCombatActionComponent();
+	MDFPlayerInputComponent->CachedTargetingComponent = MDFTargetingComponent;
+}
+
+void AMDFPlayerController::OnUnPossess()
+{
+	Super::OnUnPossess();
+
+	MDFPlayerInputComponent->CachedMDFCharacter = nullptr;
+	MDFPlayerInputComponent->CachedPlayerSkillComponent = nullptr;
+	MDFPlayerInputComponent->CachedCombatActionComponent = nullptr;
+	MDFPlayerInputComponent->CachedTargetingComponent = nullptr;
 }
 
 bool AMDFPlayerController::ProcessConsoleExec(const TCHAR* Cmd, FOutputDevice& Ar, UObject* Executor)
@@ -69,6 +102,16 @@ UMDFPlayerSkillComponent* AMDFPlayerController::GetMDFSkillComponent() const
 	return nullptr;
 }
 
+UMDFCombatActionComponent* AMDFPlayerController::GetMDFCombatActionComponent() const
+{
+	if (const AMDFCharacter* MDFCharacter = Cast<AMDFCharacter>(GetPawn()))
+	{
+		return MDFCharacter->GetMDFCombatActionComponent();
+	}
+	
+	return nullptr;
+}
+
 UMDFTargetingComponent* AMDFPlayerController::GetMDFTargetingComponent() const
 {
 	return MDFTargetingComponent;
@@ -97,5 +140,7 @@ void AMDFPlayerController::SetupInputComponent()
 				Subsystem->AddMappingContext(CurrentContext, 0);
 			}
 		}
+		
+		MDFPlayerInputComponent->SetupInputComponent(InputComponent);
 	}
 }

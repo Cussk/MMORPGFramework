@@ -133,7 +133,7 @@ void AMDFDebugHUD::DrawLineText(const FString& Text, const float X, float& Y, co
 
 void AMDFDebugHUD::DrawSummaryPanel(const FMDFPlayerDebugSnapshot& Snapshot, const float X, float& Y)
 {
-	constexpr int32 BodyLineCount = 17;
+	constexpr int32 BodyLineCount = 18;
 	const float PanelHeight = GetPanelHeight(BodyLineCount);
 
 	DrawPanelBackground(X, Y, PanelWidth, PanelHeight, PanelBackgroundColor);
@@ -154,6 +154,7 @@ void AMDFDebugHUD::DrawSummaryPanel(const FMDFPlayerDebugSnapshot& Snapshot, con
 	DrawKeyValueLine(TEXT("Pending Swap"), Snapshot.PendingDisciplineSwapText, X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Exec In"), FString::Printf(TEXT("%.2f"), Snapshot.ActiveActionExecuteTimeRemaining), X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Recovery In"), FString::Printf(TEXT("%.2f"), Snapshot.ActiveActionRecoveryTimeRemaining), X + PanelPadding, DrawY);
+	DrawKeyValueLine(TEXT("Basic Combo"), Snapshot.BasicComboText, X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Combo Window"), Snapshot.ActiveActionComboWindowText, X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Melee Hits"), FString::Printf(TEXT("%d"), Snapshot.LastFrontalMeleeHitCount), X + PanelPadding, DrawY);
 	DrawKeyValueLine(TEXT("Impact Count"), FString::Printf(TEXT("%d"), Snapshot.LastAppliedImpactCount), X + PanelPadding, DrawY);

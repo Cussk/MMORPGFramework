@@ -4,10 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Data/MDFComboTypes.h"
 #include "Types/MDFCombatActionTypes.h"
 #include "Types/MDFSkillActivationTypes.h"
 #include "MDFCombatActionComponent.generated.h"
 
+class UMDFDisciplineDefinition;
 class UMDFSkillDefinition;
 class UMDFPlayerSkillComponent;
 
@@ -41,6 +43,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Combat")
 	const FMDFPendingDisciplineSwapRuntime& GetPendingDisciplineSwapRuntime() const;
+	
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const FMDFBasicComboRuntime& GetBasicComboRuntime() const;
 
 	UFUNCTION(BlueprintPure, Category="Combat")
 	bool HasActiveCombatAction() const;
@@ -81,7 +86,10 @@ public:
 	UFUNCTION(BlueprintPure, Category="Combat")
 	float GetServerWorldTimeSecondsSafe() const;
 	
-	bool StartTimedSkillAction(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition);
+	bool StartTimedSkillBackedAction(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition, EMDFCombatActionType ActionType, int32 ComboStepIndex);
+
+	bool RequestBasicAttack(const FMDFSkillActivationAimSnapshot& AimSnapshot);
+	void RequestBasicAttackFromInput(const FMDFSkillActivationAimSnapshot& AimSnapshot);
 
 	UPROPERTY(BlueprintAssignable, Category="Events")
 	FMDFCombatActionStateChanged OnCombatActionStateChanged;
@@ -110,7 +118,24 @@ protected:
 	void ClearScheduledActionTimers();
 	void ClearScheduledSkillAuthorityData();
 	
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_BasicComboRuntime, Category="Combat")
+	FMDFBasicComboRuntime BasicComboRuntime;
+
+	bool StartBasicComboStep(FGameplayTag DisciplineTag, int32 StepIndex, const FMDFSkillActivationAimSnapshot& AimSnapshot);
+	bool TryQueueNextBasicComboStep(const FMDFSkillActivationAimSnapshot& AimSnapshot);
+	void ClearBasicComboRuntime();
+
+	// Used so queued basics can carry the original/local aim through to the next step.
+	FMDFSkillActivationAimSnapshot LastBasicAimSnapshot;
+	bool bHasLastBasicAimSnapshot = false;
+	
 	UMDFPlayerSkillComponent* ResolveOwningSkillComponent() const;
+	const UMDFDisciplineDefinition* ResolveActiveDisciplineDefinition() const;
+	const FMDFBasicComboDefinition* ResolveActiveDisciplineBasicCombo() const;
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRequestBasicAttack(FMDFSkillActivationAimSnapshot AimSnapshot);
 
 	UFUNCTION()
 	void OnRep_ActiveCombatActionRuntime() const;
@@ -120,4 +145,7 @@ protected:
 
 	UFUNCTION()
 	void OnRep_PendingDisciplineSwapRuntime() const;
+	
+	UFUNCTION()
+	void OnRep_BasicComboRuntime() const;
 };

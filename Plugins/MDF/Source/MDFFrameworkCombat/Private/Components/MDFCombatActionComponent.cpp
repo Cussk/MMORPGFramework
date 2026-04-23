@@ -2,9 +2,12 @@
 
 #include "Components/MDFCombatActionComponent.h"
 
+#include "Components/MDFCombatCueComponent.h"
 #include "Components/MDFPlayerSkillComponent.h"
+#include "Data/MDFDisciplineDefinition.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/Pawn.h"
+#include "Helpers/MDFCombatDefinitionLookup.h"
 #include "Helpers/MDFComponentHelpers.h"
 #include "Net/UnrealNetwork.h"
 
@@ -38,6 +41,11 @@ const FMDFPendingDisciplineSwapRuntime& UMDFCombatActionComponent::GetPendingDis
 	return PendingDisciplineSwapRuntime;
 }
 
+const FMDFBasicComboRuntime& UMDFCombatActionComponent::GetBasicComboRuntime() const
+{
+	return BasicComboRuntime;
+}
+
 bool UMDFCombatActionComponent::HasActiveCombatAction() const
 {
 	return ActiveCombatActionRuntime.IsValid();
@@ -58,6 +66,28 @@ UMDFPlayerSkillComponent* UMDFCombatActionComponent::ResolveOwningSkillComponent
 	return FMDFComponentHelpers::FindFromPawn<UMDFPlayerSkillComponent>(Cast<APawn>(GetOwner()));
 }
 
+const UMDFDisciplineDefinition* UMDFCombatActionComponent::ResolveActiveDisciplineDefinition() const
+{
+	UMDFPlayerSkillComponent* SkillComponent = ResolveOwningSkillComponent();
+	if (!SkillComponent)
+	{
+		return nullptr;
+	}
+
+	return MDFCombatDefinitionLookup::ResolveDisciplineDefinition(SkillComponent->GetActiveDisciplineTag());
+}
+
+const FMDFBasicComboDefinition* UMDFCombatActionComponent::ResolveActiveDisciplineBasicCombo() const
+{
+	const UMDFDisciplineDefinition* DisciplineDefinition = ResolveActiveDisciplineDefinition();
+	if (!DisciplineDefinition || !DisciplineDefinition->BasicCombo.IsValid())
+	{
+		return nullptr;
+	}
+
+	return &DisciplineDefinition->BasicCombo;
+}
+
 float UMDFCombatActionComponent::GetServerWorldTimeSecondsSafe() const
 {
 	const UWorld* World = GetWorld();
@@ -74,9 +104,11 @@ float UMDFCombatActionComponent::GetServerWorldTimeSecondsSafe() const
 	return World->GetTimeSeconds();
 }
 
-bool UMDFCombatActionComponent::StartTimedSkillAction(
+bool UMDFCombatActionComponent::StartTimedSkillBackedAction(
 	const FMDFSkillActivationDecision& ActivationDecision,
-	const UMDFSkillDefinition* SkillDefinition)
+	const UMDFSkillDefinition* SkillDefinition,
+	const EMDFCombatActionType ActionType,
+	const int32 ComboStepIndex)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority() || !SkillDefinition)
 	{
@@ -99,7 +131,8 @@ bool UMDFCombatActionComponent::StartTimedSkillAction(
 	FMDFActiveCombatActionRuntime Runtime;
 	Runtime.ActionTag = SkillDefinition->SkillTag;
 	Runtime.OwningDisciplineTag = ActivationDecision.Request.ActiveDisciplineTag;
-	Runtime.ActionType = EMDFCombatActionType::Skill;
+	Runtime.ActionType = ActionType;
+	Runtime.ComboStepIndex = ComboStepIndex;
 	Runtime.Phase = Timing.ExecuteTimeSeconds > 0.0f
 		? EMDFCombatActionPhase::Startup
 		: EMDFCombatActionPhase::Executing;
@@ -154,6 +187,59 @@ bool UMDFCombatActionComponent::StartTimedSkillAction(
 	}
 
 	return true;
+}
+
+bool UMDFCombatActionComponent::RequestBasicAttack(const FMDFSkillActivationAimSnapshot& AimSnapshot)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return false;
+	}
+
+	UMDFPlayerSkillComponent* SkillComponent = ResolveOwningSkillComponent();
+	if (!SkillComponent)
+	{
+		return false;
+	}
+
+	const FGameplayTag ActiveDisciplineTag = SkillComponent->GetActiveDisciplineTag();
+	if (!ActiveDisciplineTag.IsValid())
+	{
+		return false;
+	}
+
+	if (!HasActiveCombatAction())
+	{
+		return StartBasicComboStep(ActiveDisciplineTag, 0, AimSnapshot);
+	}
+
+	if (ActiveCombatActionRuntime.ActionType == EMDFCombatActionType::Basic)
+	{
+		return TryQueueNextBasicComboStep(AimSnapshot);
+	}
+
+	return false;
+}
+
+void UMDFCombatActionComponent::RequestBasicAttackFromInput(const FMDFSkillActivationAimSnapshot& AimSnapshot)
+{
+	if (!GetOwner())
+	{
+		return;
+	}
+
+	if (GetOwner()->HasAuthority())
+	{
+		RequestBasicAttack(AimSnapshot);
+		return;
+	}
+
+	ServerRequestBasicAttack(AimSnapshot);
+}
+
+void UMDFCombatActionComponent::ServerRequestBasicAttack_Implementation(FMDFSkillActivationAimSnapshot AimSnapshot)
+{
+	RequestBasicAttack(AimSnapshot);
 }
 
 bool UMDFCombatActionComponent::StartCombatAction(const FMDFActiveCombatActionRuntime& InRuntime)
@@ -340,7 +426,26 @@ void UMDFCombatActionComponent::HandleScheduledSkillRecoveryEnd()
 		return;
 	}
 
+	const bool bCanContinueBasicChain =
+		HasQueuedCombatAction()
+		&& QueuedCombatActionRuntime.ActionType == EMDFCombatActionType::Basic
+		&& bHasLastBasicAimSnapshot;
+
+	const FMDFQueuedCombatActionRuntime QueuedRuntime = QueuedCombatActionRuntime;
+
 	EndActiveCombatAction();
+
+	if (bCanContinueBasicChain)
+	{
+		ClearQueuedCombatAction();
+		StartBasicComboStep(
+			QueuedRuntime.OwningDisciplineTag,
+			QueuedRuntime.ComboStepIndex,
+			LastBasicAimSnapshot);
+		return;
+	}
+
+	ClearBasicComboRuntime();
 }
 
 void UMDFCombatActionComponent::ClearScheduledActionTimers()
@@ -358,6 +463,123 @@ void UMDFCombatActionComponent::ClearScheduledSkillAuthorityData()
 	bHasScheduledSkillActivation = false;
 }
 
+bool UMDFCombatActionComponent::StartBasicComboStep(
+	const FGameplayTag DisciplineTag,
+	const int32 StepIndex,
+	const FMDFSkillActivationAimSnapshot& AimSnapshot)
+{
+	UMDFPlayerSkillComponent* SkillComponent = ResolveOwningSkillComponent();
+	if (!SkillComponent)
+	{
+		return false;
+	}
+
+	const UMDFDisciplineDefinition* DisciplineDefinition = MDFCombatDefinitionLookup::ResolveDisciplineDefinition(DisciplineTag);
+	if (!DisciplineDefinition || !DisciplineDefinition->BasicCombo.IsValidStepIndex(StepIndex))
+	{
+		return false;
+	}
+
+	const FGameplayTag StepSkillTag = DisciplineDefinition->BasicCombo.Steps[StepIndex].SkillTag;
+	if (!StepSkillTag.IsValid())
+	{
+		return false;
+	}
+
+	const FMDFSkillActivationDecision ActivationDecision =
+		SkillComponent->EvaluateSkillActivationForExplicitSkill(StepSkillTag, DisciplineTag, AimSnapshot);
+
+	if (ActivationDecision.Result != EMDFSkillActivationResult::Success)
+	{
+		return false;
+	}
+
+	const UMDFSkillDefinition* SkillDefinition = MDFCombatDefinitionLookup::ResolveSkillDefinition(StepSkillTag);
+	if (!SkillDefinition)
+	{
+		return false;
+	}
+
+	if (!SkillComponent->PlaySourceExecuteCueForAction(ActivationDecision, SkillDefinition))
+	{
+		// optional: leave silent; cue is presentation-only
+	}
+
+	const bool bStarted = StartTimedSkillBackedAction(
+		ActivationDecision,
+		SkillDefinition,
+		EMDFCombatActionType::Basic,
+		StepIndex);
+
+	if (!bStarted)
+	{
+		return false;
+	}
+
+	BasicComboRuntime.DisciplineTag = DisciplineTag;
+	BasicComboRuntime.CurrentStepIndex = StepIndex;
+	BasicComboRuntime.bComboActive = true;
+	OnRep_BasicComboRuntime();
+
+	LastBasicAimSnapshot = AimSnapshot;
+	bHasLastBasicAimSnapshot = true;
+
+	ClearQueuedCombatAction();
+	return true;
+}
+
+bool UMDFCombatActionComponent::TryQueueNextBasicComboStep(const FMDFSkillActivationAimSnapshot& AimSnapshot)
+{
+	if (!HasActiveCombatAction() || ActiveCombatActionRuntime.ActionType != EMDFCombatActionType::Basic)
+	{
+		return false;
+	}
+
+	const float Now = GetServerWorldTimeSecondsSafe();
+	if (!ActiveCombatActionRuntime.HasComboQueueWindow()
+		|| Now < ActiveCombatActionRuntime.ComboQueueOpenServerWorldTime
+		|| Now > ActiveCombatActionRuntime.ComboQueueCloseServerWorldTime)
+	{
+		return false;
+	}
+
+	const UMDFDisciplineDefinition* DisciplineDefinition = ResolveActiveDisciplineDefinition();
+	if (!DisciplineDefinition)
+	{
+		return false;
+	}
+
+	const int32 NextStepIndex = ActiveCombatActionRuntime.ComboStepIndex + 1;
+	if (!DisciplineDefinition->BasicCombo.IsValidStepIndex(NextStepIndex))
+	{
+		return false;
+	}
+
+	FMDFQueuedCombatActionRuntime QueuedRuntime;
+	QueuedRuntime.ActionTag = DisciplineDefinition->BasicCombo.Steps[NextStepIndex].SkillTag;
+	QueuedRuntime.OwningDisciplineTag = BasicComboRuntime.DisciplineTag;
+	QueuedRuntime.ActionType = EMDFCombatActionType::Basic;
+	QueuedRuntime.ComboStepIndex = NextStepIndex;
+
+	if (!QueueCombatAction(QueuedRuntime))
+	{
+		return false;
+	}
+
+	LastBasicAimSnapshot = AimSnapshot;
+	bHasLastBasicAimSnapshot = true;
+
+	return true;
+}
+
+void UMDFCombatActionComponent::ClearBasicComboRuntime()
+{
+	BasicComboRuntime = FMDFBasicComboRuntime();
+	bHasLastBasicAimSnapshot = false;
+	LastBasicAimSnapshot = FMDFSkillActivationAimSnapshot();
+	OnRep_BasicComboRuntime();
+}
+
 void UMDFCombatActionComponent::OnRep_ActiveCombatActionRuntime() const
 {
 	OnCombatActionStateChanged.Broadcast();
@@ -369,6 +591,11 @@ void UMDFCombatActionComponent::OnRep_QueuedCombatActionRuntime() const
 }
 
 void UMDFCombatActionComponent::OnRep_PendingDisciplineSwapRuntime() const
+{
+	OnCombatActionStateChanged.Broadcast();
+}
+
+void UMDFCombatActionComponent::OnRep_BasicComboRuntime() const
 {
 	OnCombatActionStateChanged.Broadcast();
 }

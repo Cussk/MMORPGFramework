@@ -32,9 +32,9 @@ AMDFCharacter::AMDFCharacter()
 	
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 360.0f;
+	CameraBoom->TargetArmLength = 340.0f;
 	CameraBoom->bUsePawnControlRotation = true;
-	CameraBoom->SocketOffset = FVector(0.0f, 45.0f, 55.0f);
+	CameraBoom->SocketOffset = FVector(0.0f, 45.0f, 85.0f);
 	CameraBoom->TargetOffset = FVector(0.0f, 0.0f, 20.0f);
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
@@ -96,41 +96,15 @@ UMDFCombatActionComponent* AMDFCharacter::GetMDFCombatActionComponent() const
 	return MDFCombatActionComponent;
 }
 
-/// Third Person Template placeholder movement ///
-
-void AMDFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AMDFCharacter::InputMove(const FInputActionValue& Value)
 {
-	// Set up action bindings
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
-		
-		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-
-		// Moving
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMDFCharacter::Move);
-		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AMDFCharacter::Look);
-
-		// Looking
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMDFCharacter::Look);
-	}
-}
-
-void AMDFCharacter::Move(const FInputActionValue& Value)
-{
-	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
-
-	// route the input
 	DoMove(MovementVector.X, MovementVector.Y);
 }
 
-void AMDFCharacter::Look(const FInputActionValue& Value)
+void AMDFCharacter::InputLook(const FInputActionValue& Value)
 {
-	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
-
-	// route the input
 	DoLook(LookAxisVector.X, LookAxisVector.Y);
 }
 
@@ -138,17 +112,13 @@ void AMDFCharacter::DoMove(float Right, float Forward)
 {
 	if (GetController() != nullptr)
 	{
-		// find out which way is forward
 		const FRotator Rotation = GetController()->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		// get forward vector
+		
 		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-
-		// get right vector 
+		
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-		// add movement 
+		
 		AddMovementInput(ForwardDirection, Forward);
 		AddMovementInput(RightDirection, Right);
 	}
@@ -163,12 +133,12 @@ void AMDFCharacter::DoLook(float Yaw, float Pitch)
 	}
 }
 
-void AMDFCharacter::DoJumpStart()
+void AMDFCharacter::InputJumpStart()
 {
 	Jump();
 }
 
-void AMDFCharacter::DoJumpEnd()
+void AMDFCharacter::InputJumpEnd()
 {
 	StopJumping();
 }

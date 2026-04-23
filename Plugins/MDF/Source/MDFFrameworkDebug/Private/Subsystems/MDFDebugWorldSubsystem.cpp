@@ -426,6 +426,15 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 			{
 				OutSnapshot.ActiveActionComboWindowText = TEXT("[None]");
 			}
+			
+			const FMDFBasicComboRuntime& BasicComboRuntime = CombatActionComponent->GetBasicComboRuntime();
+
+			OutSnapshot.BasicComboText = BasicComboRuntime.IsValid()
+				? FString::Printf(
+					TEXT("%s | Step %d"),
+					*TagToDebugString(BasicComboRuntime.DisciplineTag),
+					BasicComboRuntime.CurrentStepIndex)
+				: TEXT("[None]");
 		}
 		else
 		{

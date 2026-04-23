@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "MDFComboTypes.h"
 #include "Data/MDFDefinitionAsset.h"
 #include "Types/MDFDisciplineTypes.h"
 #include "MDFDisciplineDefinition.generated.h"
@@ -30,6 +31,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline", meta = (ClampMin = "0"))
 	int32 MaxMasteryRank;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat")
+	FMDFBasicComboDefinition BasicCombo;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline|Skills")
 	FGameplayTagContainer StartingSkillTags;

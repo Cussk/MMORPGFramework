@@ -49,6 +49,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "MDF")
 	UMDFPlayerSkillComponent* GetMDFSkillComponent() const;
+	
+	UFUNCTION(BlueprintPure, Category = "MDF")
+	UMDFCombatActionComponent* GetMDFCombatActionComponent() const;
 
 	UFUNCTION(BlueprintPure, Category="MDF")
 	UMDFTargetingComponent* GetMDFTargetingComponent() const;
@@ -62,6 +65,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+	virtual void OnPossess(APawn* InPawn) override;
+	virtual void AcknowledgePossession(class APawn* P) override;
+	virtual void OnUnPossess() override;
 
 	UPROPERTY(EditDefaultsOnly, Category="UI")
 	TSubclassOf<UUserWidget> CenterDotWidgetClass;

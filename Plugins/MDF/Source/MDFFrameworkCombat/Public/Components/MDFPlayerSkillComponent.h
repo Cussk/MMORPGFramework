@@ -142,6 +142,10 @@ public:
 	
 	bool ExecuteCommittedSkillActivation(const FMDFSkillActivationDecision& ActivationDecision);
 	
+	FMDFSkillActivationDecision EvaluateSkillActivationForExplicitSkill(FGameplayTag SkillTag, FGameplayTag DisciplineTag, const FMDFSkillActivationAimSnapshot& AimSnapshot) const;
+
+	bool PlaySourceExecuteCueForAction(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition);
+	
 	void ClearLastAppliedEffectEntries();
 	void AppendAppliedEffectDebugEntries(const TArray<FMDFAppliedSkillEffectDebugEntry>& NewEntries);
 

@@ -34,6 +34,17 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Discipline_Special, "Discipline.Special");
 	
 	// --------------------
+	// Combos
+	// --------------------
+	UE_DEFINE_GAMEPLAY_TAG(Basic_Combo_Guardian_One, "Basic.Combo.Guardian.One");
+	UE_DEFINE_GAMEPLAY_TAG(Basic_Combo_Guardian_Two, "Basic.Combo.Guardian.Two");
+	UE_DEFINE_GAMEPLAY_TAG(Basic_Combo_Guardian_Three, "Basic.Combo.Guardian.Three");
+	
+	UE_DEFINE_GAMEPLAY_TAG(Basic_Combo_Archer_One, "Basic.Combo.Archer.One");
+	UE_DEFINE_GAMEPLAY_TAG(Basic_Combo_Archer_Two, "Basic.Combo.Archer.Two");
+	UE_DEFINE_GAMEPLAY_TAG(Basic_Combo_Archer_Three, "Basic.Combo.Archer.Three");
+	
+	// --------------------
 	// Skills
 	// --------------------
 	UE_DEFINE_GAMEPLAY_TAG(Skill_Category_Attack, "Skill.Category.Attack");
@@ -158,4 +169,28 @@ namespace MDFGameplayTags
 
 	UE_DEFINE_GAMEPLAY_TAG(AI_Intent_Attack, "AI.Intent.Attack");
 	UE_DEFINE_GAMEPLAY_TAG(AI_Intent_Flee, "AI.Intent.Flee");
+	
+	// --------------------
+	// Input
+	// --------------------
+	UE_DEFINE_GAMEPLAY_TAG(Input_Move, "Input.Move");
+	UE_DEFINE_GAMEPLAY_TAG(Input_Look, "Input.Look");
+	UE_DEFINE_GAMEPLAY_TAG(Input_Jump, "Input.Jump");
+	UE_DEFINE_GAMEPLAY_TAG(Input_BasicCombo, "Input.BasicCombo");
+	UE_DEFINE_GAMEPLAY_TAG(Input_IdentitySkill, "Input.IdentitySkill");
+	UE_DEFINE_GAMEPLAY_TAG(Input_SkillSlot_One, "Input.SkillSlot.One");
+	UE_DEFINE_GAMEPLAY_TAG(Input_SkillSlot_Two, "Input.SkillSlot.Two");
+	UE_DEFINE_GAMEPLAY_TAG(Input_SkillSlot_Three, "Input.SkillSlot.Three");
+	UE_DEFINE_GAMEPLAY_TAG(Input_SkillSlot_Four, "Input.SkillSlot.Four");
+	UE_DEFINE_GAMEPLAY_TAG(Input_SkillSlot_Five, "Input.SkillSlot.Five");
+	UE_DEFINE_GAMEPLAY_TAG(Input_SkillSlot_Six, "Input.SkillSlot.Six");
+	UE_DEFINE_GAMEPLAY_TAG(Input_SkillSlot_Seven, "Input.SkillSlot.Seven");
+	UE_DEFINE_GAMEPLAY_TAG(Input_SkillSlot_Eight, "Input.SkillSlot.Eight");
+	UE_DEFINE_GAMEPLAY_TAG(Input_SwapArchetype_Vanguard, "Input.SwapArchetype.Vanguard");
+	UE_DEFINE_GAMEPLAY_TAG(Input_SwapArchetype_Striker, "Input.SwapArchetype.Striker");
+	UE_DEFINE_GAMEPLAY_TAG(Input_SwapArchetype_Channeler, "Input.SwapArchetype.Channeler");
+	UE_DEFINE_GAMEPLAY_TAG(Input_SwapArchetype_Tactician, "Input.SwapArchetype.Tactician");
+	UE_DEFINE_GAMEPLAY_TAG(Input_Interact, "Input.Interact");
+	UE_DEFINE_GAMEPLAY_TAG(Input_ToggleTarget, "Input.ToggleTarget");
+	UE_DEFINE_GAMEPLAY_TAG(Input_CycleTarget, "Input.CycleTarget");
 }
