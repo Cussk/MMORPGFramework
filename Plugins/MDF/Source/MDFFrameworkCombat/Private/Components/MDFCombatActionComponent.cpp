@@ -178,6 +178,49 @@ const FMDFTransitionComboSpec* UMDFCombatActionComponent::ResolveTransitionCombo
 	return nullptr;
 }
 
+const FMDFBasicComboStepSpec* UMDFCombatActionComponent::ResolveActiveBasicComboStep() const
+{
+	if (!HasActiveCombatAction() || ActiveCombatActionRuntime.ActionType != EMDFCombatActionType::Basic)
+	{
+		return nullptr;
+	}
+
+	if (!BasicComboRuntime.IsValid())
+	{
+		return nullptr;
+	}
+
+	const UMDFDisciplineDefinition* DisciplineDefinition =
+		MDFCombatDefinitionLookup::ResolveDisciplineDefinition(BasicComboRuntime.DisciplineTag);
+
+	if (!DisciplineDefinition)
+	{
+		return nullptr;
+	}
+
+	const int32 StepIndex = ActiveCombatActionRuntime.ComboStepIndex;
+	if (!DisciplineDefinition->BasicCombo.Steps.IsValidIndex(StepIndex))
+	{
+		return nullptr;
+	}
+
+	return &DisciplineDefinition->BasicCombo.Steps[StepIndex];
+}
+
+bool UMDFCombatActionComponent::IsCurrentBasicStepInTransitionWindow() const
+{
+	const FMDFBasicComboStepSpec* CurrentStep = ResolveActiveBasicComboStep();
+	if (!CurrentStep || !CurrentStep->HasTransitionWindow())
+	{
+		return false;
+	}
+
+	const float Now = GetServerWorldTimeSecondsSafe();
+	const float ElapsedActionTime = FMath::Max(0.0f, Now - ActiveCombatActionRuntime.StartServerWorldTime);
+
+	return CurrentStep->IsWithinTransitionWindow(ElapsedActionTime);
+}
+
 float UMDFCombatActionComponent::GetServerWorldTimeSecondsSafe() const
 {
 	const UWorld* World = GetWorld();
@@ -1099,16 +1142,18 @@ bool UMDFCombatActionComponent::TryQueueTransitionCombo(const FGameplayTag Desti
 	{
 		return false;
 	}
+	
+	if (ActiveCombatActionRuntime.bComboBranchConsumed)
+	{
+		return false;
+	}
 
 	if (!BasicComboRuntime.IsValid())
 	{
 		return false;
 	}
 
-	const float Now = GetServerWorldTimeSecondsSafe();
-	if (!ActiveCombatActionRuntime.HasComboQueueWindow()
-		|| Now < ActiveCombatActionRuntime.ComboQueueOpenServerWorldTime
-		|| Now > ActiveCombatActionRuntime.ComboQueueCloseServerWorldTime)
+	if (!IsCurrentBasicStepInTransitionWindow())
 	{
 		return false;
 	}
@@ -1138,8 +1183,12 @@ bool UMDFCombatActionComponent::TryQueueTransitionCombo(const FGameplayTag Desti
 
 	OnRep_PendingTransitionComboRuntime();
 
-	// Transition branch consumes the normal queued next basic step.
+	// Transition branch consumes the normal queued next basic step and prevents
+	// repeated swap inputs from replacing the branch during the same basic step.
 	ClearQueuedCombatAction();
+
+	ActiveCombatActionRuntime.bComboBranchConsumed = true;
+	OnRep_ActiveCombatActionRuntime();
 	return true;
 }
 

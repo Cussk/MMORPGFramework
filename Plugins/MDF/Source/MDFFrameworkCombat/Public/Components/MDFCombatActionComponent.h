@@ -189,6 +189,8 @@ protected:
 	
 	bool CommitNormalDisciplineSwap(FGameplayTag DestinationDisciplineTag);
 	void ClearOverlayIdentityForDisciplineSwap();
+	
+	bool IsCurrentBasicStepInTransitionWindow() const;
 
 	void HandlePendingTransitionSwapCommit();
 	
@@ -197,6 +199,7 @@ protected:
 	const FMDFBasicComboDefinition* ResolveActiveDisciplineBasicCombo() const;
 	const FMDFIdentityActionDefinition* ResolveActiveDisciplineIdentityAction() const;
 	const FMDFTransitionComboSpec* ResolveTransitionComboSpec(FGameplayTag SourceDisciplineTag, int32 SourceComboStepIndex, FGameplayTag DestinationDisciplineTag) const;
+	const FMDFBasicComboStepSpec* ResolveActiveBasicComboStep() const;
 	
 	UFUNCTION(Server, Reliable)
 	void ServerRequestBasicAttack(FMDFSkillActivationAimSnapshot AimSnapshot);

@@ -24,7 +24,15 @@ struct MDFFRAMEWORKPROGRESSION_API FMDFBasicComboStepSpec
 
 	bool HasTransitionWindow() const
 	{
-		return TransitionWindowCloseTimeSeconds > TransitionWindowOpenTimeSeconds;
+		return TransitionWindowOpenTimeSeconds >= 0.0f
+			&& TransitionWindowCloseTimeSeconds > TransitionWindowOpenTimeSeconds;
+	}
+	
+	bool IsWithinTransitionWindow(float ElapsedSeconds) const
+	{
+		return HasTransitionWindow()
+			&& ElapsedSeconds >= TransitionWindowOpenTimeSeconds
+			&& ElapsedSeconds <= TransitionWindowCloseTimeSeconds;
 	}
 
 	bool IsValid() const
