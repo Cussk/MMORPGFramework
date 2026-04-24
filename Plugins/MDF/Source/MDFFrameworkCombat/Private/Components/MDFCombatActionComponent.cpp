@@ -91,7 +91,8 @@ void UMDFCombatActionComponent::HandlePendingTransitionSwapCommit()
 		return;
 	}
 
-	CommitPendingDisciplineSwap();
+	bActiveTransitionSwapCommitted = CommitPendingDisciplineSwap();
+
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(TransitionSwapCommitTimerHandle);
@@ -705,12 +706,38 @@ void UMDFCombatActionComponent::HandleScheduledSkillRecoveryEnd()
 	const FMDFPendingDisciplineSwapRuntime PendingSwap = PendingDisciplineSwapRuntime;
 
 	EndActiveCombatAction();
-
+	
 	if (bHasPendingTransition)
 	{
 		ClearPendingTransitionComboRuntime();
 		ClearQueuedCombatAction();
 		StartTransitionComboAction(PendingTransition);
+		return;
+	}
+	
+	// Continue basic combo of new archetype at authored index
+	if (bWasTransitionAction && bHasActiveTransitionComboRuntime && bHasLastBasicAimSnapshot)
+	{
+		const FMDFPendingTransitionComboRuntime TransitionRuntime = ActiveTransitionComboRuntime;
+		ClearActiveTransitionComboRuntime();
+
+		UMDFPlayerSkillComponent* SkillComponent = ResolveOwningSkillComponent();
+		const bool bDestinationIsActive =
+			SkillComponent
+			&& SkillComponent->GetActiveDisciplineTag() == TransitionRuntime.DestinationDisciplineTag;
+
+		if (bActiveTransitionSwapCommitted || bDestinationIsActive)
+		{
+			if (StartBasicComboStep(
+				TransitionRuntime.DestinationDisciplineTag,
+				TransitionRuntime.DestinationEntryComboStepIndex,
+				LastBasicAimSnapshot))
+			{
+				return;
+			}
+		}
+
+		ClearBasicComboRuntime();
 		return;
 	}
 
@@ -720,19 +747,6 @@ void UMDFCombatActionComponent::HandleScheduledSkillRecoveryEnd()
 		StartBasicComboStep(
 			QueuedRuntime.OwningDisciplineTag,
 			QueuedRuntime.ComboStepIndex,
-			LastBasicAimSnapshot);
-		return;
-	}
-	
-	if (bWasTransitionAction
-	&& PendingSwap.SwapType == EMDFDisciplineSwapType::Transition
-	&& PendingSwap.DestinationDisciplineTag.IsValid()
-	&& bHasLastBasicAimSnapshot)
-	{
-		ClearPendingDisciplineSwap();
-		StartBasicComboStep(
-			PendingSwap.DestinationDisciplineTag,
-			PendingSwap.DestinationEntryComboStepIndex,
 			LastBasicAimSnapshot);
 		return;
 	}
@@ -1169,6 +1183,20 @@ bool UMDFCombatActionComponent::StartTransitionComboAction(const FMDFPendingTran
 	{
 		return false;
 	}
+	
+	ActiveTransitionComboRuntime = TransitionRuntime;
+	bHasActiveTransitionComboRuntime = true;
+	bActiveTransitionSwapCommitted = false;
+
+	PendingDisciplineSwapRuntime = FMDFPendingDisciplineSwapRuntime();
+	PendingDisciplineSwapRuntime.SourceDisciplineTag = TransitionRuntime.SourceDisciplineTag;
+	PendingDisciplineSwapRuntime.DestinationDisciplineTag = TransitionRuntime.DestinationDisciplineTag;
+	PendingDisciplineSwapRuntime.SwapType = EMDFDisciplineSwapType::Transition;
+	PendingDisciplineSwapRuntime.CommitServerWorldTime = GetServerWorldTimeSecondsSafe() + TransitionRuntime.SwapCommitTimeSeconds;
+	PendingDisciplineSwapRuntime.TransitionActionTag = TransitionRuntime.TransitionSkillTag;
+	PendingDisciplineSwapRuntime.DestinationEntryComboStepIndex = TransitionRuntime.DestinationEntryComboStepIndex;
+
+	OnRep_PendingDisciplineSwapRuntime();
 
 	// Queue the authored swap commit during the transition action itself.
 	if (TransitionRuntime.SwapCommitTimeSeconds > 0.0f)
@@ -1185,17 +1213,6 @@ bool UMDFCombatActionComponent::StartTransitionComboAction(const FMDFPendingTran
 		HandlePendingTransitionSwapCommit();
 	}
 
-	PendingDisciplineSwapRuntime = FMDFPendingDisciplineSwapRuntime();
-	PendingDisciplineSwapRuntime.SourceDisciplineTag = TransitionRuntime.SourceDisciplineTag;
-	PendingDisciplineSwapRuntime.DestinationDisciplineTag = TransitionRuntime.DestinationDisciplineTag;
-	PendingDisciplineSwapRuntime.SwapType = EMDFDisciplineSwapType::Transition;
-	PendingDisciplineSwapRuntime.CommitServerWorldTime =
-		GetServerWorldTimeSecondsSafe() + TransitionRuntime.SwapCommitTimeSeconds;
-	PendingDisciplineSwapRuntime.TransitionActionTag = TransitionRuntime.TransitionSkillTag;
-	PendingDisciplineSwapRuntime.DestinationEntryComboStepIndex = TransitionRuntime.DestinationEntryComboStepIndex;
-
-	OnRep_PendingDisciplineSwapRuntime();
-
 	return true;
 }
 
@@ -1203,6 +1220,13 @@ void UMDFCombatActionComponent::ClearPendingTransitionComboRuntime()
 {
 	PendingTransitionComboRuntime = FMDFPendingTransitionComboRuntime();
 	OnRep_PendingTransitionComboRuntime();
+}
+
+void UMDFCombatActionComponent::ClearActiveTransitionComboRuntime()
+{
+	ActiveTransitionComboRuntime = FMDFPendingTransitionComboRuntime();
+	bHasActiveTransitionComboRuntime = false;
+	bActiveTransitionSwapCommitted = false;
 }
 
 bool UMDFCombatActionComponent::CommitNormalDisciplineSwap(const FGameplayTag DestinationDisciplineTag)

@@ -140,6 +140,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_PendingTransitionComboRuntime, Category="Combat")
 	FMDFPendingTransitionComboRuntime PendingTransitionComboRuntime;
 	
+	FMDFPendingTransitionComboRuntime ActiveTransitionComboRuntime;
+	bool bHasActiveTransitionComboRuntime = false;
+	bool bActiveTransitionSwapCommitted = false;
+	
 	FTimerHandle ScheduledSkillExecuteTimerHandle;
 	FTimerHandle ScheduledSkillRecoveryTimerHandle;
 	FTimerHandle IdentityDrainTimerHandle;
@@ -181,6 +185,7 @@ protected:
 
 	bool StartTransitionComboAction(const FMDFPendingTransitionComboRuntime& TransitionRuntime);
 	void ClearPendingTransitionComboRuntime();
+	void ClearActiveTransitionComboRuntime();
 	
 	bool CommitNormalDisciplineSwap(FGameplayTag DestinationDisciplineTag);
 	void ClearOverlayIdentityForDisciplineSwap();
