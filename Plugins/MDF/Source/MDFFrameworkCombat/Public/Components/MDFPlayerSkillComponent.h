@@ -85,6 +85,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Skills")
 	bool GetSkillLoadoutForDiscipline(FGameplayTag DisciplineTag, FMDFDisciplineSkillLoadoutRuntime& OutLoadout) const;
+	
+	UFUNCTION(BlueprintPure, Category="Combat Deck")
+	bool GetEquippedDisciplineForArchetype(FGameplayTag ArchetypeTag, FGameplayTag& OutDisciplineTag) const;
 
 	UFUNCTION(BlueprintPure, Category="Skills")
 	bool GetActiveDisciplineSkillLoadout(FMDFDisciplineSkillLoadoutRuntime& OutLoadout) const;

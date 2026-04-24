@@ -151,6 +151,29 @@ bool UMDFPlayerSkillComponent::GetSkillLoadoutForDiscipline(const FGameplayTag D
 	return true;
 }
 
+bool UMDFPlayerSkillComponent::GetEquippedDisciplineForArchetype(
+	const FGameplayTag ArchetypeTag,
+	FGameplayTag& OutDisciplineTag) const
+{
+	OutDisciplineTag = FGameplayTag();
+
+	if (!ArchetypeTag.IsValid())
+	{
+		return false;
+	}
+
+	for (const FMDFCombatDeckSlotRuntime& Slot : CombatDeckSlots)
+	{
+		if (Slot.ArchetypeTag == ArchetypeTag && Slot.DisciplineTag.IsValid())
+		{
+			OutDisciplineTag = Slot.DisciplineTag;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool UMDFPlayerSkillComponent::GetActiveDisciplineSkillLoadout(FMDFDisciplineSkillLoadoutRuntime& OutLoadout) const
 {
 	return GetSkillLoadoutForDiscipline(GetActiveDisciplineTag(), OutLoadout);

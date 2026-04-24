@@ -44,6 +44,9 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Basic_Combo_Archer_Two, "Basic.Combo.Archer.Two");
 	UE_DEFINE_GAMEPLAY_TAG(Basic_Combo_Archer_Three, "Basic.Combo.Archer.Three");
 	
+	UE_DEFINE_GAMEPLAY_TAG(Transition_Combo_Guardian, "Transition.Combo.Guardian");
+	UE_DEFINE_GAMEPLAY_TAG(Transition_Combo_Archer, "Transition.Combo.Archer");
+	
 	// --------------------
 	// Identity
 	// --------------------

@@ -99,6 +99,9 @@ struct MDFFRAMEWORKCOMBAT_API FMDFActiveCombatActionRuntime
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	bool bComboBranchConsumed = false;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	bool bPendingSwapCommit = false;
 
 	bool IsValid() const
 	{
@@ -247,5 +250,37 @@ struct MDFFRAMEWORKCOMBAT_API FMDFActiveIdentityActionRuntime
 	bool IsValid() const
 	{
 		return IdentityTag.IsValid() && IdentityType != EMDFIdentityActionType::None;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFPendingTransitionComboRuntime
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FGameplayTag SourceDisciplineTag;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	int32 SourceComboStepIndex = INDEX_NONE;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FGameplayTag DestinationDisciplineTag;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FGameplayTag TransitionSkillTag;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	float SwapCommitTimeSeconds = 0.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	int32 DestinationEntryComboStepIndex = 0;
+
+	bool IsValid() const
+	{
+		return SourceDisciplineTag.IsValid()
+			&& DestinationDisciplineTag.IsValid()
+			&& TransitionSkillTag.IsValid()
+			&& SourceComboStepIndex != INDEX_NONE;
 	}
 };

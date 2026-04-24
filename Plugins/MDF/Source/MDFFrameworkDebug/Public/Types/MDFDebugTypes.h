@@ -152,4 +152,7 @@ struct MDFFRAMEWORKDEBUG_API FMDFPlayerDebugSnapshot
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
 	FString ActiveIdentityText;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Debug")
+	FString PendingTransitionText;
 };

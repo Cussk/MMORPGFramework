@@ -49,6 +49,9 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category="Combat")
 	const FMDFActiveIdentityActionRuntime& GetActiveIdentityRuntime() const;
+	
+	UFUNCTION(BlueprintPure, Category="Combat")
+	const FMDFPendingTransitionComboRuntime& GetPendingTransitionComboRuntime() const;
 
 	UFUNCTION(BlueprintPure, Category="Combat")
 	bool HasActiveIdentityAction() const;
@@ -58,6 +61,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Combat")
 	bool HasQueuedCombatAction() const;
+	
+	UFUNCTION(BlueprintPure, Category="Combat")
+	bool HasPendingTransitionCombo() const;
 
 	UFUNCTION(BlueprintPure, Category="Combat")
 	bool HasPendingDisciplineSwap() const;
@@ -99,6 +105,12 @@ public:
 	
 	void RequestIdentityPressedFromInput(const FMDFSkillActivationAimSnapshot& AimSnapshot);
 	void RequestIdentityReleasedFromInput();
+	
+	void RequestTransitionSwapFromInput(FGameplayTag DestinationDisciplineTag);
+	
+	void RequestSwapToArchetypeFromInput(FGameplayTag ArchetypeTag);
+	bool RequestSwapToArchetype(FGameplayTag ArchetypeTag);
+	bool RequestSwapToDiscipline(FGameplayTag DestinationDisciplineTag);
 
 	bool IsBlockingDamageFrom(const AActor* SourceActor) const;
 	bool CanApplyZoomHeadshotBonus(const FHitResult& HitResult, float& OutDamageMultiplier) const;
@@ -125,9 +137,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_ActiveIdentityRuntime, Category="Combat")
 	FMDFActiveIdentityActionRuntime ActiveIdentityRuntime;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_PendingTransitionComboRuntime, Category="Combat")
+	FMDFPendingTransitionComboRuntime PendingTransitionComboRuntime;
+	
 	FTimerHandle ScheduledSkillExecuteTimerHandle;
 	FTimerHandle ScheduledSkillRecoveryTimerHandle;
 	FTimerHandle IdentityDrainTimerHandle;
+	FTimerHandle TransitionSwapCommitTimerHandle;
 	
 	static constexpr float IdentityDrainTickIntervalSeconds = 0.1f;
 
@@ -161,10 +177,21 @@ protected:
 	void HandleIdentityDrainTick();
 	void ClearIdentityDrainTimer();
 	
+	bool TryQueueTransitionCombo(FGameplayTag DestinationDisciplineTag);
+
+	bool StartTransitionComboAction(const FMDFPendingTransitionComboRuntime& TransitionRuntime);
+	void ClearPendingTransitionComboRuntime();
+	
+	bool CommitNormalDisciplineSwap(FGameplayTag DestinationDisciplineTag);
+	void ClearOverlayIdentityForDisciplineSwap();
+
+	void HandlePendingTransitionSwapCommit();
+	
 	UMDFPlayerSkillComponent* ResolveOwningSkillComponent() const;
 	const UMDFDisciplineDefinition* ResolveActiveDisciplineDefinition() const;
 	const FMDFBasicComboDefinition* ResolveActiveDisciplineBasicCombo() const;
 	const FMDFIdentityActionDefinition* ResolveActiveDisciplineIdentityAction() const;
+	const FMDFTransitionComboSpec* ResolveTransitionComboSpec(FGameplayTag SourceDisciplineTag, int32 SourceComboStepIndex, FGameplayTag DestinationDisciplineTag) const;
 	
 	UFUNCTION(Server, Reliable)
 	void ServerRequestBasicAttack(FMDFSkillActivationAimSnapshot AimSnapshot);
@@ -174,6 +201,12 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestIdentityReleased();
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRequestTransitionSwap(FGameplayTag DestinationDisciplineTag);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRequestSwapToArchetype(FGameplayTag ArchetypeTag);
 
 	UFUNCTION()
 	void OnRep_ActiveCombatActionRuntime() const;
@@ -189,4 +222,7 @@ protected:
 	
 	UFUNCTION()
 	void OnRep_ActiveIdentityRuntime() const;
+
+	UFUNCTION()
+	void OnRep_PendingTransitionComboRuntime() const;	
 };

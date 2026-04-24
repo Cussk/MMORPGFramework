@@ -49,6 +49,9 @@ public:
 	void InputJumpEnd();
 	
 	UFUNCTION(BlueprintCallable, Category="Input")
+	void InputSwapToArchetype(FGameplayTag ArchetypeTag);
+	
+	UFUNCTION(BlueprintCallable, Category="Input")
 	void InputActivateBasicCombo();
 	
 	UFUNCTION(BlueprintCallable, Category="Input")
@@ -76,6 +79,11 @@ public:
 protected:
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	TObjectPtr<UMDFInputConfig> InputConfig;
+	
+	void InputSwapToVanguard();
+	void InputSwapToStriker();
+	void InputSwapToChanneler();
+	void InputSwapToTactician();
 	
 	APlayerController* GetOwningPlayerController() const;
 	bool IsOwningControllerLocal() const;	

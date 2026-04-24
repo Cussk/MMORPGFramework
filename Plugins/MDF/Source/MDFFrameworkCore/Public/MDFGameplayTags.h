@@ -45,6 +45,8 @@ namespace MDFGameplayTags
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Basic_Combo_Archer_Two);
 	MDFFRAMEWORKCORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Basic_Combo_Archer_Three);
 	
+	
+	
 	// --------------------
 	// Identity
 	// --------------------

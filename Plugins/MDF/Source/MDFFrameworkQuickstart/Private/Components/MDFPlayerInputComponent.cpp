@@ -55,6 +55,10 @@ void UMDFPlayerInputComponent::SetupInputComponent(UInputComponent* InputCompone
 	BindTaggedAction(EnhancedInput, MDFGameplayTags::Input_SkillSlot_Eight, ETriggerEvent::Started, &UMDFPlayerInputComponent::InputActivateSkillSlot, static_cast<uint8>(7));
 	
 	//Archetype Swap
+	BindTaggedAction(EnhancedInput, MDFGameplayTags::Input_SwapArchetype_Vanguard, ETriggerEvent::Started, &UMDFPlayerInputComponent::InputSwapToVanguard);
+	BindTaggedAction(EnhancedInput, MDFGameplayTags::Input_SwapArchetype_Striker, ETriggerEvent::Started, &UMDFPlayerInputComponent::InputSwapToStriker);
+	BindTaggedAction(EnhancedInput, MDFGameplayTags::Input_SwapArchetype_Channeler, ETriggerEvent::Started, &UMDFPlayerInputComponent::InputSwapToChanneler);
+	BindTaggedAction(EnhancedInput, MDFGameplayTags::Input_SwapArchetype_Tactician, ETriggerEvent::Started, &UMDFPlayerInputComponent::InputSwapToTactician);
 }
 
 void UMDFPlayerInputComponent::InputMove(const FInputActionValue& Value)
@@ -86,6 +90,19 @@ void UMDFPlayerInputComponent::InputJumpEnd()
 	if (AMDFCharacter* MDFCharacter = CachedMDFCharacter.Get())
 	{
 		MDFCharacter->InputJumpEnd();
+	}
+}
+
+void UMDFPlayerInputComponent::InputSwapToArchetype(const FGameplayTag ArchetypeTag)
+{
+	if (!IsOwningControllerLocal())
+	{
+		return;
+	}
+
+	if (UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get())
+	{
+		CombatActionComponent->RequestSwapToArchetypeFromInput(ArchetypeTag);
 	}
 }
 
@@ -176,6 +193,26 @@ void UMDFPlayerInputComponent::InputCycleTargetRight()
 	{
 		TargetingComponent->CycleTargetRight();
 	}
+}
+
+void UMDFPlayerInputComponent::InputSwapToVanguard()
+{
+	InputSwapToArchetype(MDFGameplayTags::Archetype_Vanguard);
+}
+
+void UMDFPlayerInputComponent::InputSwapToStriker()
+{
+	InputSwapToArchetype(MDFGameplayTags::Archetype_Striker);
+}
+
+void UMDFPlayerInputComponent::InputSwapToChanneler()
+{
+	InputSwapToArchetype(MDFGameplayTags::Archetype_Channeler);
+}
+
+void UMDFPlayerInputComponent::InputSwapToTactician()
+{
+	InputSwapToArchetype(MDFGameplayTags::Archetype_Tactician);
 }
 
 APlayerController* UMDFPlayerInputComponent::GetOwningPlayerController() const

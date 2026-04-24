@@ -39,6 +39,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat")
 	FMDFIdentityActionDefinition IdentityAction;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat")
+	TArray<FMDFTransitionComboSpec> IncomingTransitionCombos;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline|Skills")
 	FGameplayTagContainer StartingSkillTags;
 	

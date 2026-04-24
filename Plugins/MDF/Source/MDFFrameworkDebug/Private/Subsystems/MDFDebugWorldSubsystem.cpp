@@ -446,6 +446,17 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 					IdentityRuntime.bConsumesCombatAction ? TEXT("Exclusive") : TEXT("Overlay"),
 					IdentityRuntime.FocusDrainPerSecond)
 				: TEXT("[None]");
+			
+			const FMDFPendingTransitionComboRuntime& PendingTransition = CombatActionComponent->GetPendingTransitionComboRuntime();
+
+			OutSnapshot.PendingTransitionText = PendingTransition.IsValid()
+				? FString::Printf(
+					TEXT("%s -> %s | Step %d | %s"),
+					*TagToDebugString(PendingTransition.SourceDisciplineTag),
+					*TagToDebugString(PendingTransition.DestinationDisciplineTag),
+					PendingTransition.SourceComboStepIndex,
+					*TagToDebugString(PendingTransition.TransitionSkillTag))
+				: TEXT("[None]");
 		}
 		else
 		{
