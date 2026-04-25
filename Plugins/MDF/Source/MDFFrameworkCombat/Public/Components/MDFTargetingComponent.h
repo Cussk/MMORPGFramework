@@ -31,9 +31,18 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Targeting")
 	void CycleTargetRight();
+	
+	UFUNCTION(BlueprintCallable, Category="Targeting")
+	void SetTargetLockSuppressed(bool bInSuppressed);
+	
+	UFUNCTION(BlueprintCallable, Category="Targeting")
+	void RefreshLockedTargetValidity();
 
 	UFUNCTION(BlueprintPure, Category="Targeting")
 	bool HasLockedTarget() const;
+	
+	UFUNCTION(BlueprintPure, Category="Targeting")
+	bool IsTargetLockSuppressed() const;
 
 	UFUNCTION(BlueprintPure, Category="Targeting")
 	AActor* GetLockedTargetActor() const;
@@ -72,29 +81,47 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Targeting")
 	int32 LastCandidateCount = 0;
-
-	UFUNCTION()
-	void OnRep_LockedTargetActor() const;
-
-	UFUNCTION()
-	void OnRep_LastActionResult() const;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Targeting")
+	bool bTargetLockSuppressed = false;
+	
+	TWeakObjectPtr<AActor> ObservedLockedTargetActor;
+	TWeakObjectPtr<UMDFCombatantComponent> ObservedLockedTargetCombatant;
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetLockedTarget(AActor* InTargetActor);
 
 	UFUNCTION(Server, Reliable)
 	void ServerClearLockedTarget();
+	
+	bool ValidateTargetActor_Server(const AActor* InTargetActor) const;
+	void ApplyLockedTarget_Server(AActor* InTargetActor, EMDFTargetingActionResult ActionResult);
 
 	bool BuildTargetCandidates(TArray<FMDFTargetCandidate>& OutCandidates);
 	bool SelectBestCandidate(FMDFTargetCandidate& OutCandidate);
 	bool SelectNextCandidateToRight(FMDFTargetCandidate& OutCandidate);
+	
+	bool IsHardInvalidLockedTarget(const AActor* TargetActor) const;
+	bool TryAdvanceToNextValidLockedTarget();
+	
+	void ObserveLockedTarget(AActor* TargetActor);
+	void ClearLockedTargetObservation();
 
-	bool ValidateTargetActor_Server(const AActor* InTargetActor) const;
-	void ApplyLockedTarget_Server(AActor* InTargetActor, EMDFTargetingActionResult ActionResult);
+	UFUNCTION()
+	void HandleObservedLockedTargetDestroyed(AActor* DestroyedActor);
+
+	UFUNCTION()
+	void HandleObservedLockedTargetCombatStateChanged();
 
 	APlayerController* GetOwningPlayerController() const;
 	APawn* GetOwningPawn() const;
 	UMDFCombatantComponent* ResolveCombatant(const AActor* TargetActor) const;
 	
 	bool ResolveScreenCenterAim(FMDFAimPointResult& OutAimResult) const;
+	
+	UFUNCTION()
+	void OnRep_LockedTargetActor() const;
+
+	UFUNCTION()
+	void OnRep_LastActionResult() const;
 };

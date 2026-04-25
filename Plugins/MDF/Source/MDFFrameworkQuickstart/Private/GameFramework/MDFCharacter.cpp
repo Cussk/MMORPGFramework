@@ -8,10 +8,12 @@
 #include "Components/MDFCombatActionComponent.h"
 #include "Components/MDFCombatantComponent.h"
 #include "Components/MDFCombatCueComponent.h"
+#include "Components/MDFTargetingComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/MDFPlayerController.h"
 #include "GameFramework/MDFPlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Helpers/MDFComponentHelpers.h"
 
 AMDFCharacter::AMDFCharacter()
 {
@@ -151,6 +153,7 @@ void AMDFCharacter::DoLook(float Yaw, float Pitch)
 void AMDFCharacter::HandleCombatActionStateChanged()
 {
 	RefreshIdentityCameraState();
+	RefreshIdentityTargetingState();
 }
 
 void AMDFCharacter::RefreshIdentityCameraState()
@@ -175,6 +178,37 @@ void AMDFCharacter::RefreshIdentityCameraState()
 	{
 		FollowCamera->SetFieldOfView(DefaultCombatFOV);
 	}
+}
+
+void AMDFCharacter::RefreshIdentityTargetingState()
+{
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+
+	UMDFTargetingComponent* TargetingComponent = FMDFComponentHelpers::FindFromController<UMDFTargetingComponent>(GetController());
+
+	if (!TargetingComponent)
+	{
+		return;
+	}
+
+	bool bShouldSuppressTargetLock = false;
+
+	if (MDFCombatActionComponent && MDFCombatActionComponent->HasActiveIdentityAction())
+	{
+		const FMDFActiveIdentityActionRuntime& IdentityRuntime = MDFCombatActionComponent->GetActiveIdentityRuntime();
+		bShouldSuppressTargetLock = IdentityRuntime.IdentityType == EMDFIdentityActionType::Zoom;
+	}
+
+	if (bWasTargetLockSuppressedByIdentity == bShouldSuppressTargetLock)
+	{
+		return;
+	}
+
+	bWasTargetLockSuppressedByIdentity = bShouldSuppressTargetLock;
+	TargetingComponent->SetTargetLockSuppressed(bShouldSuppressTargetLock);
 }
 
 void AMDFCharacter::InputJumpStart()

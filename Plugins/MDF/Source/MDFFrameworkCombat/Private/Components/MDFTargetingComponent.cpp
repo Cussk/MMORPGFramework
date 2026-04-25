@@ -145,9 +145,42 @@ EMDFTargetingActionResult UMDFTargetingComponent::GetLastActionResult() const
 	return LastActionResult;
 }
 
+void UMDFTargetingComponent::SetTargetLockSuppressed(const bool bInSuppressed)
+{
+	if (bTargetLockSuppressed == bInSuppressed)
+	{
+		return;
+	}
+
+	bTargetLockSuppressed = bInSuppressed;
+
+	if (bTargetLockSuppressed)
+	{
+		ClearLockedTarget();
+	}
+}
+
+void UMDFTargetingComponent::RefreshLockedTargetValidity()
+{
+	if (!IsValid(LockedTargetActor))
+	{
+		return;
+	}
+
+	if (!IsHardInvalidLockedTarget(LockedTargetActor))
+	{
+		return;
+	}
+
+	if (!TryAdvanceToNextValidLockedTarget())
+	{
+		ClearLockedTarget();
+	}
+}
+
 void UMDFTargetingComponent::ToggleTargetLock()
 {
-	if (HasLockedTarget())
+	if (HasLockedTarget() || bTargetLockSuppressed)
 	{
 		ClearLockedTarget();
 		return;
@@ -174,6 +207,7 @@ void UMDFTargetingComponent::ClearLockedTarget()
 {
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
+		ClearLockedTargetObservation();
 		LockedTargetActor = nullptr;
 		LastActionResult = EMDFTargetingActionResult::ClearedLockedTarget;
 		OnRep_LockedTargetActor();
@@ -186,6 +220,12 @@ void UMDFTargetingComponent::ClearLockedTarget()
 
 void UMDFTargetingComponent::CycleTargetRight()
 {
+	if (bTargetLockSuppressed)
+	{
+		ClearLockedTarget();
+		return;
+	}
+	
 	FMDFTargetCandidate NextCandidate;
 	if (!SelectNextCandidateToRight(NextCandidate))
 	{
@@ -206,6 +246,11 @@ void UMDFTargetingComponent::CycleTargetRight()
 bool UMDFTargetingComponent::HasLockedTarget() const
 {
 	return IsValid(LockedTargetActor);
+}
+
+bool UMDFTargetingComponent::IsTargetLockSuppressed() const
+{
+	return bTargetLockSuppressed;
 }
 
 void UMDFTargetingComponent::ServerSetLockedTarget_Implementation(AActor* InTargetActor)
@@ -256,7 +301,9 @@ bool UMDFTargetingComponent::ValidateTargetActor_Server(const AActor* InTargetAc
 
 void UMDFTargetingComponent::ApplyLockedTarget_Server(AActor* InTargetActor, const EMDFTargetingActionResult ActionResult)
 {
+	ClearLockedTargetObservation();
 	LockedTargetActor = InTargetActor;
+	ObserveLockedTarget(InTargetActor);
 	LastActionResult = ActionResult;
 	OnRep_LockedTargetActor();
 	OnRep_LastActionResult();
@@ -430,6 +477,88 @@ bool UMDFTargetingComponent::SelectNextCandidateToRight(FMDFTargetCandidate& Out
 	}
 
 	return false;
+}
+
+bool UMDFTargetingComponent::IsHardInvalidLockedTarget(const AActor* TargetActor) const
+{
+	if (!TargetActor || TargetActor->IsActorBeingDestroyed())
+	{
+		return true;
+	}
+
+	const UMDFCombatantComponent* Combatant = TargetActor->FindComponentByClass<UMDFCombatantComponent>();
+	if (!Combatant->CanBeTargetedBy(GetOwningPawn()))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool UMDFTargetingComponent::TryAdvanceToNextValidLockedTarget()
+{
+	if (bTargetLockSuppressed)
+	{
+		return false;
+	}
+
+	FMDFTargetCandidate NextCandidate;
+	if (!SelectNextCandidateToRight(NextCandidate))
+	{
+		return false;
+	}
+
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		ApplyLockedTarget_Server(NextCandidate.TargetActor, EMDFTargetingActionResult::CycledRight);
+		return true;
+	}
+
+	ServerSetLockedTarget(NextCandidate.TargetActor);
+	return true;
+}
+
+void UMDFTargetingComponent::ObserveLockedTarget(AActor* TargetActor)
+{
+	if (!TargetActor)
+	{
+		return;
+	}
+
+	ObservedLockedTargetActor = TargetActor;
+	TargetActor->OnDestroyed.AddDynamic(this, &UMDFTargetingComponent::HandleObservedLockedTargetDestroyed);
+
+	if (UMDFCombatantComponent* Combatant = TargetActor->FindComponentByClass<UMDFCombatantComponent>())
+	{
+		ObservedLockedTargetCombatant = Combatant;
+		Combatant->OnCombatantStateChanged.AddDynamic(this, &UMDFTargetingComponent::HandleObservedLockedTargetCombatStateChanged);
+	}
+}
+
+void UMDFTargetingComponent::ClearLockedTargetObservation()
+{
+	if (AActor* ObservedActor = ObservedLockedTargetActor.Get())
+	{
+		ObservedActor->OnDestroyed.RemoveDynamic(this, &UMDFTargetingComponent::HandleObservedLockedTargetDestroyed);
+	}
+
+	if (UMDFCombatantComponent* Combatant = ObservedLockedTargetCombatant.Get())
+	{
+		Combatant->OnCombatantStateChanged.RemoveDynamic(this, &UMDFTargetingComponent::HandleObservedLockedTargetCombatStateChanged);
+	}
+
+	ObservedLockedTargetActor.Reset();
+	ObservedLockedTargetCombatant.Reset();
+}
+
+void UMDFTargetingComponent::HandleObservedLockedTargetDestroyed(AActor* DestroyedActor)
+{
+	RefreshLockedTargetValidity();
+}
+
+void UMDFTargetingComponent::HandleObservedLockedTargetCombatStateChanged()
+{
+	RefreshLockedTargetValidity();
 }
 
 void UMDFTargetingComponent::OnRep_LockedTargetActor() const

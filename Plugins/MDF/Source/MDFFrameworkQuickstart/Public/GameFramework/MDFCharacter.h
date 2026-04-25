@@ -86,6 +86,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Camera")
 	float DefaultCombatFOV = 90.0f;
 	
+	bool bWasTargetLockSuppressedByIdentity = false;
+	
 	virtual void BeginPlay() override;
 	
 	UFUNCTION(BlueprintCallable, Category="Input")
@@ -98,6 +100,7 @@ protected:
 	void HandleCombatActionStateChanged();
 	
 	void RefreshIdentityCameraState();
+	void RefreshIdentityTargetingState();
 	
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))

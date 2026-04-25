@@ -746,8 +746,6 @@ void UMDFCombatActionComponent::HandleScheduledSkillRecoveryEnd()
 	const bool bWasTransitionAction =
 	HasActiveCombatAction() && ActiveCombatActionRuntime.ActionType == EMDFCombatActionType::Transition;
 
-	const FMDFPendingDisciplineSwapRuntime PendingSwap = PendingDisciplineSwapRuntime;
-
 	EndActiveCombatAction();
 	
 	if (bHasPendingTransition)
@@ -758,7 +756,7 @@ void UMDFCombatActionComponent::HandleScheduledSkillRecoveryEnd()
 		return;
 	}
 	
-	// Continue basic combo of new archetype at authored index
+	// Transition continuation survives the swap commit so the destination combo can resume after the bridge action finishes.
 	if (bWasTransitionAction && bHasActiveTransitionComboRuntime && bHasLastBasicAimSnapshot)
 	{
 		const FMDFPendingTransitionComboRuntime TransitionRuntime = ActiveTransitionComboRuntime;
