@@ -13,6 +13,8 @@
 #include "NiagaraFunctionLibrary.h"
 #include "Components/AudioComponent.h"
 #include "Components/MDFCombatantComponent.h"
+#include "Data/MDFDisciplineDefinition.h"
+#include "Helpers/MDFCombatDefinitionLookup.h"
 #include "Sound/SoundBase.h"
 
 UMDFCombatCueComponent::UMDFCombatCueComponent()
@@ -72,14 +74,18 @@ void UMDFCombatCueComponent::RequestDefaultDeathCue(AActor* InstigatorActor)
 	MulticastPlayDefaultDeathCue(InstigatorActor);
 }
 
-void UMDFCombatCueComponent::RequestIdentityCue(const FGameplayTag IdentityTag, const FGameplayTag CueEventTag)
+void UMDFCombatCueComponent::RequestIdentityCue(const FGameplayTag OwningDisciplineTag,	const FGameplayTag IdentityTag,	const FGameplayTag CueEventTag)
 {
-	if (!GetOwner() || !GetOwner()->HasAuthority() || !IdentityTag.IsValid() || !CueEventTag.IsValid())
+	if (!GetOwner()
+		|| !GetOwner()->HasAuthority()
+		|| !OwningDisciplineTag.IsValid()
+		|| !IdentityTag.IsValid()
+		|| !CueEventTag.IsValid())
 	{
 		return;
 	}
 
-	MulticastPlayIdentityCue(IdentityTag, CueEventTag);
+	MulticastPlayIdentityCue(OwningDisciplineTag, IdentityTag, CueEventTag);
 }
 
 void UMDFCombatCueComponent::MulticastPlayCue_Implementation(const FMDFCombatCueRequest CueRequest)
@@ -263,16 +269,27 @@ void UMDFCombatCueComponent::RefreshCueGateState()
 	}
 }
 
-const FMDFIdentityCueSpec* UMDFCombatCueComponent::FindMatchingIdentityCueSpec(
-	const FGameplayTag IdentityTag,
-	const FGameplayTag CueEventTag) const
+const FMDFIdentityCueSpec* UMDFCombatCueComponent::FindMatchingIdentityCueSpec(const FGameplayTag OwningDisciplineTag, const FGameplayTag IdentityTag, const FGameplayTag CueEventTag) const
 {
-	if (!IdentityTag.IsValid() || !CueEventTag.IsValid())
+	if (!OwningDisciplineTag.IsValid() || !IdentityTag.IsValid() || !CueEventTag.IsValid())
 	{
 		return nullptr;
 	}
 
-	for (const FMDFIdentityCueSpec& CueSpec : IdentityCueSpecs)
+	const UMDFDisciplineDefinition* DisciplineDefinition =
+		MDFCombatDefinitionLookup::ResolveDisciplineDefinition(OwningDisciplineTag);
+
+	if (!DisciplineDefinition || !DisciplineDefinition->IdentityAction.IsValid())
+	{
+		return nullptr;
+	}
+
+	if (DisciplineDefinition->IdentityAction.IdentityTag != IdentityTag)
+	{
+		return nullptr;
+	}
+
+	for (const FMDFIdentityCueSpec& CueSpec : DisciplineDefinition->IdentityAction.IdentityCueSpecs)
 	{
 		if (!CueSpec.IsValid())
 		{
@@ -293,14 +310,16 @@ FVector UMDFCombatCueComponent::ResolveIdentityCueLocation() const
 	return GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
 }
 
-void UMDFCombatCueComponent::PlayIdentityCueLocal(const FGameplayTag IdentityTag, const FGameplayTag CueEventTag)
+void UMDFCombatCueComponent::PlayIdentityCueLocal(const FGameplayTag OwningDisciplineTag, const FGameplayTag IdentityTag, const FGameplayTag CueEventTag)
 {
 	if (CueEventTag == MDFGameplayTags::Cue_Identity_End)
 	{
 		StopIdentityLoopCue(IdentityTag);
 	}
 
-	const FMDFIdentityCueSpec* CueSpec = FindMatchingIdentityCueSpec(IdentityTag, CueEventTag);
+	const FMDFIdentityCueSpec* CueSpec =
+		FindMatchingIdentityCueSpec(OwningDisciplineTag, IdentityTag, CueEventTag);
+
 	if (!CueSpec)
 	{
 		return;
@@ -500,9 +519,9 @@ bool UMDFCombatCueComponent::CanPlayDefaultDeathCue() const
 	return true;
 }
 
-void UMDFCombatCueComponent::MulticastPlayIdentityCue_Implementation(const FGameplayTag IdentityTag, const FGameplayTag CueEventTag)
+void UMDFCombatCueComponent::MulticastPlayIdentityCue_Implementation(const FGameplayTag OwningDisciplineTag, const FGameplayTag IdentityTag, const FGameplayTag CueEventTag)
 {
-	PlayIdentityCueLocal(IdentityTag, CueEventTag);
+	PlayIdentityCueLocal(OwningDisciplineTag, IdentityTag, CueEventTag);
 }
 
 void UMDFCombatCueComponent::PlayCueLocal(const FMDFCombatCueRequest& CueRequest)

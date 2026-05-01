@@ -12,6 +12,7 @@ public class MDFFrameworkProgression : ModuleRules
                 "Core",
                 "CoreUObject",
                 "GameplayTags",
+                "Niagara",
                 "MDFFrameworkCore"
             }
         );

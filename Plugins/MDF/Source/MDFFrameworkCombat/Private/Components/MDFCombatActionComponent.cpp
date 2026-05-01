@@ -111,7 +111,7 @@ void UMDFCombatActionComponent::RequestIdentityCue(const FGameplayTag CueEventTa
 
 	if (UMDFCombatCueComponent* CueComponent = GetOwner()->FindComponentByClass<UMDFCombatCueComponent>())
 	{
-		CueComponent->RequestIdentityCue(ActiveIdentityRuntime.IdentityTag, CueEventTag);
+		CueComponent->RequestIdentityCue(ActiveIdentityRuntime.OwningDisciplineTag,	ActiveIdentityRuntime.IdentityTag, CueEventTag);
 	}
 }
 

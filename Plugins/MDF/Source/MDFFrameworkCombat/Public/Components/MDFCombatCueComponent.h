@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Types/MDFIdentityTypes.h"
 #include "Types/MDFSkillRuntimeTypes.h"
 #include "Types/MDFSkillTypes.h"
 #include "MDFCombatCueComponent.generated.h"
@@ -27,7 +28,7 @@ public:
 	void RequestSkillCue(const FMDFCombatCueRequest& CueRequest);
 	void RequestDefaultHitReactCue(AActor* InstigatorActor, const FVector& HitLocation);
 	void RequestDefaultDeathCue(AActor* InstigatorActor);
-	void RequestIdentityCue(FGameplayTag IdentityTag, FGameplayTag CueEventTag);
+	void RequestIdentityCue(FGameplayTag OwningDisciplineTag, FGameplayTag IdentityTag, FGameplayTag CueEventTag);
 
 protected:
 	virtual void BeginPlay() override;
@@ -42,7 +43,7 @@ protected:
 	void MulticastPlayDefaultDeathCue(AActor* InstigatorActor);
 	
 	UFUNCTION(NetMulticast, Unreliable)
-	void MulticastPlayIdentityCue(FGameplayTag IdentityTag, FGameplayTag CueEventTag);
+	void MulticastPlayIdentityCue(FGameplayTag OwningDisciplineTag, FGameplayTag IdentityTag, FGameplayTag CueEventTag);
 
 	void PlayCueLocal(const FMDFCombatCueRequest& CueRequest);
 	void PlayDefaultHitReactLocal(AActor* InstigatorActor, const FVector& HitLocation);
@@ -62,8 +63,8 @@ protected:
 	bool CanPlayDefaultDeathCue() const;
 	void RefreshCueGateState();
 	
-	void PlayIdentityCueLocal(FGameplayTag IdentityTag, FGameplayTag CueEventTag);
-	const FMDFIdentityCueSpec* FindMatchingIdentityCueSpec(FGameplayTag IdentityTag, FGameplayTag CueEventTag) const;
+	void PlayIdentityCueLocal(FGameplayTag OwningDisciplineTag, FGameplayTag IdentityTag, FGameplayTag CueEventTag);
+	const FMDFIdentityCueSpec* FindMatchingIdentityCueSpec(FGameplayTag OwningDisciplineTag, FGameplayTag IdentityTag, FGameplayTag CueEventTag) const;
 	FVector ResolveIdentityCueLocation() const;
 
 	void PlayIdentityNiagaraIfValid(const FMDFIdentityCueSpec& CueSpec, const FVector& WorldLocation);
@@ -110,9 +111,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue Runtime")
 	bool bDeathCuePlayedForCurrentDeadState = false;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity Cues")
-	TArray<FMDFIdentityCueSpec> IdentityCueSpecs;
 
 	UPROPERTY(Transient)
 	TMap<FGameplayTag, TObjectPtr<UNiagaraComponent>> ActiveIdentityLoopNiagaraComponents;
