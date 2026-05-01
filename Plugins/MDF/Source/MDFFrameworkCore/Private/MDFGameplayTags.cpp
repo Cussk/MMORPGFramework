@@ -123,6 +123,10 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Cue_Skill_Impact, "Cue.Skill.Impact");
 	UE_DEFINE_GAMEPLAY_TAG(Cue_Combat_HitReact, "Cue.Combat.HitReact");
 	UE_DEFINE_GAMEPLAY_TAG(Cue_Combat_Death, "Cue.Combat.Death");
+	
+	UE_DEFINE_GAMEPLAY_TAG(Cue_Identity_Start, "Cue.Identity.Start");
+	UE_DEFINE_GAMEPLAY_TAG(Cue_Identity_Loop, "Cue.Identity.Loop");
+	UE_DEFINE_GAMEPLAY_TAG(Cue_Identity_End, "Cue.Identity.End");
 
 	// --------------------
 	// Combat State

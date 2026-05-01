@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "MDFCharacter.generated.h"
 
+class UMDFIdentityPresentationComponent;
 class UMDFCombatActionComponent;
 class UMDFCombatCueComponent;
 class UMDFCombatantComponent;
@@ -65,6 +66,9 @@ public:
 	UFUNCTION(BlueprintPure, Category="MDF")
 	UMDFCombatActionComponent* GetMDFCombatActionComponent() const;
 	
+	UFUNCTION(BlueprintPure, Category="MDF")
+	UMDFIdentityPresentationComponent* GetMDFIdentityPresentationComponent() const;
+	
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	
@@ -83,24 +87,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UMDFCombatCueComponent> MDFCombatCueComponent;
 	
-	UPROPERTY(EditDefaultsOnly, Category="Camera")
-	float DefaultCombatFOV = 90.0f;
-	
-	bool bWasTargetLockSuppressedByIdentity = false;
-	
-	virtual void BeginPlay() override;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UMDFIdentityPresentationComponent> MDFIdentityPresentationComponent;
 	
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoMove(float Right, float Forward);
 	
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoLook(float Yaw, float Pitch);
-	
-	UFUNCTION()
-	void HandleCombatActionStateChanged();
-	
-	void RefreshIdentityCameraState();
-	void RefreshIdentityTargetingState();
 	
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))

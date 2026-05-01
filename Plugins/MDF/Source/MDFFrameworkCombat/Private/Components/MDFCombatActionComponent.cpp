@@ -27,6 +27,9 @@ void UMDFCombatActionComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	DOREPLIFETIME(UMDFCombatActionComponent, ActiveCombatActionRuntime);
 	DOREPLIFETIME(UMDFCombatActionComponent, QueuedCombatActionRuntime);
 	DOREPLIFETIME(UMDFCombatActionComponent, PendingDisciplineSwapRuntime);
+	DOREPLIFETIME(UMDFCombatActionComponent, BasicComboRuntime);
+	DOREPLIFETIME(UMDFCombatActionComponent, ActiveIdentityRuntime);
+	DOREPLIFETIME(UMDFCombatActionComponent, PendingTransitionComboRuntime);
 }
 
 const FMDFActiveCombatActionRuntime& UMDFCombatActionComponent::GetActiveCombatActionRuntime() const
@@ -96,6 +99,19 @@ void UMDFCombatActionComponent::HandlePendingTransitionSwapCommit()
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(TransitionSwapCommitTimerHandle);
+	}
+}
+
+void UMDFCombatActionComponent::RequestIdentityCue(const FGameplayTag CueEventTag) const
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !HasActiveIdentityAction() || !CueEventTag.IsValid())
+	{
+		return;
+	}
+
+	if (UMDFCombatCueComponent* CueComponent = GetOwner()->FindComponentByClass<UMDFCombatCueComponent>())
+	{
+		CueComponent->RequestIdentityCue(ActiveIdentityRuntime.IdentityTag, CueEventTag);
 	}
 }
 
@@ -986,6 +1002,9 @@ bool UMDFCombatActionComponent::StartIdentityAction(const FMDFSkillActivationAim
 
 	ApplyIdentityCombatState();
 	OnRep_ActiveIdentityRuntime();
+	
+	RequestIdentityCue(MDFGameplayTags::Cue_Identity_Start);
+	RequestIdentityCue(MDFGameplayTags::Cue_Identity_Loop);
 
 	if (ActiveIdentityRuntime.FocusDrainPerSecond > 0.0f)
 	{
@@ -1016,6 +1035,7 @@ void UMDFCombatActionComponent::EndIdentityAction()
 
 	ClearIdentityDrainTimer();
 	RemoveIdentityCombatState();
+	RequestIdentityCue(MDFGameplayTags::Cue_Identity_End);
 
 	ActiveIdentityRuntime = FMDFActiveIdentityActionRuntime();
 	OnRep_ActiveIdentityRuntime();

@@ -8,6 +8,7 @@
 #include "Types/MDFSkillTypes.h"
 #include "MDFCombatCueComponent.generated.h"
 
+class UNiagaraComponent;
 class UMDFCombatantComponent;
 class UAnimMontage;
 class UNiagaraSystem;
@@ -26,9 +27,7 @@ public:
 	void RequestSkillCue(const FMDFCombatCueRequest& CueRequest);
 	void RequestDefaultHitReactCue(AActor* InstigatorActor, const FVector& HitLocation);
 	void RequestDefaultDeathCue(AActor* InstigatorActor);
-
-protected:
-	// Add near the public/protected function declarations.
+	void RequestIdentityCue(FGameplayTag IdentityTag, FGameplayTag CueEventTag);
 
 protected:
 	virtual void BeginPlay() override;
@@ -41,6 +40,9 @@ protected:
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastPlayDefaultDeathCue(AActor* InstigatorActor);
+	
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastPlayIdentityCue(FGameplayTag IdentityTag, FGameplayTag CueEventTag);
 
 	void PlayCueLocal(const FMDFCombatCueRequest& CueRequest);
 	void PlayDefaultHitReactLocal(AActor* InstigatorActor, const FVector& HitLocation);
@@ -59,6 +61,14 @@ protected:
 	bool CanPlayDefaultHitReactCue() const;
 	bool CanPlayDefaultDeathCue() const;
 	void RefreshCueGateState();
+	
+	void PlayIdentityCueLocal(FGameplayTag IdentityTag, FGameplayTag CueEventTag);
+	const FMDFIdentityCueSpec* FindMatchingIdentityCueSpec(FGameplayTag IdentityTag, FGameplayTag CueEventTag) const;
+	FVector ResolveIdentityCueLocation() const;
+
+	void PlayIdentityNiagaraIfValid(const FMDFIdentityCueSpec& CueSpec, const FVector& WorldLocation);
+	void PlayIdentitySoundIfValid(const FMDFIdentityCueSpec& CueSpec, const FVector& WorldLocation);
+	void StopIdentityLoopCue(FGameplayTag IdentityTag);
 
 	UMDFCombatantComponent* ResolveOwningCombatant() const;
 
@@ -100,4 +110,13 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cue Runtime")
 	bool bDeathCuePlayedForCurrentDeadState = false;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity Cues")
+	TArray<FMDFIdentityCueSpec> IdentityCueSpecs;
+
+	UPROPERTY(Transient)
+	TMap<FGameplayTag, TObjectPtr<UNiagaraComponent>> ActiveIdentityLoopNiagaraComponents;
+
+	UPROPERTY(Transient)
+	TMap<FGameplayTag, TObjectPtr<UAudioComponent>> ActiveIdentityLoopAudioComponents;
 };

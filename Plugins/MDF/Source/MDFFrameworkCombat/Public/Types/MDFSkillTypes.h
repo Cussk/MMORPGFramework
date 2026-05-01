@@ -149,6 +149,42 @@ struct MDFFRAMEWORKCOMBAT_API FMDFSkillCueSpec
 };
 
 USTRUCT(BlueprintType)
+struct MDFFRAMEWORKCOMBAT_API FMDFIdentityCueSpec
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity Cue")
+	FGameplayTag IdentityTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity Cue")
+	FGameplayTag CueEventTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity Cue")
+	TObjectPtr<UAnimMontage> Montage = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity Cue")
+	TObjectPtr<UNiagaraSystem> NiagaraSystem = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity Cue")
+	TObjectPtr<USoundBase> Sound = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity Cue")
+	bool bAttachEffect = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity Cue")
+	FName AttachSocketName = NAME_None;
+
+	/** Keeps spawned Niagara/audio alive until the matching identity end cue stops it. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Identity Cue")
+	bool bLoopingCue = false;
+
+	bool IsValid() const
+	{
+		return IdentityTag.IsValid() && CueEventTag.IsValid();
+	}
+};
+
+USTRUCT(BlueprintType)
 struct MDFFRAMEWORKCOMBAT_API FMDFSkillCueContainer
 {
 	GENERATED_BODY()

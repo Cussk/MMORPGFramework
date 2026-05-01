@@ -2,6 +2,8 @@
 
 #include "Components/MDFCombatCueComponent.h"
 
+#include "MDFGameplayTags.h"
+#include "NiagaraComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -9,6 +11,7 @@
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Components/AudioComponent.h"
 #include "Components/MDFCombatantComponent.h"
 #include "Sound/SoundBase.h"
 
@@ -67,6 +70,16 @@ void UMDFCombatCueComponent::RequestDefaultDeathCue(AActor* InstigatorActor)
 	}
 
 	MulticastPlayDefaultDeathCue(InstigatorActor);
+}
+
+void UMDFCombatCueComponent::RequestIdentityCue(const FGameplayTag IdentityTag, const FGameplayTag CueEventTag)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !IdentityTag.IsValid() || !CueEventTag.IsValid())
+	{
+		return;
+	}
+
+	MulticastPlayIdentityCue(IdentityTag, CueEventTag);
 }
 
 void UMDFCombatCueComponent::MulticastPlayCue_Implementation(const FMDFCombatCueRequest CueRequest)
@@ -250,6 +263,184 @@ void UMDFCombatCueComponent::RefreshCueGateState()
 	}
 }
 
+const FMDFIdentityCueSpec* UMDFCombatCueComponent::FindMatchingIdentityCueSpec(
+	const FGameplayTag IdentityTag,
+	const FGameplayTag CueEventTag) const
+{
+	if (!IdentityTag.IsValid() || !CueEventTag.IsValid())
+	{
+		return nullptr;
+	}
+
+	for (const FMDFIdentityCueSpec& CueSpec : IdentityCueSpecs)
+	{
+		if (!CueSpec.IsValid())
+		{
+			continue;
+		}
+
+		if (CueSpec.IdentityTag == IdentityTag && CueSpec.CueEventTag == CueEventTag)
+		{
+			return &CueSpec;
+		}
+	}
+
+	return nullptr;
+}
+
+FVector UMDFCombatCueComponent::ResolveIdentityCueLocation() const
+{
+	return GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
+}
+
+void UMDFCombatCueComponent::PlayIdentityCueLocal(const FGameplayTag IdentityTag, const FGameplayTag CueEventTag)
+{
+	if (CueEventTag == MDFGameplayTags::Cue_Identity_End)
+	{
+		StopIdentityLoopCue(IdentityTag);
+	}
+
+	const FMDFIdentityCueSpec* CueSpec = FindMatchingIdentityCueSpec(IdentityTag, CueEventTag);
+	if (!CueSpec)
+	{
+		return;
+	}
+
+	const FVector PlaybackLocation = ResolveIdentityCueLocation();
+
+	PlayMontageIfValid(CueSpec->Montage);
+	PlayIdentityNiagaraIfValid(*CueSpec, PlaybackLocation);
+	PlayIdentitySoundIfValid(*CueSpec, PlaybackLocation);
+}
+
+void UMDFCombatCueComponent::PlayIdentityNiagaraIfValid(
+	const FMDFIdentityCueSpec& CueSpec,
+	const FVector& WorldLocation)
+{
+	if (!CueSpec.NiagaraSystem || !GetWorld())
+	{
+		return;
+	}
+
+	const bool bShouldKeepAlive =
+		CueSpec.bLoopingCue || CueSpec.CueEventTag == MDFGameplayTags::Cue_Identity_Loop;
+
+	if (bShouldKeepAlive)
+	{
+		StopIdentityLoopCue(CueSpec.IdentityTag);
+	}
+
+	UNiagaraComponent* SpawnedComponent = nullptr;
+
+	if (CueSpec.bAttachEffect)
+	{
+		if (USkeletalMeshComponent* Mesh = ResolveSkeletalMesh())
+		{
+			SpawnedComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+				CueSpec.NiagaraSystem,
+				Mesh,
+				CueSpec.AttachSocketName,
+				FVector::ZeroVector,
+				FRotator::ZeroRotator,
+				EAttachLocation::SnapToTarget,
+				!bShouldKeepAlive);
+		}
+	}
+	else
+	{
+		SpawnedComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(),
+			CueSpec.NiagaraSystem,
+			WorldLocation,
+			FRotator::ZeroRotator,
+			FVector(1.0f),
+			!bShouldKeepAlive);
+	}
+
+	if (bShouldKeepAlive && SpawnedComponent)
+	{
+		ActiveIdentityLoopNiagaraComponents.Add(CueSpec.IdentityTag, SpawnedComponent);
+	}
+}
+
+void UMDFCombatCueComponent::PlayIdentitySoundIfValid(
+	const FMDFIdentityCueSpec& CueSpec,
+	const FVector& WorldLocation)
+{
+	if (!CueSpec.Sound)
+	{
+		return;
+	}
+
+	const bool bShouldKeepAlive =
+		CueSpec.bLoopingCue || CueSpec.CueEventTag == MDFGameplayTags::Cue_Identity_Loop;
+
+	UAudioComponent* SpawnedComponent = nullptr;
+
+	if (CueSpec.bAttachEffect)
+	{
+		if (USceneComponent* RootComponent = GetOwner() ? GetOwner()->GetRootComponent() : nullptr)
+		{
+			SpawnedComponent = UGameplayStatics::SpawnSoundAttached(
+				CueSpec.Sound,
+				RootComponent,
+				CueSpec.AttachSocketName,
+				FVector::ZeroVector,
+				EAttachLocation::SnapToTarget,
+				false);
+		}
+	}
+	else
+	{
+		SpawnedComponent = UGameplayStatics::SpawnSoundAtLocation(
+			this,
+			CueSpec.Sound,
+			WorldLocation,
+			FRotator::ZeroRotator,
+			1.0f,
+			1.0f,
+			0.0f,
+			nullptr,
+			nullptr,
+			!bShouldKeepAlive);
+	}
+
+	if (bShouldKeepAlive && SpawnedComponent)
+	{
+		ActiveIdentityLoopAudioComponents.Add(CueSpec.IdentityTag, SpawnedComponent);
+	}
+}
+
+void UMDFCombatCueComponent::StopIdentityLoopCue(const FGameplayTag IdentityTag)
+{
+	if (!IdentityTag.IsValid())
+	{
+		return;
+	}
+
+	if (TObjectPtr<UNiagaraComponent>* NiagaraComponentPtr = ActiveIdentityLoopNiagaraComponents.Find(IdentityTag))
+	{
+		if (UNiagaraComponent* NiagaraComponent = NiagaraComponentPtr->Get())
+		{
+			NiagaraComponent->Deactivate();
+			NiagaraComponent->DestroyComponent();
+		}
+
+		ActiveIdentityLoopNiagaraComponents.Remove(IdentityTag);
+	}
+
+	if (TObjectPtr<UAudioComponent>* AudioComponentPtr = ActiveIdentityLoopAudioComponents.Find(IdentityTag))
+	{
+		if (UAudioComponent* AudioComponent = AudioComponentPtr->Get())
+		{
+			AudioComponent->Stop();
+			AudioComponent->DestroyComponent();
+		}
+
+		ActiveIdentityLoopAudioComponents.Remove(IdentityTag);
+	}
+}
+
 bool UMDFCombatCueComponent::CanPlayDefaultHitReactCue() const
 {
 	const UMDFCombatantComponent* Combatant = ResolveOwningCombatant();
@@ -307,6 +498,11 @@ bool UMDFCombatCueComponent::CanPlayDefaultDeathCue() const
 	}
 
 	return true;
+}
+
+void UMDFCombatCueComponent::MulticastPlayIdentityCue_Implementation(const FGameplayTag IdentityTag, const FGameplayTag CueEventTag)
+{
+	PlayIdentityCueLocal(IdentityTag, CueEventTag);
 }
 
 void UMDFCombatCueComponent::PlayCueLocal(const FMDFCombatCueRequest& CueRequest)

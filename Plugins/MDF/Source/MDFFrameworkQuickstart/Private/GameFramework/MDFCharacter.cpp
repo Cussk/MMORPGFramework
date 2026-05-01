@@ -8,12 +8,11 @@
 #include "Components/MDFCombatActionComponent.h"
 #include "Components/MDFCombatantComponent.h"
 #include "Components/MDFCombatCueComponent.h"
-#include "Components/MDFTargetingComponent.h"
+#include "Components/MDFIdentityPresentationComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/MDFPlayerController.h"
 #include "GameFramework/MDFPlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Helpers/MDFComponentHelpers.h"
 
 AMDFCharacter::AMDFCharacter()
 {
@@ -46,21 +45,7 @@ AMDFCharacter::AMDFCharacter()
 	MDFCombatantComponent = CreateDefaultSubobject<UMDFCombatantComponent>(TEXT("CombatantComponent"));
 	MDFCombatCueComponent = CreateDefaultSubobject<UMDFCombatCueComponent>(TEXT("CombatCueComponent"));
 	MDFCombatActionComponent = CreateDefaultSubobject<UMDFCombatActionComponent>(TEXT("CombatActionComponent"));
-}
-
-void AMDFCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (MDFCombatActionComponent)
-	{
-		MDFCombatActionComponent->OnCombatActionStateChanged.AddDynamic(this, &AMDFCharacter::HandleCombatActionStateChanged);
-	}
-
-	if (FollowCamera)
-	{
-		DefaultCombatFOV = FollowCamera->FieldOfView;
-	}
+	MDFIdentityPresentationComponent = CreateDefaultSubobject<UMDFIdentityPresentationComponent>(TEXT("IdentityPresentationComponent"));
 }
 
 AMDFPlayerController* AMDFCharacter::GetMDFPlayerController() const
@@ -113,6 +98,11 @@ UMDFCombatActionComponent* AMDFCharacter::GetMDFCombatActionComponent() const
 	return MDFCombatActionComponent;
 }
 
+UMDFIdentityPresentationComponent* AMDFCharacter::GetMDFIdentityPresentationComponent() const
+{
+	return MDFIdentityPresentationComponent;
+}
+
 void AMDFCharacter::InputMove(const FInputActionValue& Value)
 {
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -148,67 +138,6 @@ void AMDFCharacter::DoLook(float Yaw, float Pitch)
 		AddControllerYawInput(Yaw);
 		AddControllerPitchInput(Pitch);
 	}
-}
-
-void AMDFCharacter::HandleCombatActionStateChanged()
-{
-	RefreshIdentityCameraState();
-	RefreshIdentityTargetingState();
-}
-
-void AMDFCharacter::RefreshIdentityCameraState()
-{
-	if (!IsLocallyControlled() || !FollowCamera)
-	{
-		return;
-	}
-	
-	if (!MDFCombatActionComponent || !MDFCombatActionComponent->HasActiveIdentityAction())
-	{
-		FollowCamera->SetFieldOfView(DefaultCombatFOV);
-		return;
-	}
-
-	const FMDFActiveIdentityActionRuntime& IdentityRuntime = MDFCombatActionComponent->GetActiveIdentityRuntime();
-	if (IdentityRuntime.IdentityType == EMDFIdentityActionType::Zoom && IdentityRuntime.ZoomedFOV > 0.0f)
-	{
-		FollowCamera->SetFieldOfView(IdentityRuntime.ZoomedFOV);
-	}
-	else
-	{
-		FollowCamera->SetFieldOfView(DefaultCombatFOV);
-	}
-}
-
-void AMDFCharacter::RefreshIdentityTargetingState()
-{
-	if (!IsLocallyControlled())
-	{
-		return;
-	}
-
-	UMDFTargetingComponent* TargetingComponent = FMDFComponentHelpers::FindFromController<UMDFTargetingComponent>(GetController());
-
-	if (!TargetingComponent)
-	{
-		return;
-	}
-
-	bool bShouldSuppressTargetLock = false;
-
-	if (MDFCombatActionComponent && MDFCombatActionComponent->HasActiveIdentityAction())
-	{
-		const FMDFActiveIdentityActionRuntime& IdentityRuntime = MDFCombatActionComponent->GetActiveIdentityRuntime();
-		bShouldSuppressTargetLock = IdentityRuntime.IdentityType == EMDFIdentityActionType::Zoom;
-	}
-
-	if (bWasTargetLockSuppressedByIdentity == bShouldSuppressTargetLock)
-	{
-		return;
-	}
-
-	bWasTargetLockSuppressedByIdentity = bShouldSuppressTargetLock;
-	TargetingComponent->SetTargetLockSuppressed(bShouldSuppressTargetLock);
 }
 
 void AMDFCharacter::InputJumpStart()

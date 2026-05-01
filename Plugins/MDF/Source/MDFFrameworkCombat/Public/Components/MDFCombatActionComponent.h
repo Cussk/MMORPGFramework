@@ -194,6 +194,8 @@ protected:
 
 	void HandlePendingTransitionSwapCommit();
 	
+	void RequestIdentityCue(FGameplayTag CueEventTag) const;
+	
 	UMDFPlayerSkillComponent* ResolveOwningSkillComponent() const;
 	const UMDFDisciplineDefinition* ResolveActiveDisciplineDefinition() const;
 	const FMDFBasicComboDefinition* ResolveActiveDisciplineBasicCombo() const;
