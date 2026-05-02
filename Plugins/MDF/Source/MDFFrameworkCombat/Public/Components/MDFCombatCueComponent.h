@@ -32,6 +32,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastPlayCue(FMDFCombatCueRequest CueRequest);
@@ -70,6 +71,7 @@ protected:
 	void PlayIdentityNiagaraIfValid(const FMDFIdentityCueSpec& CueSpec, const FVector& WorldLocation);
 	void PlayIdentitySoundIfValid(const FMDFIdentityCueSpec& CueSpec, const FVector& WorldLocation);
 	void StopIdentityLoopCue(FGameplayTag IdentityTag);
+	void StopAllIdentityLoopCues();
 
 	UMDFCombatantComponent* ResolveOwningCombatant() const;
 

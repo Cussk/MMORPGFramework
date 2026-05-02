@@ -457,6 +457,13 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 					PendingTransition.SourceComboStepIndex,
 					*TagToDebugString(PendingTransition.TransitionSkillTag))
 				: TEXT("[None]");
+			
+			OutSnapshot.SmoothFacingText = CombatActionComponent->IsSmoothActionFacingActive()
+				? FString::Printf(
+					TEXT("Active | %.2fs / %.2fs"),
+					CombatActionComponent->GetSmoothActionFacingTimeRemainingSeconds(),
+					CombatActionComponent->GetSmoothActionFacingDurationSeconds())
+				: TEXT("[None]");
 		}
 		else
 		{
@@ -464,12 +471,17 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 			OutSnapshot.ActiveCombatActionPhaseText = TEXT("[None]");
 			OutSnapshot.QueuedCombatActionText = TEXT("[None]");
 			OutSnapshot.PendingDisciplineSwapText = TEXT("[None]");
+			OutSnapshot.SmoothFacingText = TEXT("[None]");
 		}
 	}
 	
 	if (const UMDFTargetingComponent* TargetingComponent = PlayerController->FindComponentByClass<UMDFTargetingComponent>())
 	{
 		OutSnapshot.TargetCandidateCount = TargetingComponent->GetLastCandidateCount();
+		
+		OutSnapshot.TargetLockSuppressedText = TargetingComponent->IsTargetLockSuppressed()
+			? TEXT("Yes")
+			: TEXT("No");
 
 		if (const AActor* LockedTarget = TargetingComponent->GetLockedTargetActor())
 		{
@@ -501,6 +513,11 @@ bool UMDFDebugWorldSubsystem::BuildPlayerSnapshot(const APlayerController* Playe
 	if (OutSnapshot.LastSwapDecisionText.IsEmpty())
 	{
 		OutSnapshot.LastSwapDecisionText = TEXT("<None>");
+	}
+	
+	if (OutSnapshot.TargetLockSuppressedText.IsEmpty())
+	{
+		OutSnapshot.TargetLockSuppressedText = TEXT("No");
 	}
 
 	return ProgressionComponent != nullptr || SkillComponent != nullptr;

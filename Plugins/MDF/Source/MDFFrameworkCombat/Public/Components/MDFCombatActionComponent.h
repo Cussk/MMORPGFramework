@@ -69,6 +69,15 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Combat")
 	bool HasPendingDisciplineSwap() const;
+	
+	UFUNCTION(BlueprintPure, Category="Combat|Facing")
+	bool IsSmoothActionFacingActive() const;
+
+	UFUNCTION(BlueprintPure, Category="Combat|Facing")
+	float GetSmoothActionFacingTimeRemainingSeconds() const;
+
+	UFUNCTION(BlueprintPure, Category="Combat|Facing")
+	float GetSmoothActionFacingDurationSeconds() const;
 
 	UFUNCTION(BlueprintCallable, Category="Combat")
 	bool StartCombatAction(const FMDFActiveCombatActionRuntime& InRuntime);
@@ -178,6 +187,7 @@ protected:
 	void HandleScheduledSkillRecoveryEnd();
 	void ClearScheduledActionTimers();
 	void ClearScheduledSkillAuthorityData();
+	void ClearTransientRuntimeStateForTeardown();
 	
 	bool BuildInitialActionFacingDirection(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition, FVector& OutFacingDirection) const;
 	bool BuildFacingDirectionFromAimSnapshot(const FMDFSkillActivationAimSnapshot& AimSnapshot, bool bAllowLockedTarget, bool bForceViewDirection, FVector& OutFacingDirection) const;

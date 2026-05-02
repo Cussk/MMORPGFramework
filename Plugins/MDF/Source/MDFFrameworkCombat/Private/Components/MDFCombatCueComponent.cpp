@@ -30,6 +30,12 @@ void UMDFCombatCueComponent::BeginPlay()
 	RefreshCueGateState();
 }
 
+void UMDFCombatCueComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	StopAllIdentityLoopCues();
+	Super::EndPlay(EndPlayReason);
+}
+
 void UMDFCombatCueComponent::RequestSkillCue(const FMDFCombatCueRequest& CueRequest)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority())
@@ -457,6 +463,25 @@ void UMDFCombatCueComponent::StopIdentityLoopCue(const FGameplayTag IdentityTag)
 		}
 
 		ActiveIdentityLoopAudioComponents.Remove(IdentityTag);
+	}
+}
+
+void UMDFCombatCueComponent::StopAllIdentityLoopCues()
+{
+	TArray<FGameplayTag> LoopTags;
+	ActiveIdentityLoopNiagaraComponents.GetKeys(LoopTags);
+
+	TArray<FGameplayTag> AudioLoopTags;
+	ActiveIdentityLoopAudioComponents.GetKeys(AudioLoopTags);
+
+	for (const FGameplayTag& AudioTag : AudioLoopTags)
+	{
+		LoopTags.AddUnique(AudioTag);
+	}
+
+	for (const FGameplayTag& LoopTag : LoopTags)
+	{
+		StopIdentityLoopCue(LoopTag);
 	}
 }
 

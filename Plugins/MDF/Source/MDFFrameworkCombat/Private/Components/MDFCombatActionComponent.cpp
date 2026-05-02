@@ -42,7 +42,7 @@ void UMDFCombatActionComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 
 void UMDFCombatActionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	EndActiveCombatAction();
+	ClearTransientRuntimeStateForTeardown();
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -99,6 +99,23 @@ bool UMDFCombatActionComponent::HasPendingTransitionCombo() const
 bool UMDFCombatActionComponent::HasPendingDisciplineSwap() const
 {
 	return PendingDisciplineSwapRuntime.IsValid();
+}
+
+bool UMDFCombatActionComponent::IsSmoothActionFacingActive() const
+{
+	return bSmoothFacingActive;
+}
+
+float UMDFCombatActionComponent::GetSmoothActionFacingTimeRemainingSeconds() const
+{
+	return bSmoothFacingActive
+		       ? FMath::Max(0.0f, SmoothFacingDurationSeconds - SmoothFacingElapsedSeconds)
+		       : 0.0f;
+}
+
+float UMDFCombatActionComponent::GetSmoothActionFacingDurationSeconds() const
+{
+	return bSmoothFacingActive ? SmoothFacingDurationSeconds : 0.0f;
 }
 
 void UMDFCombatActionComponent::HandlePendingTransitionSwapCommit()
@@ -855,6 +872,25 @@ void UMDFCombatActionComponent::ClearScheduledSkillAuthorityData()
 {
 	ScheduledSkillActivationDecision = FMDFSkillActivationDecision();
 	bHasScheduledSkillActivation = false;
+}
+
+void UMDFCombatActionComponent::ClearTransientRuntimeStateForTeardown()
+{
+	ClearScheduledActionTimers();
+	ClearScheduledSkillAuthorityData();
+	ClearIdentityDrainTimer();
+	ClearSmoothActionFacing();
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(TransitionSwapCommitTimerHandle);
+	}
+
+	ActiveTransitionComboRuntime = FMDFPendingTransitionComboRuntime();
+	bHasActiveTransitionComboRuntime = false;
+	bActiveTransitionSwapCommitted = false;
+	bHasLastBasicAimSnapshot = false;
+	LastBasicAimSnapshot = FMDFSkillActivationAimSnapshot();
 }
 
 bool UMDFCombatActionComponent::BuildInitialActionFacingDirection(
