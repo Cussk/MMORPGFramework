@@ -17,7 +17,8 @@
 UMDFCombatActionComponent::UMDFCombatActionComponent()
 {
 	SetIsReplicatedByDefault(true);
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
 
 void UMDFCombatActionComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -30,6 +31,19 @@ void UMDFCombatActionComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	DOREPLIFETIME(UMDFCombatActionComponent, BasicComboRuntime);
 	DOREPLIFETIME(UMDFCombatActionComponent, ActiveIdentityRuntime);
 	DOREPLIFETIME(UMDFCombatActionComponent, PendingTransitionComboRuntime);
+}
+
+void UMDFCombatActionComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	UpdateSmoothActionFacing(DeltaTime);
+}
+
+void UMDFCombatActionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	EndActiveCombatAction();
+	Super::EndPlay(EndPlayReason);
 }
 
 const FMDFActiveCombatActionRuntime& UMDFCombatActionComponent::GetActiveCombatActionRuntime() const
@@ -338,6 +352,22 @@ bool UMDFCombatActionComponent::StartTimedSkillBackedAction(
 	return true;
 }
 
+bool UMDFCombatActionComponent::ApplyInitialActionFacing(const FMDFSkillActivationDecision& ActivationDecision,	const UMDFSkillDefinition* SkillDefinition)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return false;
+	}
+
+	FVector FacingDirection;
+	if (!BuildInitialActionFacingDirection(ActivationDecision, SkillDefinition, FacingDirection))
+	{
+		return false;
+	}
+
+	return StartSmoothActionFacing(FacingDirection);
+}
+
 bool UMDFCombatActionComponent::RequestBasicAttack(const FMDFSkillActivationAimSnapshot& AimSnapshot)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority())
@@ -626,6 +656,7 @@ void UMDFCombatActionComponent::EndActiveCombatAction()
 
 	ClearScheduledActionTimers();
 	ClearScheduledSkillAuthorityData();
+	ClearSmoothActionFacing();
 
 	ActiveCombatActionRuntime = FMDFActiveCombatActionRuntime();
 	OnRep_ActiveCombatActionRuntime();
@@ -826,6 +857,204 @@ void UMDFCombatActionComponent::ClearScheduledSkillAuthorityData()
 	bHasScheduledSkillActivation = false;
 }
 
+bool UMDFCombatActionComponent::BuildInitialActionFacingDirection(
+	const FMDFSkillActivationDecision& ActivationDecision,
+	const UMDFSkillDefinition* SkillDefinition,
+	FVector& OutFacingDirection) const
+{
+	OutFacingDirection = FVector::ZeroVector;
+
+	if (!GetOwner() || !SkillDefinition)
+	{
+		return false;
+	}
+
+	if (SkillDefinition->TargetingMode == EMDFSkillTargetingMode::Self)
+	{
+		return false;
+	}
+
+	return BuildFacingDirectionFromAimSnapshot(
+		ActivationDecision.Request.AimSnapshot,
+		true,
+		false,
+		OutFacingDirection);
+}
+
+bool UMDFCombatActionComponent::BuildFacingDirectionFromAimSnapshot(
+	const FMDFSkillActivationAimSnapshot& AimSnapshot,
+	const bool bAllowLockedTarget,
+	const bool bForceViewDirection,
+	FVector& OutFacingDirection) const
+{
+	OutFacingDirection = FVector::ZeroVector;
+
+	if (!GetOwner())
+	{
+		return false;
+	}
+
+	if (bForceViewDirection)
+	{
+		OutFacingDirection = AimSnapshot.ViewDirection;
+		OutFacingDirection.Z = 0.0f;
+		OutFacingDirection = OutFacingDirection.GetSafeNormal();
+		return !OutFacingDirection.IsNearlyZero();
+	}
+
+	FVector DesiredPoint = FVector::ZeroVector;
+	bool bUseDesiredPoint = false;
+
+	if (bAllowLockedTarget && AimSnapshot.bHadLockedTarget)
+	{
+		if (AActor* SnapshotTarget = AimSnapshot.LockedTargetActor.Get())
+		{
+			if (const UMDFCombatantComponent* TargetCombatant =
+				SnapshotTarget->FindComponentByClass<UMDFCombatantComponent>())
+			{
+				if (TargetCombatant->CanBeTargetedBy(GetOwner()))
+				{
+					DesiredPoint = TargetCombatant->GetPreferredTargetPoint();
+					bUseDesiredPoint = true;
+				}
+			}
+		}
+
+		if (!bUseDesiredPoint && !AimSnapshot.LockedTargetPoint.IsNearlyZero())
+		{
+			DesiredPoint = AimSnapshot.LockedTargetPoint;
+			bUseDesiredPoint = true;
+		}
+	}
+
+	if (!bUseDesiredPoint && AimSnapshot.bHasResolvedPoint)
+	{
+		DesiredPoint = AimSnapshot.DesiredWorldPoint;
+		bUseDesiredPoint = true;
+	}
+
+	if (bUseDesiredPoint)
+	{
+		OutFacingDirection = DesiredPoint - GetOwner()->GetActorLocation();
+	}
+	else
+	{
+		OutFacingDirection = AimSnapshot.ViewDirection;
+	}
+
+	OutFacingDirection.Z = 0.0f;
+	OutFacingDirection = OutFacingDirection.GetSafeNormal();
+
+	return !OutFacingDirection.IsNearlyZero();
+}
+
+bool UMDFCombatActionComponent::ApplyIdentityActionFacing(
+	const FMDFSkillActivationAimSnapshot& AimSnapshot,
+	const EMDFIdentityActionType IdentityType)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return false;
+	}
+
+	FVector FacingDirection;
+
+	// Zoom is always free-aim; do not let a pre-existing locked target steer the opening turn.
+	const bool bForceViewDirection = IdentityType == EMDFIdentityActionType::Zoom;
+	const bool bAllowLockedTarget = !bForceViewDirection;
+
+	if (!BuildFacingDirectionFromAimSnapshot(AimSnapshot, bAllowLockedTarget, bForceViewDirection, FacingDirection))
+	{
+		return false;
+	}
+
+	return StartSmoothActionFacing(FacingDirection);
+}
+
+bool UMDFCombatActionComponent::StartSmoothActionFacing(FVector FacingDirection)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return false;
+	}
+
+	FacingDirection.Z = 0.0f;
+	FacingDirection = FacingDirection.GetSafeNormal();
+
+	if (FacingDirection.IsNearlyZero())
+	{
+		return false;
+	}
+
+	const FRotator CurrentRotation = GetOwner()->GetActorRotation();
+	const float TargetYaw = FacingDirection.Rotation().Yaw;
+	const float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, TargetYaw);
+	const float AbsDeltaYaw = FMath::Abs(DeltaYaw);
+
+	if (AbsDeltaYaw <= SmoothFacingSnapAngleToleranceDegrees || MaxSmoothFacingTurnDurationSeconds <= 0.0f)
+	{
+		ClearSmoothActionFacing();
+		GetOwner()->SetActorRotation(FRotator(CurrentRotation.Pitch, TargetYaw, CurrentRotation.Roll));
+		return true;
+	}
+
+	SmoothFacingStartYaw = CurrentRotation.Yaw;
+	SmoothFacingDeltaYaw = DeltaYaw;
+	SmoothFacingElapsedSeconds = 0.0f;
+	SmoothFacingDurationSeconds = FMath::Clamp(
+		MaxSmoothFacingTurnDurationSeconds * (AbsDeltaYaw / 180.0f),
+		0.02f,
+		MaxSmoothFacingTurnDurationSeconds);
+
+	bSmoothFacingActive = true;
+	SetComponentTickEnabled(true);
+
+	return true;
+}
+
+void UMDFCombatActionComponent::UpdateSmoothActionFacing(const float DeltaTime)
+{
+	if (!bSmoothFacingActive)
+	{
+		SetComponentTickEnabled(false);
+		return;
+	}
+
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor || !OwnerActor->HasAuthority())
+	{
+		ClearSmoothActionFacing();
+		return;
+	}
+
+	SmoothFacingElapsedSeconds += DeltaTime;
+
+	const float Alpha = SmoothFacingDurationSeconds > 0.0f
+		? FMath::Clamp(SmoothFacingElapsedSeconds / SmoothFacingDurationSeconds, 0.0f, 1.0f)
+		: 1.0f;
+
+	const FRotator CurrentRotation = OwnerActor->GetActorRotation();
+	const float NewYaw = FRotator::NormalizeAxis(SmoothFacingStartYaw + (SmoothFacingDeltaYaw * Alpha));
+
+	OwnerActor->SetActorRotation(FRotator(CurrentRotation.Pitch, NewYaw, CurrentRotation.Roll));
+
+	if (Alpha >= 1.0f)
+	{
+		ClearSmoothActionFacing();
+	}
+}
+
+void UMDFCombatActionComponent::ClearSmoothActionFacing()
+{
+	bSmoothFacingActive = false;
+	SmoothFacingElapsedSeconds = 0.0f;
+	SmoothFacingDurationSeconds = 0.0f;
+	SmoothFacingStartYaw = 0.0f;
+	SmoothFacingDeltaYaw = 0.0f;
+
+	SetComponentTickEnabled(false);
+}
+
 bool UMDFCombatActionComponent::StartBasicComboStep(
 	const FGameplayTag DisciplineTag,
 	const int32 StepIndex,
@@ -863,9 +1092,11 @@ bool UMDFCombatActionComponent::StartBasicComboStep(
 		return false;
 	}
 
+	ApplyInitialActionFacing(ActivationDecision, SkillDefinition);
+
 	if (!SkillComponent->PlaySourceExecuteCueForAction(ActivationDecision, SkillDefinition))
 	{
-		// optional: leave silent; cue is presentation-only
+		// Cue failure should not block gameplay action start.
 	}
 
 	const bool bStarted = StartTimedSkillBackedAction(
@@ -999,6 +1230,8 @@ bool UMDFCombatActionComponent::StartIdentityAction(const FMDFSkillActivationAim
 	ActiveIdentityRuntime.HeadBoneName = IdentityDefinition->Zoom.HeadBoneName;
 	ActiveIdentityRuntime.ChannelSkillTag = IdentityDefinition->Channel.ChannelSkillTag;
 	ActiveIdentityRuntime.bConsumesCombatAction = bConsumesCombatAction;
+
+	ApplyIdentityActionFacing(AimSnapshot, ActiveIdentityRuntime.IdentityType);
 
 	ApplyIdentityCombatState();
 	OnRep_ActiveIdentityRuntime();
@@ -1237,6 +1470,8 @@ bool UMDFCombatActionComponent::StartTransitionComboAction(const FMDFPendingTran
 	{
 		return false;
 	}
+	
+	ApplyInitialActionFacing(ActivationDecision, SkillDefinition);
 
 	SkillComponent->PlaySourceExecuteCueForAction(ActivationDecision, SkillDefinition);
 

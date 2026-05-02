@@ -116,6 +116,19 @@ bool UMDFTargetingComponent::BuildLocalActivationAimSnapshot(FMDFSkillActivation
 	OutSnapshot.ViewDirection = AimResult.ViewDirection;
 	OutSnapshot.DesiredWorldPoint = AimResult.DesiredWorldPoint;
 	OutSnapshot.bHasResolvedPoint = AimResult.bHasResolvedPoint;
+	OutSnapshot.HitActor = AimResult.HitActor;
+
+	if (HasLockedTarget())
+	{
+		OutSnapshot.LockedTargetActor = LockedTargetActor;
+		OutSnapshot.LockedTargetPoint = GetLockedTargetPoint();
+		OutSnapshot.bHadLockedTarget = true;
+
+		// Locked target aim should be stable from input time through delayed execution.
+		OutSnapshot.DesiredWorldPoint = OutSnapshot.LockedTargetPoint;
+		OutSnapshot.bHasResolvedPoint = true;
+		OutSnapshot.HitActor = LockedTargetActor;
+	}
 
 	return true;
 }

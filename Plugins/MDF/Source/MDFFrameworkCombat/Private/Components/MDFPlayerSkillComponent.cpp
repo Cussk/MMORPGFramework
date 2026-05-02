@@ -822,9 +822,7 @@ FMDFSkillActivationDecision UMDFPlayerSkillComponent::EvaluateSkillActivationFro
 
 bool UMDFPlayerSkillComponent::IsSkillActivationBlockedByRuntimeState() const
 {
-	// Phase 3 intentionally keeps this simple.
-	// Later phases should check real runtime restrictions:
-	// active casts, hard CC, death, recovery lockouts, etc.
+	//Check active casts, hard CC, death, recovery lockouts, etc.
 	return false;
 }
 
@@ -847,7 +845,7 @@ bool UMDFPlayerSkillComponent::BuildAimResultFromSnapshot(
 		: (AimSnapshot.ViewOrigin + (SafeViewDirection * 10000.0f));
 	OutAimResult.bHasResolvedPoint = AimSnapshot.bHasResolvedPoint;
 	OutAimResult.bBlockingHit = AimSnapshot.bHasResolvedPoint;
-	OutAimResult.HitActor = nullptr;
+	OutAimResult.HitActor = AimSnapshot.HitActor;
 
 	return true;
 }
@@ -888,32 +886,27 @@ bool UMDFPlayerSkillComponent::BuildExecutionContext(
 		return true;
 
 	case EMDFSkillTargetingMode::SingleTarget:
-	{
-		if (UMDFTargetingComponent* TargetingComponent = ResolveOwningTargetingComponent())
 		{
-			if (TargetingComponent->HasLockedTarget())
+			if (TryApplySnapshotLockedTarget(
+				ActivationDecision.Request.AimSnapshot,
+				OutContext.AvatarActor,
+				OutContext))
 			{
-				OutContext.OptionalTargetActor = TargetingComponent->GetLockedTargetActor();
-
-				if (const UMDFCombatantComponent* TargetCombatant =
-					FMDFComponentHelpers::FindOnActor<UMDFCombatantComponent>(OutContext.OptionalTargetActor))
-				{
-					OutContext.AimResult.DesiredWorldPoint = TargetCombatant->GetPreferredTargetPoint();
-					OutContext.AimResult.bHasResolvedPoint = true;
-					OutContext.AimResult.HitActor = OutContext.OptionalTargetActor;
-					return true;
-				}
+				return true;
 			}
-		}
 
-		if (!bHasSnapshotAim)
-		{
-			return false;
-		}
+			if (!bHasSnapshotAim)
+			{
+				return false;
+			}
 
-		OutContext.OptionalTargetActor = OutContext.AimResult.HitActor.Get();
-		return true;
-	}
+			AActor* SnapshotHitActor = OutContext.AimResult.HitActor.Get();
+			OutContext.OptionalTargetActor = IsSnapshotTargetStillUsable(SnapshotHitActor, OutContext.AvatarActor)
+				? SnapshotHitActor
+				: nullptr;
+
+			return true;
+		}
 
 	case EMDFSkillTargetingMode::GroundTarget:
 	default:
@@ -922,9 +915,65 @@ bool UMDFPlayerSkillComponent::BuildExecutionContext(
 			return false;
 		}
 
-		OutContext.OptionalTargetActor = OutContext.AimResult.HitActor.Get();
+		AActor* SnapshotHitActor = OutContext.AimResult.HitActor.Get();
+		OutContext.OptionalTargetActor = IsSnapshotTargetStillUsable(SnapshotHitActor, OutContext.AvatarActor)
+			? SnapshotHitActor
+			: nullptr;
+
 		return true;
 	}
+}
+
+bool UMDFPlayerSkillComponent::IsSnapshotTargetStillUsable(
+	const AActor* TargetActor,
+	const AActor* RequestingActor) const
+{
+	if (!TargetActor || TargetActor->IsActorBeingDestroyed() || !RequestingActor)
+	{
+		return false;
+	}
+
+	const UMDFCombatantComponent* TargetCombatant =
+		FMDFComponentHelpers::FindOnActor<UMDFCombatantComponent>(TargetActor);
+
+	return TargetCombatant && TargetCombatant->CanBeTargetedBy(RequestingActor);
+}
+
+bool UMDFPlayerSkillComponent::TryApplySnapshotLockedTarget(
+	const FMDFSkillActivationAimSnapshot& AimSnapshot,
+	const AActor* RequestingActor,
+	FMDFSkillExecutionContext& InOutContext) const
+{
+	if (!AimSnapshot.bHadLockedTarget || !AimSnapshot.LockedTargetActor)
+	{
+		return false;
+	}
+
+	AActor* SnapshotTarget = AimSnapshot.LockedTargetActor.Get();
+	if (!IsSnapshotTargetStillUsable(SnapshotTarget, RequestingActor))
+	{
+		return false;
+	}
+
+	InOutContext.OptionalTargetActor = SnapshotTarget;
+	InOutContext.AimResult.HitActor = SnapshotTarget;
+	InOutContext.AimResult.bHasResolvedPoint = true;
+
+	if (const UMDFCombatantComponent* TargetCombatant =
+		FMDFComponentHelpers::FindOnActor<UMDFCombatantComponent>(SnapshotTarget))
+	{
+		InOutContext.AimResult.DesiredWorldPoint = TargetCombatant->GetPreferredTargetPoint();
+	}
+	else if (!AimSnapshot.LockedTargetPoint.IsNearlyZero())
+	{
+		InOutContext.AimResult.DesiredWorldPoint = AimSnapshot.LockedTargetPoint;
+	}
+	else
+	{
+		InOutContext.AimResult.DesiredWorldPoint = SnapshotTarget->GetActorLocation();
+	}
+
+	return true;
 }
 
 UMDFAttributeComponent* UMDFPlayerSkillComponent::ResolveOwningAttributeComponent() const
@@ -1013,6 +1062,8 @@ bool UMDFPlayerSkillComponent::CommitAndExecuteSkillActivation(const FMDFSkillAc
 	ActiveSkillRuntime.Phase = EMDFActiveSkillPhase::Committed;
 	ActiveSkillRuntime.ServerStartTime = GetServerWorldTimeSecondsSafe();
 	OnRep_ActiveSkillRuntime();
+	
+	CombatActionComponent->ApplyInitialActionFacing(ActivationDecision, SkillDefinition);
 
 	PlaySourceExecuteCue(ActivationDecision, SkillDefinition, Combatant);
 

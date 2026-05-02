@@ -38,6 +38,18 @@ struct MDFFRAMEWORKCOMBAT_API FMDFSkillActivationAimSnapshot
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
 	bool bHasResolvedPoint = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	TObjectPtr<AActor> HitActor = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	TObjectPtr<AActor> LockedTargetActor = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	FVector LockedTargetPoint = FVector::ZeroVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	bool bHadLockedTarget = false;
 };
 
 USTRUCT(BlueprintType)

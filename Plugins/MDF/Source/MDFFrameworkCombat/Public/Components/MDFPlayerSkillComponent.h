@@ -286,6 +286,10 @@ protected:
 
 	bool BuildExecutionContext(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition, UMDFCombatantComponent* CombatantComponent, FMDFSkillExecutionContext& OutContext) const;
 	
+	bool IsSnapshotTargetStillUsable(const AActor* TargetActor, const AActor* RequestingActor) const;
+
+	bool TryApplySnapshotLockedTarget(const FMDFSkillActivationAimSnapshot& AimSnapshot, const AActor* RequestingActor, FMDFSkillExecutionContext& InOutContext) const;
+	
 	bool CommitAndExecuteSkillActivation(const FMDFSkillActivationDecision& ActivationDecision);
 	
 	FMDFSkillCooldownRuntime* FindSkillCooldownEntry(FGameplayTag DisciplineTag, FGameplayTag SkillTag);

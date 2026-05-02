@@ -34,6 +34,8 @@ public:
 	UMDFCombatActionComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UFUNCTION(BlueprintPure, Category="Combat")
 	const FMDFActiveCombatActionRuntime& GetActiveCombatActionRuntime() const;
@@ -99,6 +101,8 @@ public:
 	float GetServerWorldTimeSecondsSafe() const;
 	
 	bool StartTimedSkillBackedAction(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition, EMDFCombatActionType ActionType, int32 ComboStepIndex);
+	
+	bool ApplyInitialActionFacing(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition);
 
 	bool RequestBasicAttack(const FMDFSkillActivationAimSnapshot& AimSnapshot);
 	void RequestBasicAttackFromInput(const FMDFSkillActivationAimSnapshot& AimSnapshot);
@@ -150,6 +154,18 @@ protected:
 	FTimerHandle TransitionSwapCommitTimerHandle;
 	
 	static constexpr float IdentityDrainTickIntervalSeconds = 0.1f;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Facing", meta=(ClampMin="0.0"))
+	float MaxSmoothFacingTurnDurationSeconds = 0.2f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Facing", meta=(ClampMin="0.0"))
+	float SmoothFacingSnapAngleToleranceDegrees = 1.0f;
+
+	bool bSmoothFacingActive = false;
+	float SmoothFacingElapsedSeconds = 0.0f;
+	float SmoothFacingDurationSeconds = 0.0f;
+	float SmoothFacingStartYaw = 0.0f;
+	float SmoothFacingDeltaYaw = 0.0f;
 
 	FMDFSkillActivationDecision ScheduledSkillActivationDecision;
 	bool bHasScheduledSkillActivation = false;
@@ -163,7 +179,14 @@ protected:
 	void ClearScheduledActionTimers();
 	void ClearScheduledSkillAuthorityData();
 	
+	bool BuildInitialActionFacingDirection(const FMDFSkillActivationDecision& ActivationDecision, const UMDFSkillDefinition* SkillDefinition, FVector& OutFacingDirection) const;
+	bool BuildFacingDirectionFromAimSnapshot(const FMDFSkillActivationAimSnapshot& AimSnapshot, bool bAllowLockedTarget, bool bForceViewDirection, FVector& OutFacingDirection) const;
 
+	bool ApplyIdentityActionFacing(const FMDFSkillActivationAimSnapshot& AimSnapshot, EMDFIdentityActionType IdentityType);
+	bool StartSmoothActionFacing(FVector FacingDirection);
+	void UpdateSmoothActionFacing(float DeltaTime);
+	void ClearSmoothActionFacing();
+	
 	bool StartBasicComboStep(FGameplayTag DisciplineTag, int32 StepIndex, const FMDFSkillActivationAimSnapshot& AimSnapshot);
 	bool TryQueueNextBasicComboStep(const FMDFSkillActivationAimSnapshot& AimSnapshot);
 	void ClearBasicComboRuntime();
