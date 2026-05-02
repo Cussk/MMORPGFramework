@@ -11,6 +11,7 @@ public class MDFFrameworkProgression : ModuleRules
             {
                 "Core",
                 "CoreUObject",
+                "Engine",
                 "GameplayTags",
                 "Niagara",
                 "MDFFrameworkCore"
@@ -20,7 +21,6 @@ public class MDFFrameworkProgression : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                "Engine"
             }
         );
     }

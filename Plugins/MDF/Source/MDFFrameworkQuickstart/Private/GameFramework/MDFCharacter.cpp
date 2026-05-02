@@ -5,6 +5,7 @@
 #include "EnhancedInputComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/MDFAnimationPresentationComponent.h"
 #include "Components/MDFCombatActionComponent.h"
 #include "Components/MDFCombatantComponent.h"
 #include "Components/MDFCombatCueComponent.h"
@@ -46,6 +47,7 @@ AMDFCharacter::AMDFCharacter()
 	MDFCombatCueComponent = CreateDefaultSubobject<UMDFCombatCueComponent>(TEXT("CombatCueComponent"));
 	MDFCombatActionComponent = CreateDefaultSubobject<UMDFCombatActionComponent>(TEXT("CombatActionComponent"));
 	MDFIdentityPresentationComponent = CreateDefaultSubobject<UMDFIdentityPresentationComponent>(TEXT("IdentityPresentationComponent"));
+	MDFAnimationPresentationComponent = CreateDefaultSubobject<UMDFAnimationPresentationComponent>(TEXT("AnimationPresentationComponent"));
 }
 
 AMDFPlayerController* AMDFCharacter::GetMDFPlayerController() const
@@ -101,6 +103,11 @@ UMDFCombatActionComponent* AMDFCharacter::GetMDFCombatActionComponent() const
 UMDFIdentityPresentationComponent* AMDFCharacter::GetMDFIdentityPresentationComponent() const
 {
 	return MDFIdentityPresentationComponent;
+}
+
+UMDFAnimationPresentationComponent* AMDFCharacter::GetMDFAnimationPresentationComponent() const
+{
+	return MDFAnimationPresentationComponent;
 }
 
 void AMDFCharacter::InputMove(const FInputActionValue& Value)
