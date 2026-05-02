@@ -38,6 +38,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="MDF|Animation")
 	bool IsCombatPresentationActive() const;
+	
+	UFUNCTION(BlueprintPure, Category="MDF|Animation")
+	bool IsWeaponUnsheathedForPresentation() const;
 
 	UFUNCTION(BlueprintPure, Category="MDF|Animation")
 	const UMDFDisciplineAnimationSet* GetActiveAnimationSet() const

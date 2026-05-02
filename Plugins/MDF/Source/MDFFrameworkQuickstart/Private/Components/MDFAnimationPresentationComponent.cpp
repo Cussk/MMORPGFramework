@@ -84,6 +84,11 @@ bool UMDFAnimationPresentationComponent::IsCombatPresentationActive() const
 	return bWeaponUnsheathedForPresentation || bAutoCombatPresentationActive || IsActionRuntimeDrivingCombatPresentation();
 }
 
+bool UMDFAnimationPresentationComponent::IsWeaponUnsheathedForPresentation() const
+{
+	return bWeaponUnsheathedForPresentation;
+}
+
 void UMDFAnimationPresentationComponent::HandleCombatActionStateChanged()
 {
 	RefreshAnimationPresentationState();
