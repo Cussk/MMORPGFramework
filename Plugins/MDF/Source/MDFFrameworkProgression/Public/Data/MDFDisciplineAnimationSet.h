@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Data/MDFDefinitionAsset.h"
+#include "Types/MDFAnimationTypes.h"
 #include "MDFDisciplineAnimationSet.generated.h"
 
 class UAnimInstance;
@@ -43,6 +44,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation|Slots")
 	FName IdentitySlotName = TEXT("Identity");
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation|Aim Offset")
+	FMDFAimOffsetSpec AimOffsetSpec;
 
 	bool HasCombatLayer() const
 	{

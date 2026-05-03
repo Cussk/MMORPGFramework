@@ -32,6 +32,7 @@ protected:
 	void RefreshCachedReferences();
 	void UpdateMovementState();
 	void UpdateCombatAnimationState();
+	void UpdateAimOffsetState(float DeltaSeconds);
 
 	UPROPERTY(BlueprintReadOnly, Category="MDF|Movement")
 	FVector WorldVelocity = FVector::ZeroVector;
@@ -80,6 +81,21 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category="MDF|Identity")
 	EMDFIdentityActionType ActiveIdentityType = EMDFIdentityActionType::None;
+	
+	UPROPERTY(BlueprintReadOnly, Category="MDF|Aim")
+	bool bAimOffsetActive = false;
+
+	UPROPERTY(BlueprintReadOnly, Category="MDF|Aim")
+	bool bZoomAimOffsetActive = false;
+
+	UPROPERTY(BlueprintReadOnly, Category="MDF|Aim")
+	float AimYaw = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category="MDF|Aim")
+	float AimPitch = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category="MDF|Aim")
+	float AimOffsetAlpha = 0.0f;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<APawn> CachedPawn;

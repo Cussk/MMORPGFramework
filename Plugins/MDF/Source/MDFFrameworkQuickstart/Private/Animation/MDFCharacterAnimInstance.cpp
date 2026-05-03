@@ -26,6 +26,7 @@ void UMDFCharacterAnimInstance::NativeUpdateAnimation(const float DeltaSeconds)
 	RefreshCachedReferences();
 	UpdateMovementState();
 	UpdateCombatAnimationState();
+	UpdateAimOffsetState(DeltaSeconds);
 }
 
 void UMDFCharacterAnimInstance::RefreshCachedReferences()
@@ -178,4 +179,91 @@ void UMDFCharacterAnimInstance::UpdateCombatAnimationState()
 		const FMDFActiveIdentityActionRuntime& IdentityRuntime = CombatActionComponent->GetActiveIdentityRuntime();
 		ActiveIdentityType = IdentityRuntime.IdentityType;
 	}
+}
+
+void UMDFCharacterAnimInstance::UpdateAimOffsetState(const float DeltaSeconds)
+{
+	const APawn* PawnOwner = CachedPawn.Get();
+
+	float TargetAimYaw = 0.0f;
+	float TargetAimPitch = 0.0f;
+	float TargetAimOffsetAlpha = 0.0f;
+
+	float RotationInterpSpeed = 12.0f;
+	float AlphaInterpSpeed = 10.0f;
+	bool bTargetZoomAimOffsetActive = false;
+
+	const UMDFAnimationPresentationComponent* AnimationPresentationComponent =
+		CachedAnimationPresentationComponent.Get();
+
+	const UMDFDisciplineAnimationSet* AnimationSet = AnimationPresentationComponent
+		? AnimationPresentationComponent->GetActiveAnimationSet()
+		: nullptr;
+
+	if (PawnOwner && AnimationSet)
+	{
+		RotationInterpSpeed = AnimationSet->AimOffsetSpec.AimOffsetRotationInterpSpeed;
+		AlphaInterpSpeed = AnimationSet->AimOffsetSpec.AimOffsetAlphaInterpSpeed;
+
+		const bool bCanUseAimOffset = bCombatPresentationActive && AnimationSet->AimOffsetSpec.bEnableAimOffset;
+		const bool bUsingZoomIdentity = bHasActiveIdentityAction && ActiveIdentityType == EMDFIdentityActionType::Zoom;
+
+		if (bCanUseAimOffset)
+		{
+			TargetAimOffsetAlpha = bUsingZoomIdentity
+				? AnimationSet->AimOffsetSpec.ZoomAimOffsetAlpha
+				: AnimationSet->AimOffsetSpec.CombatAimOffsetAlpha;
+
+			bTargetZoomAimOffsetActive = bUsingZoomIdentity && TargetAimOffsetAlpha > 0.0f;
+
+			const FRotator ActorRotation = PawnOwner->GetActorRotation();
+			const FRotator AimRotation = PawnOwner->GetBaseAimRotation();
+
+			TargetAimYaw = FMath::FindDeltaAngleDegrees(ActorRotation.Yaw, AimRotation.Yaw);
+			TargetAimPitch = FRotator::NormalizeAxis(AimRotation.Pitch);
+
+			TargetAimYaw = FMath::Clamp(
+				TargetAimYaw,
+				-AnimationSet->AimOffsetSpec.AimYawClampDegrees,
+				AnimationSet->AimOffsetSpec.AimYawClampDegrees);
+
+			TargetAimPitch = FMath::Clamp(
+				TargetAimPitch,
+				-AnimationSet->AimOffsetSpec.AimPitchDownClampDegrees,
+				AnimationSet->AimOffsetSpec.AimPitchUpClampDegrees);
+
+			if (AnimationSet->AimOffsetSpec.bInvertAimYaw)
+			{
+				TargetAimYaw *= -1.0f;
+			}
+
+			if (AnimationSet->AimOffsetSpec.bInvertAimPitch)
+			{
+				TargetAimPitch *= -1.0f;
+			}
+		}
+	}
+
+	if (RotationInterpSpeed <= 0.0f)
+	{
+		AimYaw = TargetAimYaw;
+		AimPitch = TargetAimPitch;
+	}
+	else
+	{
+		AimYaw = FMath::FInterpTo(AimYaw, TargetAimYaw, DeltaSeconds, RotationInterpSpeed);
+		AimPitch = FMath::FInterpTo(AimPitch, TargetAimPitch, DeltaSeconds, RotationInterpSpeed);
+	}
+
+	if (AlphaInterpSpeed <= 0.0f)
+	{
+		AimOffsetAlpha = TargetAimOffsetAlpha;
+	}
+	else
+	{
+		AimOffsetAlpha = FMath::FInterpTo(AimOffsetAlpha, TargetAimOffsetAlpha, DeltaSeconds, AlphaInterpSpeed);
+	}
+
+	bAimOffsetActive = AimOffsetAlpha > 0.01f;
+	bZoomAimOffsetActive = bAimOffsetActive && bTargetZoomAimOffsetActive;
 }
