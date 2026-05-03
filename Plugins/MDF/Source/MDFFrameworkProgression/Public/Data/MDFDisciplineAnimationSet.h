@@ -36,13 +36,13 @@ public:
 	TSubclassOf<UAnimInstance> CombatLinkedAnimLayerClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation|Slots")
-	FName FullBodyActionSlotName = TEXT("Slot.FullBody.Action");
+	FName FullBodyActionSlotName = TEXT("FullBody.Action");
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation|Slots")
-	FName UpperBodyActionSlotName = TEXT("Slot.UpperBody.Action");
+	FName UpperBodyActionSlotName = TEXT("UpperBody.Action");
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation|Slots")
-	FName IdentitySlotName = TEXT("Slot.Identity");
+	FName IdentitySlotName = TEXT("Identity");
 
 	bool HasCombatLayer() const
 	{
