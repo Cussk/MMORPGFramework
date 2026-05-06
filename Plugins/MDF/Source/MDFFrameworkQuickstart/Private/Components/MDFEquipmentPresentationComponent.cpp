@@ -67,6 +67,7 @@ void UMDFEquipmentPresentationComponent::EndPlay(const EEndPlayReason::Type EndP
 	}
 
 	ClearPendingEquipmentAttachmentRequest();
+	DestroyEquipmentVisuals();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -121,6 +122,15 @@ void UMDFEquipmentPresentationComponent::RequestEquipmentAttachmentState(
 
 	ClearPendingEquipmentAttachmentRequest();
 
+	// Important for attack-during-unequip and cancel-during-equip cases.
+	// If the new requested state matches the current committed attachment state,
+	// clearing the previous pending request is all we needed to do.
+	if (CurrentAttachmentState == RequestedState)
+	{
+		ApplyEquipmentVisualAttachmentState();
+		return;
+	}
+
 	PendingAttachmentState = RequestedState;
 	bHasPendingAttachmentState = true;
 
@@ -150,6 +160,13 @@ void UMDFEquipmentPresentationComponent::ScheduleOrCommitPendingEquipmentAttachm
 {
 	if (!bHasPendingAttachmentState)
 	{
+		return;
+	}
+	
+	if (CurrentAttachmentState == PendingAttachmentState)
+	{
+		ClearPendingEquipmentAttachmentRequest();
+		ApplyEquipmentVisualAttachmentState();
 		return;
 	}
 
