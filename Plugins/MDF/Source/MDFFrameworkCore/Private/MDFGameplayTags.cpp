@@ -210,4 +210,21 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Input_Interact, "Input.Interact");
 	UE_DEFINE_GAMEPLAY_TAG(Input_ToggleTarget, "Input.ToggleTarget");
 	UE_DEFINE_GAMEPLAY_TAG(Input_CycleTarget, "Input.CycleTarget");
+	
+	// --------------------
+	// Equipment Visuals
+	// --------------------
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_MainHand, "Equipment.Visual.MainHand");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_OffHand, "Equipment.Visual.OffHand");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_SheathedMainHand, "Equipment.Visual.SheathedMainHand");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_SheathedOffHand, "Equipment.Visual.SheathedOffHand");	
+	
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Head, "Equipment.Visual.Head");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Chest, "Equipment.Visual.Chest");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Hands, "Equipment.Visual.Hands");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Legs, "Equipment.Visual.Legs");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Feet, "Equipment.Visual.Feet");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Back, "Equipment.Visual.Back");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Shoulders, "Equipment.Visual.Shoulders");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Waist, "Equipment.Visual.Waist");
 }

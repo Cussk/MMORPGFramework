@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "MDFDisciplineAnimationSet.h"
+#include "MDFDisciplineVisualSet.h"
 #include "Types/MDFComboTypes.h"
 #include "Data/MDFDefinitionAsset.h"
 #include "Types/MDFDisciplineTypes.h"
@@ -30,6 +31,9 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Discipline|Presentation")
 	TObjectPtr<UMDFDisciplineAnimationSet> AnimationSet;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Discipline|Presentation")
+	TObjectPtr<UMDFDisciplineVisualSet> VisualSet;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discipline", meta = (ClampMin = "1"))
 	int32 MaxLevel;

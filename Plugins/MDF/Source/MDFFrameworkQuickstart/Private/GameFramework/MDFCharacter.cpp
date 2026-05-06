@@ -9,6 +9,7 @@
 #include "Components/MDFCombatActionComponent.h"
 #include "Components/MDFCombatantComponent.h"
 #include "Components/MDFCombatCueComponent.h"
+#include "Components/MDFEquipmentPresentationComponent.h"
 #include "Components/MDFIdentityPresentationComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/MDFPlayerController.h"
@@ -48,6 +49,7 @@ AMDFCharacter::AMDFCharacter()
 	MDFCombatActionComponent = CreateDefaultSubobject<UMDFCombatActionComponent>(TEXT("CombatActionComponent"));
 	MDFIdentityPresentationComponent = CreateDefaultSubobject<UMDFIdentityPresentationComponent>(TEXT("IdentityPresentationComponent"));
 	MDFAnimationPresentationComponent = CreateDefaultSubobject<UMDFAnimationPresentationComponent>(TEXT("AnimationPresentationComponent"));
+	MDFEquipmentPresentationComponent = CreateDefaultSubobject<UMDFEquipmentPresentationComponent>(TEXT("EquipmentPresentationComponent"));
 }
 
 AMDFPlayerController* AMDFCharacter::GetMDFPlayerController() const
@@ -108,6 +110,11 @@ UMDFIdentityPresentationComponent* AMDFCharacter::GetMDFIdentityPresentationComp
 UMDFAnimationPresentationComponent* AMDFCharacter::GetMDFAnimationPresentationComponent() const
 {
 	return MDFAnimationPresentationComponent;
+}
+
+UMDFEquipmentPresentationComponent* AMDFCharacter::GetMDFEquipmentPresentationComponent() const
+{
+	return MDFEquipmentPresentationComponent;
 }
 
 void AMDFCharacter::InputMove(const FInputActionValue& Value)

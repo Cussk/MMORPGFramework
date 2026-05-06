@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "MDFCharacter.generated.h"
 
+class UMDFEquipmentPresentationComponent;
 class UMDFAnimationPresentationComponent;
 class UMDFIdentityPresentationComponent;
 class UMDFCombatActionComponent;
@@ -73,6 +74,9 @@ public:
 	UFUNCTION(BlueprintPure, Category="MDF")
 	UMDFAnimationPresentationComponent* GetMDFAnimationPresentationComponent() const;
 	
+	UFUNCTION(BlueprintPure, Category="MDF")
+	UMDFEquipmentPresentationComponent* GetMDFEquipmentPresentationComponent() const;
+	
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	
@@ -96,6 +100,9 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UMDFAnimationPresentationComponent> MDFAnimationPresentationComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UMDFEquipmentPresentationComponent> MDFEquipmentPresentationComponent;
 	
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoMove(float Right, float Forward);
