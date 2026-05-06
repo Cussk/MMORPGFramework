@@ -39,10 +39,7 @@ public:
 	void SetWeaponUnsheathedForPresentation(bool bInUnsheathed);
 
 	UFUNCTION(BlueprintPure, Category="MDF|Equipment Presentation")
-	const UMDFDisciplineVisualSet* GetActiveVisualSet() const
-	{
-		return ActiveVisualSet.Get();
-	}
+	const UMDFDisciplineVisualSet* GetActiveVisualSet() const;
 
 protected:
 	UFUNCTION()
@@ -50,15 +47,22 @@ protected:
 
 	UFUNCTION()
 	void HandleDisciplineSwapCommitted(const FMDFPendingDisciplineSwapRuntime& SwapRuntime);
+	
+	UFUNCTION()
+	void HandleCombatPresentationStateChanged(bool bCombatPresentationActive);
 
 	void CachePresentationDependencies();
 
 	void RebuildEquipmentVisuals();
 	void DestroyEquipmentVisuals();
-	void ApplyEquipmentVisualVisibility();
+	void ApplyEquipmentVisualAttachmentState();
 
 	USceneComponent* CreateVisualComponentForSpec(const FMDFEquipmentVisualAttachmentSpec& VisualSpec) const;
+	bool ReattachVisualComponentForSpec(USceneComponent* VisualComponent, const FMDFEquipmentVisualAttachmentSpec& VisualSpec) const;
+
 	bool ShouldShowVisualSpec(const FMDFEquipmentVisualAttachmentSpec& VisualSpec) const;
+	bool TryGetCurrentAttachmentPoint(const FMDFEquipmentVisualAttachmentSpec& VisualSpec, FMDFEquipmentVisualAttachmentPoint& OutAttachmentPoint) const;
+	
 	bool IsCombatVisualPresentationActive() const;
 
 	UMDFPlayerSkillComponent* ResolveSkillComponent() const;

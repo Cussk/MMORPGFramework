@@ -13,6 +13,8 @@ class UMDFPlayerSkillComponent;
 class UMDFDisciplineAnimationSet;
 class USkeletalMeshComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMDFCombatPresentationStateChangedSignature, bool, bCombatPresentationActive);
+
 /**
  * Optional quickstart component for discipline-driven animation presentation.
  *
@@ -43,10 +45,10 @@ public:
 	bool IsWeaponUnsheathedForPresentation() const;
 
 	UFUNCTION(BlueprintPure, Category="MDF|Animation")
-	const UMDFDisciplineAnimationSet* GetActiveAnimationSet() const
-	{
-		return ActiveAnimationSet.Get();
-	}
+	const UMDFDisciplineAnimationSet* GetActiveAnimationSet() const;
+
+	UPROPERTY(BlueprintAssignable, Category="MDF|Animation")
+	FMDFCombatPresentationStateChangedSignature OnCombatPresentationStateChanged;
 
 protected:
 	UFUNCTION()
@@ -62,6 +64,8 @@ protected:
 	void ClearCurrentLinkedAnimLayer();
 
 	bool IsActionRuntimeDrivingCombatPresentation() const;
+	
+	void BroadcastCombatPresentationStateIfChanged();
 
 	UMDFPlayerSkillComponent* ResolveSkillComponent() const;
 	UMDFCombatActionComponent* ResolveCombatActionComponent() const;
@@ -79,6 +83,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF|Animation")
 	bool bAutoCombatPresentationActive = false;
+	
+	UPROPERTY(Transient)
+	bool bLastBroadcastCombatPresentationActive = false;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UMDFCombatActionComponent> CachedCombatActionComponent;

@@ -35,6 +35,13 @@ void UMDFEquipmentPresentationComponent::BeginPlay()
 			this,
 			&UMDFEquipmentPresentationComponent::HandleDisciplineSwapCommitted);
 	}
+	
+	if (UMDFAnimationPresentationComponent* AnimationPresentationComponent = CachedAnimationPresentationComponent.Get())
+	{
+		AnimationPresentationComponent->OnCombatPresentationStateChanged.AddDynamic(
+			this,
+			&UMDFEquipmentPresentationComponent::HandleCombatPresentationStateChanged);
+	}
 
 	RefreshEquipmentPresentationState();
 }
@@ -50,6 +57,13 @@ void UMDFEquipmentPresentationComponent::EndPlay(const EEndPlayReason::Type EndP
 		CombatActionComponent->OnDisciplineSwapCommitted.RemoveDynamic(
 			this,
 			&UMDFEquipmentPresentationComponent::HandleDisciplineSwapCommitted);
+	}
+	
+	if (UMDFAnimationPresentationComponent* AnimationPresentationComponent = CachedAnimationPresentationComponent.Get())
+	{
+		AnimationPresentationComponent->OnCombatPresentationStateChanged.RemoveDynamic(
+			this,
+			&UMDFEquipmentPresentationComponent::HandleCombatPresentationStateChanged);
 	}
 
 	DestroyEquipmentVisuals();
@@ -69,7 +83,7 @@ void UMDFEquipmentPresentationComponent::RefreshEquipmentPresentationState()
 		return;
 	}
 
-	ApplyEquipmentVisualVisibility();
+	ApplyEquipmentVisualAttachmentState();
 }
 
 void UMDFEquipmentPresentationComponent::SetWeaponUnsheathedForPresentation(const bool bInUnsheathed)
@@ -81,7 +95,12 @@ void UMDFEquipmentPresentationComponent::SetWeaponUnsheathedForPresentation(cons
 		AnimationPresentationComponent->SetWeaponUnsheathedForPresentation(bInUnsheathed);
 	}
 
-	ApplyEquipmentVisualVisibility();
+	ApplyEquipmentVisualAttachmentState();
+}
+
+const UMDFDisciplineVisualSet* UMDFEquipmentPresentationComponent::GetActiveVisualSet() const
+{
+	return ActiveVisualSet.Get();
 }
 
 void UMDFEquipmentPresentationComponent::HandleCombatActionStateChanged()
@@ -92,6 +111,11 @@ void UMDFEquipmentPresentationComponent::HandleCombatActionStateChanged()
 void UMDFEquipmentPresentationComponent::HandleDisciplineSwapCommitted(const FMDFPendingDisciplineSwapRuntime& SwapRuntime)
 {
 	RefreshEquipmentPresentationState();
+}
+
+void UMDFEquipmentPresentationComponent::HandleCombatPresentationStateChanged(const bool bCombatPresentationActive)
+{
+	ApplyEquipmentVisualAttachmentState();
 }
 
 void UMDFEquipmentPresentationComponent::CachePresentationDependencies()
@@ -138,7 +162,7 @@ void UMDFEquipmentPresentationComponent::RebuildEquipmentVisuals()
 		ActiveVisualComponents.Add(VisualSpec.VisualSlotTag, VisualComponent);
 	}
 
-	ApplyEquipmentVisualVisibility();
+	ApplyEquipmentVisualAttachmentState();
 }
 
 void UMDFEquipmentPresentationComponent::DestroyEquipmentVisuals()
@@ -154,7 +178,7 @@ void UMDFEquipmentPresentationComponent::DestroyEquipmentVisuals()
 	ActiveVisualComponents.Reset();
 }
 
-void UMDFEquipmentPresentationComponent::ApplyEquipmentVisualVisibility()
+void UMDFEquipmentPresentationComponent::ApplyEquipmentVisualAttachmentState()
 {
 	const UMDFDisciplineVisualSet* VisualSet = ActiveVisualSet.Get();
 	if (!VisualSet)
@@ -170,20 +194,25 @@ void UMDFEquipmentPresentationComponent::ApplyEquipmentVisualVisibility()
 			continue;
 		}
 
-		const bool bShouldShow = ShouldShowVisualSpec(VisualSpec);
 		USceneComponent* VisualComponent = ComponentPtr->Get();
+		const bool bShouldShow = ShouldShowVisualSpec(VisualSpec);
+
+		if (bShouldShow)
+		{
+			ReattachVisualComponentForSpec(VisualComponent, VisualSpec);
+		}
 
 		VisualComponent->SetVisibility(bShouldShow, true);
 		VisualComponent->SetHiddenInGame(!bShouldShow, true);
 	}
 }
 
-USceneComponent* UMDFEquipmentPresentationComponent::CreateVisualComponentForSpec(const FMDFEquipmentVisualAttachmentSpec& VisualSpec) const
+USceneComponent* UMDFEquipmentPresentationComponent::CreateVisualComponentForSpec(
+	const FMDFEquipmentVisualAttachmentSpec& VisualSpec) const
 {
 	AActor* OwnerActor = GetOwner();
-	USkeletalMeshComponent* MeshComponent = CachedMeshComponent.Get();
 
-	if (!OwnerActor || !MeshComponent || !VisualSpec.IsValid())
+	if (!OwnerActor || !VisualSpec.IsValid())
 	{
 		return nullptr;
 	}
@@ -228,38 +257,78 @@ USceneComponent* UMDFEquipmentPresentationComponent::CreateVisualComponentForSpe
 	}
 
 	CreatedComponent->CreationMethod = EComponentCreationMethod::Instance;
-	CreatedComponent->SetRelativeTransform(VisualSpec.RelativeTransform);
 
 	OwnerActor->AddInstanceComponent(CreatedComponent);
 	CreatedComponent->RegisterComponent();
 
-	CreatedComponent->AttachToComponent(
-		MeshComponent,
-		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-		VisualSpec.AttachSocketName);
-
-	CreatedComponent->SetRelativeTransform(VisualSpec.RelativeTransform);
+	ReattachVisualComponentForSpec(CreatedComponent, VisualSpec);
 
 	return CreatedComponent;
+}
+
+bool UMDFEquipmentPresentationComponent::ReattachVisualComponentForSpec(
+	USceneComponent* VisualComponent,
+	const FMDFEquipmentVisualAttachmentSpec& VisualSpec) const
+{
+	USkeletalMeshComponent* MeshComponent = CachedMeshComponent.Get();
+	if (!VisualComponent || !MeshComponent || !VisualSpec.IsValid())
+	{
+		return false;
+	}
+
+	FMDFEquipmentVisualAttachmentPoint AttachmentPoint;
+	if (!TryGetCurrentAttachmentPoint(VisualSpec, AttachmentPoint))
+	{
+		return false;
+	}
+	
+	VisualComponent->SetRelativeTransform(AttachmentPoint.RelativeTransform);
+
+	VisualComponent->AttachToComponent(
+		MeshComponent,
+		FAttachmentTransformRules::KeepRelativeTransform,
+		AttachmentPoint.AttachSocketName);
+
+	return true;
 }
 
 bool UMDFEquipmentPresentationComponent::ShouldShowVisualSpec(
 	const FMDFEquipmentVisualAttachmentSpec& VisualSpec) const
 {
 	const bool bCombatVisualActive = IsCombatVisualPresentationActive();
+	return bCombatVisualActive
+		? VisualSpec.bVisibleWhenUnsheathed
+		: VisualSpec.bVisibleWhenSheathed;
+}
 
-	switch (VisualSpec.VisibilityRule)
+bool UMDFEquipmentPresentationComponent::TryGetCurrentAttachmentPoint(
+	const FMDFEquipmentVisualAttachmentSpec& VisualSpec,
+	FMDFEquipmentVisualAttachmentPoint& OutAttachmentPoint) const
+{
+	const bool bCombatVisualActive = IsCombatVisualPresentationActive();
+
+	const FMDFEquipmentVisualAttachmentPoint& PreferredAttachment = bCombatVisualActive
+		? VisualSpec.UnsheathedAttachment
+		: VisualSpec.SheathedAttachment;
+
+	if (PreferredAttachment.IsConfigured())
 	{
-	case EMDFEquipmentVisualVisibilityRule::Always:
+		OutAttachmentPoint = PreferredAttachment;
 		return true;
-
-	case EMDFEquipmentVisualVisibilityRule::SheathedOnly:
-		return !bCombatVisualActive;
-
-	case EMDFEquipmentVisualVisibilityRule::UnsheathedOnly:
-	default:
-		return bCombatVisualActive;
 	}
+
+	const FMDFEquipmentVisualAttachmentPoint& FallbackAttachment = bCombatVisualActive
+		? VisualSpec.SheathedAttachment
+		: VisualSpec.UnsheathedAttachment;
+
+	if (FallbackAttachment.IsConfigured())
+	{
+		OutAttachmentPoint = FallbackAttachment;
+		return true;
+	}
+
+	OutAttachmentPoint = FMDFEquipmentVisualAttachmentPoint();
+	return false;
 }
 
 bool UMDFEquipmentPresentationComponent::IsCombatVisualPresentationActive() const

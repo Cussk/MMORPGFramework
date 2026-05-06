@@ -9,16 +9,31 @@
 class USkeletalMesh;
 class UStaticMesh;
 
-UENUM(BlueprintType)
-enum class EMDFEquipmentVisualVisibilityRule : uint8
+/**
+ * One possible attachment point for an equipment visual.
+ *
+ * The same spawned component can move between these points when equipping
+ * or unequipping, avoiding destroy/spawn work during normal combat state changes.
+ */
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKPROGRESSION_API FMDFEquipmentVisualAttachmentPoint
 {
-	Always			UMETA(DisplayName="Always"),
-	UnsheathedOnly	UMETA(DisplayName="Unsheathed Only"),
-	SheathedOnly	UMETA(DisplayName="Sheathed Only")
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment Visual")
+	FName AttachSocketName = NAME_None;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment Visual")
+	FTransform RelativeTransform = FTransform::Identity;
+
+	bool IsConfigured() const
+	{
+		return AttachSocketName != NAME_None;
+	}
 };
 
 /**
- * One attached equipment visual, such as a sword, shield, bow, staff, or sheathed prop.
+ * One persistent equipment visual, such as a sword, shield, bow, staff, or quiver.
  *
  * This is presentation data only. It does not imply inventory ownership, stats,
  * progression, durability, or gameplay equipment rules.
@@ -38,17 +53,22 @@ struct MDFFRAMEWORKPROGRESSION_API FMDFEquipmentVisualAttachmentSpec
 	TObjectPtr<USkeletalMesh> SkeletalMesh = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment Visual")
-	FName AttachSocketName = NAME_None;
+	FMDFEquipmentVisualAttachmentPoint SheathedAttachment;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment Visual")
-	FTransform RelativeTransform = FTransform::Identity;
+	FMDFEquipmentVisualAttachmentPoint UnsheathedAttachment;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment Visual")
-	EMDFEquipmentVisualVisibilityRule VisibilityRule = EMDFEquipmentVisualVisibilityRule::UnsheathedOnly;
+	bool bVisibleWhenSheathed = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment Visual")
+	bool bVisibleWhenUnsheathed = true;
 
 	bool IsValid() const
 	{
-		return VisualSlotTag.IsValid() && (StaticMesh || SkeletalMesh);
+		return VisualSlotTag.IsValid()
+			&& (StaticMesh || SkeletalMesh)
+			&& (SheathedAttachment.IsConfigured() || UnsheathedAttachment.IsConfigured());
 	}
 
 	bool UsesSkeletalMesh() const

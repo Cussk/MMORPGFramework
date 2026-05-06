@@ -36,6 +36,7 @@ void UMDFAnimationPresentationComponent::BeginPlay()
 	}
 
 	RefreshAnimationPresentationState();
+	bLastBroadcastCombatPresentationActive = IsCombatPresentationActive();
 
 	if (UWorld* World = GetWorld())
 	{
@@ -89,6 +90,11 @@ bool UMDFAnimationPresentationComponent::IsWeaponUnsheathedForPresentation() con
 	return bWeaponUnsheathedForPresentation;
 }
 
+const UMDFDisciplineAnimationSet* UMDFAnimationPresentationComponent::GetActiveAnimationSet() const
+{
+	return ActiveAnimationSet.Get();
+}
+
 void UMDFAnimationPresentationComponent::HandleCombatActionStateChanged()
 {
 	RefreshAnimationPresentationState();
@@ -140,6 +146,7 @@ void UMDFAnimationPresentationComponent::RefreshAnimationPresentationState()
 
 	ActiveAnimationSet = ResolveActiveDisciplineAnimationSet();
 	ApplyCurrentLinkedAnimLayer();
+	BroadcastCombatPresentationStateIfChanged();
 }
 
 void UMDFAnimationPresentationComponent::CachePresentationDependencies()
@@ -205,6 +212,18 @@ bool UMDFAnimationPresentationComponent::IsActionRuntimeDrivingCombatPresentatio
 	const UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get();
 	return CombatActionComponent
 		&& (CombatActionComponent->HasActiveCombatAction() || CombatActionComponent->HasActiveIdentityAction());
+}
+
+void UMDFAnimationPresentationComponent::BroadcastCombatPresentationStateIfChanged()
+{
+	const bool bCurrentCombatPresentationActive = IsCombatPresentationActive();
+	if (bLastBroadcastCombatPresentationActive == bCurrentCombatPresentationActive)
+	{
+		return;
+	}
+
+	bLastBroadcastCombatPresentationActive = bCurrentCombatPresentationActive;
+	OnCombatPresentationStateChanged.Broadcast(bCurrentCombatPresentationActive);
 }
 
 UMDFPlayerSkillComponent* UMDFAnimationPresentationComponent::ResolveSkillComponent() const
