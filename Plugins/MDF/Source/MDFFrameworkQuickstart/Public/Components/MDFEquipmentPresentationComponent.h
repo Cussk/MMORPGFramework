@@ -8,6 +8,7 @@
 #include "Types/MDFEquipmentVisualTypes.h"
 #include "MDFEquipmentPresentationComponent.generated.h"
 
+class UMDFDisciplineAnimationSet;
 class UMDFAnimationPresentationComponent;
 class UMDFCombatActionComponent;
 class UMDFDisciplineVisualSet;
@@ -37,6 +38,18 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="MDF|Equipment Presentation")
 	void SetWeaponUnsheathedForPresentation(bool bInUnsheathed);
+	
+	UFUNCTION(BlueprintCallable, Category="MDF|Equipment Presentation")
+	void RequestEquipmentAttachmentState(EMDFEquipmentAttachmentState RequestedState);
+
+	UFUNCTION(BlueprintCallable, Category="MDF|Equipment Presentation")
+	void CommitPendingEquipmentAttachmentState();
+
+	UFUNCTION(BlueprintPure, Category="MDF|Equipment Presentation")
+	EMDFEquipmentAttachmentState GetCurrentEquipmentAttachmentState() const;
+
+	UFUNCTION(BlueprintPure, Category="MDF|Equipment Presentation")
+	bool HasPendingEquipmentAttachmentState() const;
 
 	UFUNCTION(BlueprintPure, Category="MDF|Equipment Presentation")
 	const UMDFDisciplineVisualSet* GetActiveVisualSet() const;
@@ -56,6 +69,13 @@ protected:
 	void RebuildEquipmentVisuals();
 	void DestroyEquipmentVisuals();
 	void ApplyEquipmentVisualAttachmentState();
+	
+	void ScheduleOrCommitPendingEquipmentAttachmentState();
+	void ClearPendingEquipmentAttachmentRequest();
+
+	EMDFEquipmentAttachmentState ResolveDesiredAttachmentState() const;
+	float ResolvePendingAttachmentDelaySeconds() const;
+	const UMDFDisciplineAnimationSet* ResolveActiveDisciplineAnimationSet() const;
 
 	USceneComponent* CreateVisualComponentForSpec(const FMDFEquipmentVisualAttachmentSpec& VisualSpec) const;
 	bool ReattachVisualComponentForSpec(USceneComponent* VisualComponent, const FMDFEquipmentVisualAttachmentSpec& VisualSpec) const;
@@ -70,6 +90,9 @@ protected:
 	UMDFAnimationPresentationComponent* ResolveAnimationPresentationComponent() const;
 	USkeletalMeshComponent* ResolveMeshComponent() const;
 	const UMDFDisciplineVisualSet* ResolveActiveDisciplineVisualSet() const;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="MDF|Equipment Presentation")
+	EMDFEquipmentAttachmentState CurrentAttachmentState = EMDFEquipmentAttachmentState::Sheathed;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UMDFCombatActionComponent> CachedCombatActionComponent;
@@ -85,4 +108,12 @@ protected:
 
 	UPROPERTY(Transient)
 	TMap<FGameplayTag, TObjectPtr<USceneComponent>> ActiveVisualComponents;
+
+	UPROPERTY(Transient)
+	EMDFEquipmentAttachmentState PendingAttachmentState = EMDFEquipmentAttachmentState::Sheathed;
+
+	UPROPERTY(Transient)
+	bool bHasPendingAttachmentState = false;
+
+	FTimerHandle PendingEquipmentAttachmentTimerHandle;
 };

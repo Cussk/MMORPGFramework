@@ -66,7 +66,7 @@ void UMDFEquipmentPresentationComponent::EndPlay(const EEndPlayReason::Type EndP
 			&UMDFEquipmentPresentationComponent::HandleCombatPresentationStateChanged);
 	}
 
-	DestroyEquipmentVisuals();
+	ClearPendingEquipmentAttachmentRequest();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -78,12 +78,16 @@ void UMDFEquipmentPresentationComponent::RefreshEquipmentPresentationState()
 	const UMDFDisciplineVisualSet* ResolvedVisualSet = ResolveActiveDisciplineVisualSet();
 	if (ActiveVisualSet.Get() != ResolvedVisualSet)
 	{
+		ClearPendingEquipmentAttachmentRequest();
+
 		ActiveVisualSet = ResolvedVisualSet;
+		CurrentAttachmentState = ResolveDesiredAttachmentState();
+
 		RebuildEquipmentVisuals();
 		return;
 	}
 
-	ApplyEquipmentVisualAttachmentState();
+	RequestEquipmentAttachmentState(ResolveDesiredAttachmentState());
 }
 
 void UMDFEquipmentPresentationComponent::SetWeaponUnsheathedForPresentation(const bool bInUnsheathed)
@@ -95,7 +99,133 @@ void UMDFEquipmentPresentationComponent::SetWeaponUnsheathedForPresentation(cons
 		AnimationPresentationComponent->SetWeaponUnsheathedForPresentation(bInUnsheathed);
 	}
 
+	RequestEquipmentAttachmentState(
+		bInUnsheathed
+			? EMDFEquipmentAttachmentState::Unsheathed
+			: EMDFEquipmentAttachmentState::Sheathed);
+}
+
+void UMDFEquipmentPresentationComponent::RequestEquipmentAttachmentState(
+	const EMDFEquipmentAttachmentState RequestedState)
+{
+	if (bHasPendingAttachmentState && PendingAttachmentState == RequestedState)
+	{
+		return;
+	}
+
+	if (!bHasPendingAttachmentState && CurrentAttachmentState == RequestedState)
+	{
+		ApplyEquipmentVisualAttachmentState();
+		return;
+	}
+
+	ClearPendingEquipmentAttachmentRequest();
+
+	PendingAttachmentState = RequestedState;
+	bHasPendingAttachmentState = true;
+
+	ScheduleOrCommitPendingEquipmentAttachmentState();
+}
+
+void UMDFEquipmentPresentationComponent::CommitPendingEquipmentAttachmentState()
+{
+	if (!bHasPendingAttachmentState)
+	{
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PendingEquipmentAttachmentTimerHandle);
+	}
+
+	CurrentAttachmentState = PendingAttachmentState;
+	PendingAttachmentState = CurrentAttachmentState;
+	bHasPendingAttachmentState = false;
+
 	ApplyEquipmentVisualAttachmentState();
+}
+
+void UMDFEquipmentPresentationComponent::ScheduleOrCommitPendingEquipmentAttachmentState()
+{
+	if (!bHasPendingAttachmentState)
+	{
+		return;
+	}
+
+	const UMDFDisciplineAnimationSet* AnimationSet = ResolveActiveDisciplineAnimationSet();
+	if (AnimationSet && AnimationSet->EquipmentAttachTiming.bWaitForAnimNotify)
+	{
+		return;
+	}
+
+	const float DelaySeconds = ResolvePendingAttachmentDelaySeconds();
+	if (DelaySeconds <= 0.0f)
+	{
+		CommitPendingEquipmentAttachmentState();
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			PendingEquipmentAttachmentTimerHandle,
+			this,
+			&UMDFEquipmentPresentationComponent::CommitPendingEquipmentAttachmentState,
+			DelaySeconds,
+			false);
+	}
+}
+
+void UMDFEquipmentPresentationComponent::ClearPendingEquipmentAttachmentRequest()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PendingEquipmentAttachmentTimerHandle);
+	}
+
+	PendingAttachmentState = CurrentAttachmentState;
+	bHasPendingAttachmentState = false;
+}
+
+EMDFEquipmentAttachmentState UMDFEquipmentPresentationComponent::ResolveDesiredAttachmentState() const
+{
+	return IsCombatVisualPresentationActive()
+		? EMDFEquipmentAttachmentState::Unsheathed
+		: EMDFEquipmentAttachmentState::Sheathed;
+}
+
+float UMDFEquipmentPresentationComponent::ResolvePendingAttachmentDelaySeconds() const
+{
+	const UMDFDisciplineAnimationSet* AnimationSet = ResolveActiveDisciplineAnimationSet();
+	if (!AnimationSet)
+	{
+		return 0.0f;
+	}
+
+	return PendingAttachmentState == EMDFEquipmentAttachmentState::Unsheathed
+		? AnimationSet->EquipmentAttachTiming.EquipAttachDelaySeconds
+		: AnimationSet->EquipmentAttachTiming.UnequipAttachDelaySeconds;
+}
+
+const UMDFDisciplineAnimationSet* UMDFEquipmentPresentationComponent::ResolveActiveDisciplineAnimationSet() const
+{
+	const UMDFAnimationPresentationComponent* AnimationPresentationComponent =
+		CachedAnimationPresentationComponent.Get();
+
+	return AnimationPresentationComponent
+		? AnimationPresentationComponent->GetActiveAnimationSet()
+		: nullptr;
+}
+
+EMDFEquipmentAttachmentState UMDFEquipmentPresentationComponent::GetCurrentEquipmentAttachmentState() const
+{
+	return CurrentAttachmentState;
+}
+
+bool UMDFEquipmentPresentationComponent::HasPendingEquipmentAttachmentState() const
+{
+	return bHasPendingAttachmentState;
 }
 
 const UMDFDisciplineVisualSet* UMDFEquipmentPresentationComponent::GetActiveVisualSet() const
@@ -115,7 +245,10 @@ void UMDFEquipmentPresentationComponent::HandleDisciplineSwapCommitted(const FMD
 
 void UMDFEquipmentPresentationComponent::HandleCombatPresentationStateChanged(const bool bCombatPresentationActive)
 {
-	ApplyEquipmentVisualAttachmentState();
+	RequestEquipmentAttachmentState(
+		bCombatPresentationActive
+			? EMDFEquipmentAttachmentState::Unsheathed
+			: EMDFEquipmentAttachmentState::Sheathed);
 }
 
 void UMDFEquipmentPresentationComponent::CachePresentationDependencies()
@@ -295,8 +428,7 @@ bool UMDFEquipmentPresentationComponent::ReattachVisualComponentForSpec(
 bool UMDFEquipmentPresentationComponent::ShouldShowVisualSpec(
 	const FMDFEquipmentVisualAttachmentSpec& VisualSpec) const
 {
-	const bool bCombatVisualActive = IsCombatVisualPresentationActive();
-	return bCombatVisualActive
+	return CurrentAttachmentState == EMDFEquipmentAttachmentState::Unsheathed
 		? VisualSpec.bVisibleWhenUnsheathed
 		: VisualSpec.bVisibleWhenSheathed;
 }
@@ -305,9 +437,10 @@ bool UMDFEquipmentPresentationComponent::TryGetCurrentAttachmentPoint(
 	const FMDFEquipmentVisualAttachmentSpec& VisualSpec,
 	FMDFEquipmentVisualAttachmentPoint& OutAttachmentPoint) const
 {
-	const bool bCombatVisualActive = IsCombatVisualPresentationActive();
+	const bool bUseUnsheathedAttachment =
+		CurrentAttachmentState == EMDFEquipmentAttachmentState::Unsheathed;
 
-	const FMDFEquipmentVisualAttachmentPoint& PreferredAttachment = bCombatVisualActive
+	const FMDFEquipmentVisualAttachmentPoint& PreferredAttachment = bUseUnsheathedAttachment
 		? VisualSpec.UnsheathedAttachment
 		: VisualSpec.SheathedAttachment;
 
@@ -317,7 +450,7 @@ bool UMDFEquipmentPresentationComponent::TryGetCurrentAttachmentPoint(
 		return true;
 	}
 
-	const FMDFEquipmentVisualAttachmentPoint& FallbackAttachment = bCombatVisualActive
+	const FMDFEquipmentVisualAttachmentPoint& FallbackAttachment = bUseUnsheathedAttachment
 		? VisualSpec.SheathedAttachment
 		: VisualSpec.UnsheathedAttachment;
 

@@ -42,3 +42,19 @@ struct MDFFRAMEWORKPROGRESSION_API FMDFAimOffsetSpec
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation|Aim Offset")
 	bool bInvertAimPitch = false;
 };
+
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKPROGRESSION_API FMDFEquipmentAttachTimingSpec
+{
+	GENERATED_BODY()
+
+	/** If true, equipment waits for an anim notify or BP call to commit the pending socket move. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation|Equipment")
+	bool bWaitForAnimNotify = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation|Equipment", meta=(ClampMin="0.0"))
+	float EquipAttachDelaySeconds = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation|Equipment", meta=(ClampMin="0.0"))
+	float UnequipAttachDelaySeconds = 0.0f;
+};

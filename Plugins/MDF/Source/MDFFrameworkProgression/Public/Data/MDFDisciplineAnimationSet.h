@@ -45,7 +45,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation|Slots")
 	FName IdentitySlotName = TEXT("Identity");
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation|Aim Offset")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
+	FMDFEquipmentAttachTimingSpec EquipmentAttachTiming;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
 	FMDFAimOffsetSpec AimOffsetSpec;
 
 	bool HasCombatLayer() const

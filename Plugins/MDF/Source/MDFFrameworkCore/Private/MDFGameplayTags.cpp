@@ -216,8 +216,6 @@ namespace MDFGameplayTags
 	// --------------------
 	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_MainHand, "Equipment.Visual.MainHand");
 	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_OffHand, "Equipment.Visual.OffHand");
-	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_SheathedMainHand, "Equipment.Visual.SheathedMainHand");
-	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_SheathedOffHand, "Equipment.Visual.SheathedOffHand");	
 	
 	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Head, "Equipment.Visual.Head");
 	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Chest, "Equipment.Visual.Chest");

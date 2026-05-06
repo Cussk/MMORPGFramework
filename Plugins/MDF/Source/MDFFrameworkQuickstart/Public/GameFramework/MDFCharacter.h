@@ -45,8 +45,6 @@ class MDFFRAMEWORKQUICKSTART_API AMDFCharacter : public ACharacter
 public:
 	AMDFCharacter();
 	
-	
-	
 	UFUNCTION(BlueprintPure, Category = "MDF")
 	AMDFPlayerController* GetMDFPlayerController() const;
 

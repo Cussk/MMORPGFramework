@@ -9,6 +9,13 @@
 class USkeletalMesh;
 class UStaticMesh;
 
+UENUM(BlueprintType)
+enum class EMDFEquipmentAttachmentState : uint8
+{
+	Sheathed	UMETA(DisplayName="Sheathed"),
+	Unsheathed	UMETA(DisplayName="Unsheathed")
+};
+
 /**
  * One possible attachment point for an equipment visual.
  *
