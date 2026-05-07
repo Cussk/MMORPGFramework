@@ -26,6 +26,7 @@ public class MDFFrameworkQuickstart : ModuleRules
             {
                 "GameplayTags",
                 "UMG",
+                "Niagara",
                 "MDFFrameworkDebug"
             }
         );

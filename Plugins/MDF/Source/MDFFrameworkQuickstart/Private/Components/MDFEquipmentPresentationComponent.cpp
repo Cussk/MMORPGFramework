@@ -2,6 +2,8 @@
 
 #include "Components/MDFEquipmentPresentationComponent.h"
 
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Components/MDFAnimationPresentationComponent.h"
 #include "Components/MDFCombatActionComponent.h"
 #include "Components/MDFPlayerSkillComponent.h"
@@ -38,6 +40,7 @@ void UMDFEquipmentPresentationComponent::EndPlay(const EEndPlayReason::Type EndP
 {	
 	UnbindComponentDelegates();
 
+	ClearPendingVisualSetChange();
 	ClearPendingEquipmentAttachmentRequest();
 	DestroyEquipmentVisuals();
 	DestroyModularArmorComponents();
@@ -52,12 +55,12 @@ void UMDFEquipmentPresentationComponent::RefreshEquipmentPresentationState()
 	const UMDFDisciplineVisualSet* ResolvedVisualSet = ResolveActiveDisciplineVisualSet();
 	if (ActiveVisualSet.Get() != ResolvedVisualSet)
 	{
-		ClearPendingEquipmentAttachmentRequest();
+		if (bHasPendingVisualSetChange && PendingVisualSet.Get() == ResolvedVisualSet)
+		{
+			return;
+		}
 
-		ActiveVisualSet = ResolvedVisualSet;
-		CurrentAttachmentState = ResolveDesiredAttachmentState();
-
-		RebuildEquipmentVisuals();
+		RequestVisualSetChange(ResolvedVisualSet);
 		return;
 	}
 
@@ -233,6 +236,116 @@ void UMDFEquipmentPresentationComponent::DestroyModularArmorComponents()
 	}
 
 	ActiveArmorSlotComponents.Reset();
+}
+
+void UMDFEquipmentPresentationComponent::RequestVisualSetChange(const UMDFDisciplineVisualSet* NewVisualSet)
+{
+	ClearPendingVisualSetChange();
+	ClearPendingEquipmentAttachmentRequest();
+
+	PendingVisualSet = NewVisualSet;
+	bHasPendingVisualSetChange = true;
+
+	PlaySwapConcealmentVFX(NewVisualSet);
+
+	const float DelaySeconds = NewVisualSet
+		? NewVisualSet->SwapConcealment.VisualSwapApplyDelaySeconds
+		: 0.0f;
+
+	if (DelaySeconds <= 0.0f)
+	{
+		CommitPendingVisualSetChange();
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			PendingVisualSetSwapTimerHandle,
+			this,
+			&UMDFEquipmentPresentationComponent::CommitPendingVisualSetChange,
+			DelaySeconds,
+			false);
+	}
+}
+
+void UMDFEquipmentPresentationComponent::CommitPendingVisualSetChange()
+{
+	if (!bHasPendingVisualSetChange)
+	{
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PendingVisualSetSwapTimerHandle);
+	}
+
+	ActiveVisualSet = PendingVisualSet.Get();
+	PendingVisualSet.Reset();
+	bHasPendingVisualSetChange = false;
+
+	CurrentAttachmentState = ResolveDesiredAttachmentState();
+	RebuildEquipmentVisuals();
+}
+
+void UMDFEquipmentPresentationComponent::ClearPendingVisualSetChange()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PendingVisualSetSwapTimerHandle);
+	}
+
+	PendingVisualSet.Reset();
+	bHasPendingVisualSetChange = false;
+}
+
+void UMDFEquipmentPresentationComponent::PlaySwapConcealmentVFX(
+	const UMDFDisciplineVisualSet* IncomingVisualSet) const
+{
+	if (!IncomingVisualSet || !IncomingVisualSet->SwapConcealment.ShouldPlay())
+	{
+		return;
+	}
+
+	const FMDFVisualSwapConcealmentSpec& ConcealmentSpec = IncomingVisualSet->SwapConcealment;
+
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor || !ConcealmentSpec.NiagaraSystem)
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* MeshComponent = CachedMeshComponent.Get();
+	if (MeshComponent && ConcealmentSpec.AttachSocketName != NAME_None)
+	{
+		UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			ConcealmentSpec.NiagaraSystem,
+			MeshComponent,
+			ConcealmentSpec.AttachSocketName,
+			ConcealmentSpec.RelativeTransform.GetLocation(),
+			ConcealmentSpec.RelativeTransform.Rotator(),
+			EAttachLocation::KeepRelativeOffset,
+			true);
+
+		if (NiagaraComponent)
+		{
+			NiagaraComponent->SetRelativeScale3D(ConcealmentSpec.RelativeTransform.GetScale3D());
+		}
+
+		return;
+	}
+
+	const FTransform SpawnTransform = ConcealmentSpec.RelativeTransform * OwnerActor->GetActorTransform();
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		ConcealmentSpec.NiagaraSystem,
+		SpawnTransform.GetLocation(),
+		SpawnTransform.Rotator(),
+		SpawnTransform.GetScale3D(),
+		true,
+		true);
 }
 
 USkeletalMeshComponent* UMDFEquipmentPresentationComponent::GetOrCreateArmorSlotComponent(

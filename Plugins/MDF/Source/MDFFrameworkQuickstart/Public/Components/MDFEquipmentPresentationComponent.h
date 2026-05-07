@@ -79,6 +79,11 @@ protected:
 	void ApplyModularArmorVisuals();
 	void ClearModularArmorVisuals();
 	void DestroyModularArmorComponents();
+	
+	void RequestVisualSetChange(const UMDFDisciplineVisualSet* NewVisualSet);
+	void CommitPendingVisualSetChange();
+	void ClearPendingVisualSetChange();
+	void PlaySwapConcealmentVFX(const UMDFDisciplineVisualSet* IncomingVisualSet) const;
 
 	USkeletalMeshComponent* GetOrCreateArmorSlotComponent(FGameplayTag ArmorSlotTag);
 	void ApplyArmorVisualToComponent(USkeletalMeshComponent* ArmorComponent, const FMDFModularArmorVisualSpec& ArmorVisualSpec) const;
@@ -118,6 +123,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<const UMDFDisciplineVisualSet> ActiveVisualSet;
+	
+	UPROPERTY(Transient)
+	TWeakObjectPtr<const UMDFDisciplineVisualSet> PendingVisualSet;
 
 	UPROPERTY(Transient)
 	TMap<FGameplayTag, TObjectPtr<USceneComponent>> ActiveVisualComponents;
@@ -130,6 +138,10 @@ protected:
 
 	UPROPERTY(Transient)
 	bool bHasPendingAttachmentState = false;
+	
+	UPROPERTY(Transient)
+	bool bHasPendingVisualSetChange = false;
 
 	FTimerHandle PendingEquipmentAttachmentTimerHandle;
+	FTimerHandle PendingVisualSetSwapTimerHandle;
 };

@@ -6,6 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "MDFEquipmentVisualTypes.generated.h"
 
+class UNiagaraSystem;
 class USkeletalMesh;
 class UStaticMesh;
 class UMaterialInterface;
@@ -15,6 +16,34 @@ enum class EMDFEquipmentAttachmentState : uint8
 {
 	Sheathed	UMETA(DisplayName="Sheathed"),
 	Unsheathed	UMETA(DisplayName="Unsheathed")
+};
+
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKPROGRESSION_API FMDFVisualSwapConcealmentSpec
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Swap Concealment")
+	bool bPlayOnVisualSetChange = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Swap Concealment")
+	TObjectPtr<UNiagaraSystem> NiagaraSystem = nullptr;
+
+	/** Optional socket to attach the concealment effect to. Leave none to spawn at the owner location. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Swap Concealment")
+	FName AttachSocketName = NAME_None;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Swap Concealment")
+	FTransform RelativeTransform = FTransform::Identity;
+
+	/** Small delay before rebuilding visual meshes, useful if the effect needs a few frames to cover the snap. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Swap Concealment", meta=(ClampMin="0.0"))
+	float VisualSwapApplyDelaySeconds = 0.0f;
+
+	bool ShouldPlay() const
+	{
+		return bPlayOnVisualSetChange && NiagaraSystem != nullptr;
+	}
 };
 
 /**

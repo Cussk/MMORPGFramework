@@ -26,4 +26,7 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Armor Visuals")
 	TArray<FMDFModularArmorVisualSpec> ModularArmorVisuals;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Swap Concealment")
+	FMDFVisualSwapConcealmentSpec SwapConcealment;
 };
