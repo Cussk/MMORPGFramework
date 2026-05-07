@@ -8,6 +8,7 @@
 
 class USkeletalMesh;
 class UStaticMesh;
+class UMaterialInterface;
 
 UENUM(BlueprintType)
 enum class EMDFEquipmentAttachmentState : uint8
@@ -81,5 +82,34 @@ struct MDFFRAMEWORKPROGRESSION_API FMDFEquipmentVisualAttachmentSpec
 	bool UsesSkeletalMesh() const
 	{
 		return SkeletalMesh != nullptr;
+	}
+};
+
+/**
+ * One modular armor visual that follows the character's base skeletal mesh.
+ *
+ * Use this for armor pieces that need to deform with the character skeleton:
+ * helmets, chest/body armor, gloves, legs, boots, capes/cloaks, etc.
+ *
+ * Non-deforming attachments such as weapons, shields, quivers, and backpacks
+ * should usually stay in EquipmentVisuals instead.
+ */
+USTRUCT(BlueprintType)
+struct MDFFRAMEWORKPROGRESSION_API FMDFModularArmorVisualSpec
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Armor Visual")
+	FGameplayTag ArmorSlotTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Armor Visual")
+	TObjectPtr<USkeletalMesh> ArmorMesh = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Armor Visual")
+	TArray<TObjectPtr<UMaterialInterface>> OverrideMaterials;
+
+	bool IsValid() const
+	{
+		return ArmorSlotTag.IsValid() && ArmorMesh != nullptr;
 	}
 };

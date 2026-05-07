@@ -68,6 +68,7 @@ void UMDFEquipmentPresentationComponent::EndPlay(const EEndPlayReason::Type EndP
 
 	ClearPendingEquipmentAttachmentRequest();
 	DestroyEquipmentVisuals();
+	DestroyModularArmorComponents();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -205,6 +206,150 @@ void UMDFEquipmentPresentationComponent::ClearPendingEquipmentAttachmentRequest(
 	bHasPendingAttachmentState = false;
 }
 
+void UMDFEquipmentPresentationComponent::ApplyModularArmorVisuals()
+{
+	const UMDFDisciplineVisualSet* VisualSet = ActiveVisualSet.Get();
+	if (!VisualSet)
+	{
+		ClearModularArmorVisuals();
+		return;
+	}
+
+	ClearModularArmorVisuals();
+
+	for (const FMDFModularArmorVisualSpec& ArmorVisualSpec : VisualSet->ModularArmorVisuals)
+	{
+		if (!ArmorVisualSpec.IsValid())
+		{
+			continue;
+		}
+
+		USkeletalMeshComponent* ArmorComponent =
+			GetOrCreateArmorSlotComponent(ArmorVisualSpec.ArmorSlotTag);
+
+		if (!ArmorComponent)
+		{
+			continue;
+		}
+
+		ApplyArmorVisualToComponent(ArmorComponent, ArmorVisualSpec);
+	}
+}
+
+void UMDFEquipmentPresentationComponent::ClearModularArmorVisuals()
+{
+	for (TPair<FGameplayTag, TObjectPtr<USkeletalMeshComponent>>& ArmorPair : ActiveArmorSlotComponents)
+	{
+		if (USkeletalMeshComponent* ArmorComponent = ArmorPair.Value.Get())
+		{
+			ArmorComponent->SetSkeletalMesh(nullptr);
+			ArmorComponent->EmptyOverrideMaterials();
+			ArmorComponent->SetVisibility(false, true);
+			ArmorComponent->SetHiddenInGame(true, true);
+		}
+	}
+}
+
+void UMDFEquipmentPresentationComponent::DestroyModularArmorComponents()
+{
+	for (TPair<FGameplayTag, TObjectPtr<USkeletalMeshComponent>>& ArmorPair : ActiveArmorSlotComponents)
+	{
+		if (USkeletalMeshComponent* ArmorComponent = ArmorPair.Value.Get())
+		{
+			ArmorComponent->DestroyComponent();
+		}
+	}
+
+	ActiveArmorSlotComponents.Reset();
+}
+
+USkeletalMeshComponent* UMDFEquipmentPresentationComponent::GetOrCreateArmorSlotComponent(
+	const FGameplayTag ArmorSlotTag)
+{
+	if (!ArmorSlotTag.IsValid())
+	{
+		return nullptr;
+	}
+
+	if (TObjectPtr<USkeletalMeshComponent>* ExistingComponentPtr = ActiveArmorSlotComponents.Find(ArmorSlotTag))
+	{
+		if (ExistingComponentPtr->Get())
+		{
+			return ExistingComponentPtr->Get();
+		}
+	}
+
+	AActor* OwnerActor = GetOwner();
+	USkeletalMeshComponent* MeshComponent = CachedMeshComponent.Get();
+
+	if (!OwnerActor || !MeshComponent)
+	{
+		return nullptr;
+	}
+
+	const FString SlotName = ArmorSlotTag.GetTagName().ToString().Replace(TEXT("."), TEXT("_"));
+	const FName ComponentName(*FString::Printf(TEXT("MDFArmorVisual_%s"), *SlotName));
+
+	USkeletalMeshComponent* ArmorComponent =
+		NewObject<USkeletalMeshComponent>(OwnerActor, ComponentName);
+
+	if (!ArmorComponent)
+	{
+		return nullptr;
+	}
+
+	ArmorComponent->CreationMethod = EComponentCreationMethod::Instance;
+	ArmorComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ArmorComponent->SetGenerateOverlapEvents(false);
+	ArmorComponent->SetCanEverAffectNavigation(false);
+	ArmorComponent->SetVisibility(false, true);
+	ArmorComponent->SetHiddenInGame(true, true);
+
+	OwnerActor->AddInstanceComponent(ArmorComponent);
+
+	ArmorComponent->AttachToComponent(
+		MeshComponent,
+		FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
+	ArmorComponent->RegisterComponent();
+	ArmorComponent->SetLeaderPoseComponent(MeshComponent);
+
+	ActiveArmorSlotComponents.Add(ArmorSlotTag, ArmorComponent);
+
+	return ArmorComponent;
+}
+
+void UMDFEquipmentPresentationComponent::ApplyArmorVisualToComponent(
+	USkeletalMeshComponent* ArmorComponent,
+	const FMDFModularArmorVisualSpec& ArmorVisualSpec) const
+{
+	if (!ArmorComponent || !ArmorVisualSpec.IsValid())
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* MeshComponent = CachedMeshComponent.Get();
+
+	ArmorComponent->SetSkeletalMesh(ArmorVisualSpec.ArmorMesh);
+	ArmorComponent->EmptyOverrideMaterials();
+
+	for (int32 MaterialIndex = 0; MaterialIndex < ArmorVisualSpec.OverrideMaterials.Num(); ++MaterialIndex)
+	{
+		if (UMaterialInterface* OverrideMaterial = ArmorVisualSpec.OverrideMaterials[MaterialIndex])
+		{
+			ArmorComponent->SetMaterial(MaterialIndex, OverrideMaterial);
+		}
+	}
+
+	if (MeshComponent)
+	{
+		ArmorComponent->SetLeaderPoseComponent(MeshComponent);
+	}
+
+	ArmorComponent->SetVisibility(true, true);
+	ArmorComponent->SetHiddenInGame(false, true);
+}
+
 EMDFEquipmentAttachmentState UMDFEquipmentPresentationComponent::ResolveDesiredAttachmentState() const
 {
 	return IsCombatVisualPresentationActive()
@@ -289,6 +434,7 @@ void UMDFEquipmentPresentationComponent::CachePresentationDependencies()
 void UMDFEquipmentPresentationComponent::RebuildEquipmentVisuals()
 {
 	DestroyEquipmentVisuals();
+	ClearModularArmorVisuals();
 
 	const UMDFDisciplineVisualSet* VisualSet = ActiveVisualSet.Get();
 	if (!VisualSet)
@@ -313,6 +459,7 @@ void UMDFEquipmentPresentationComponent::RebuildEquipmentVisuals()
 	}
 
 	ApplyEquipmentVisualAttachmentState();
+	ApplyModularArmorVisuals();
 }
 
 void UMDFEquipmentPresentationComponent::DestroyEquipmentVisuals()

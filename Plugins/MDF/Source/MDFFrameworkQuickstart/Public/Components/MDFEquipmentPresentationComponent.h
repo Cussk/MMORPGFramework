@@ -72,6 +72,13 @@ protected:
 	
 	void ScheduleOrCommitPendingEquipmentAttachmentState();
 	void ClearPendingEquipmentAttachmentRequest();
+	
+	void ApplyModularArmorVisuals();
+	void ClearModularArmorVisuals();
+	void DestroyModularArmorComponents();
+
+	USkeletalMeshComponent* GetOrCreateArmorSlotComponent(FGameplayTag ArmorSlotTag);
+	void ApplyArmorVisualToComponent(USkeletalMeshComponent* ArmorComponent, const FMDFModularArmorVisualSpec& ArmorVisualSpec) const;
 
 	EMDFEquipmentAttachmentState ResolveDesiredAttachmentState() const;
 	float ResolvePendingAttachmentDelaySeconds() const;
@@ -108,6 +115,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TMap<FGameplayTag, TObjectPtr<USceneComponent>> ActiveVisualComponents;
+	
+	UPROPERTY(Transient)
+	TMap<FGameplayTag, TObjectPtr<USkeletalMeshComponent>> ActiveArmorSlotComponents;
 
 	UPROPERTY(Transient)
 	EMDFEquipmentAttachmentState PendingAttachmentState = EMDFEquipmentAttachmentState::Sheathed;

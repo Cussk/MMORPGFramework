@@ -23,4 +23,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment Visuals")
 	TArray<FMDFEquipmentVisualAttachmentSpec> EquipmentVisuals;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Armor Visuals")
+	TArray<FMDFModularArmorVisualSpec> ModularArmorVisuals;
 };
