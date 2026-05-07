@@ -51,15 +51,18 @@ public:
 	FMDFCombatPresentationStateChangedSignature OnCombatPresentationStateChanged;
 
 protected:
-	UFUNCTION()
-	void HandleCombatActionStateChanged();
-
+	
 	UFUNCTION()
 	void HandleDisciplineSwapCommitted(const FMDFPendingDisciplineSwapRuntime& SwapRuntime);
 
+	void HandleDeferredInitialPresentationRefresh();
 	void HandleAutoCombatPresentationExpired();
 
 	void CachePresentationDependencies();
+	
+	void BindComponentDelegates();
+	void UnbindComponentDelegates();
+	
 	void ApplyCurrentLinkedAnimLayer();
 	void ClearCurrentLinkedAnimLayer();
 
@@ -95,6 +98,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<const UMDFDisciplineAnimationSet> ActiveAnimationSet;
+	
+	UPROPERTY(Transient)
+	TWeakObjectPtr<UMDFPlayerSkillComponent> CachedSkillComponent;
 
 	UPROPERTY(Transient)
 	TSubclassOf<UAnimInstance> CurrentLinkedAnimLayerClass;

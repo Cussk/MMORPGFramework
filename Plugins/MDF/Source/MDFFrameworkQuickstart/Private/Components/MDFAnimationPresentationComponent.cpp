@@ -21,19 +21,8 @@ UMDFAnimationPresentationComponent::UMDFAnimationPresentationComponent()
 void UMDFAnimationPresentationComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	CachePresentationDependencies();
-
-	if (UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get())
-	{
-		CombatActionComponent->OnCombatActionStateChanged.AddDynamic(
-			this,
-			&UMDFAnimationPresentationComponent::HandleCombatActionStateChanged);
-
-		CombatActionComponent->OnDisciplineSwapCommitted.AddDynamic(
-			this,
-			&UMDFAnimationPresentationComponent::HandleDisciplineSwapCommitted);
-	}
+	
+	BindComponentDelegates();
 
 	RefreshAnimationPresentationState();
 	bLastBroadcastCombatPresentationActive = IsCombatPresentationActive();
@@ -42,22 +31,13 @@ void UMDFAnimationPresentationComponent::BeginPlay()
 	{
 		World->GetTimerManager().SetTimerForNextTick(
 			this,
-			&UMDFAnimationPresentationComponent::RefreshAnimationPresentationState);
+			&UMDFAnimationPresentationComponent::HandleDeferredInitialPresentationRefresh);
 	}
 }
 
 void UMDFAnimationPresentationComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get())
-	{
-		CombatActionComponent->OnCombatActionStateChanged.RemoveDynamic(
-			this,
-			&UMDFAnimationPresentationComponent::HandleCombatActionStateChanged);
-
-		CombatActionComponent->OnDisciplineSwapCommitted.RemoveDynamic(
-			this,
-			&UMDFAnimationPresentationComponent::HandleDisciplineSwapCommitted);
-	}
+	UnbindComponentDelegates();
 
 	if (UWorld* World = GetWorld())
 	{
@@ -95,13 +75,14 @@ const UMDFDisciplineAnimationSet* UMDFAnimationPresentationComponent::GetActiveA
 	return ActiveAnimationSet.Get();
 }
 
-void UMDFAnimationPresentationComponent::HandleCombatActionStateChanged()
+void UMDFAnimationPresentationComponent::HandleDisciplineSwapCommitted(const FMDFPendingDisciplineSwapRuntime& SwapRuntime)
 {
 	RefreshAnimationPresentationState();
 }
 
-void UMDFAnimationPresentationComponent::HandleDisciplineSwapCommitted(const FMDFPendingDisciplineSwapRuntime& SwapRuntime)
+void UMDFAnimationPresentationComponent::HandleDeferredInitialPresentationRefresh()
 {
+	BindComponentDelegates();
 	RefreshAnimationPresentationState();
 }
 
@@ -151,6 +132,11 @@ void UMDFAnimationPresentationComponent::RefreshAnimationPresentationState()
 
 void UMDFAnimationPresentationComponent::CachePresentationDependencies()
 {
+	if (!CachedSkillComponent.IsValid())
+	{
+		CachedSkillComponent = ResolveSkillComponent();
+	}
+
 	if (!CachedCombatActionComponent.IsValid())
 	{
 		CachedCombatActionComponent = ResolveCombatActionComponent();
@@ -159,6 +145,50 @@ void UMDFAnimationPresentationComponent::CachePresentationDependencies()
 	if (!CachedMeshComponent.IsValid())
 	{
 		CachedMeshComponent = ResolveMeshComponent();
+	}
+}
+
+void UMDFAnimationPresentationComponent::BindComponentDelegates()
+{
+	CachePresentationDependencies();
+	
+	if (UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get())
+	{
+		CombatActionComponent->OnCombatActionStateChanged.AddUniqueDynamic(
+			this,
+			&UMDFAnimationPresentationComponent::RefreshAnimationPresentationState);
+
+		CombatActionComponent->OnDisciplineSwapCommitted.AddUniqueDynamic(
+			this,
+			&UMDFAnimationPresentationComponent::HandleDisciplineSwapCommitted);
+	}
+
+	if (UMDFPlayerSkillComponent* SkillComponent = CachedSkillComponent.Get())
+	{
+		SkillComponent->OnActiveDisciplineChanged.AddUniqueDynamic(
+			this,
+			&UMDFAnimationPresentationComponent::RefreshAnimationPresentationState);
+	}
+}
+
+void UMDFAnimationPresentationComponent::UnbindComponentDelegates()
+{
+	if (UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get())
+	{
+		CombatActionComponent->OnCombatActionStateChanged.RemoveDynamic(
+			this,
+			&UMDFAnimationPresentationComponent::RefreshAnimationPresentationState);
+
+		CombatActionComponent->OnDisciplineSwapCommitted.RemoveDynamic(
+			this,
+			&UMDFAnimationPresentationComponent::HandleDisciplineSwapCommitted);
+	}
+	
+	if (UMDFPlayerSkillComponent* SkillComponent = CachedSkillComponent.Get())
+	{
+		SkillComponent->OnActiveDisciplineChanged.RemoveDynamic(
+			this,
+			&UMDFAnimationPresentationComponent::RefreshAnimationPresentationState);
 	}
 }
 
@@ -228,8 +258,9 @@ void UMDFAnimationPresentationComponent::BroadcastCombatPresentationStateIfChang
 
 UMDFPlayerSkillComponent* UMDFAnimationPresentationComponent::ResolveSkillComponent() const
 {
-	APawn* PawnOwner = Cast<APawn>(GetOwner());
-	return PawnOwner ? FMDFComponentHelpers::FindFromPawn<UMDFPlayerSkillComponent>(PawnOwner) : nullptr;
+	const APawn* PawnOwner = Cast<APawn>(GetOwner());
+	APlayerState* PlayerState = PawnOwner ? PawnOwner->GetPlayerState<APlayerState>() : nullptr;
+	return PlayerState ? FMDFComponentHelpers::FindOnPlayerState<UMDFPlayerSkillComponent>(PlayerState) : nullptr;
 }
 
 UMDFCombatActionComponent* UMDFAnimationPresentationComponent::ResolveCombatActionComponent() const
@@ -244,7 +275,12 @@ USkeletalMeshComponent* UMDFAnimationPresentationComponent::ResolveMeshComponent
 
 const UMDFDisciplineAnimationSet* UMDFAnimationPresentationComponent::ResolveActiveDisciplineAnimationSet() const
 {
-	const UMDFPlayerSkillComponent* SkillComponent = ResolveSkillComponent();
+	const UMDFPlayerSkillComponent* SkillComponent = CachedSkillComponent.Get();
+	if (!SkillComponent)
+	{
+		SkillComponent = ResolveSkillComponent();
+	}
+
 	if (!SkillComponent || !SkillComponent->GetActiveDisciplineTag().IsValid())
 	{
 		return nullptr;

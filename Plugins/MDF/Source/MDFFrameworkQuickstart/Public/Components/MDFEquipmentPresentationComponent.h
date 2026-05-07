@@ -55,16 +55,19 @@ public:
 	const UMDFDisciplineVisualSet* GetActiveVisualSet() const;
 
 protected:
-	UFUNCTION()
-	void HandleCombatActionStateChanged();
 
 	UFUNCTION()
 	void HandleDisciplineSwapCommitted(const FMDFPendingDisciplineSwapRuntime& SwapRuntime);
 	
 	UFUNCTION()
 	void HandleCombatPresentationStateChanged(bool bCombatPresentationActive);
+	
+	void HandleDeferredInitialPresentationRefresh();
 
 	void CachePresentationDependencies();
+	
+	void BindComponentDelegates();
+	void UnbindComponentDelegates();
 
 	void RebuildEquipmentVisuals();
 	void DestroyEquipmentVisuals();
@@ -103,6 +106,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UMDFCombatActionComponent> CachedCombatActionComponent;
+	
+	UPROPERTY(Transient)
+	TWeakObjectPtr<UMDFPlayerSkillComponent> CachedSkillComponent;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UMDFAnimationPresentationComponent> CachedAnimationPresentationComponent;

@@ -22,49 +22,21 @@ UMDFEquipmentPresentationComponent::UMDFEquipmentPresentationComponent()
 void UMDFEquipmentPresentationComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	CachePresentationDependencies();
-
-	if (UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get())
-	{
-		CombatActionComponent->OnCombatActionStateChanged.AddDynamic(
-			this,
-			&UMDFEquipmentPresentationComponent::HandleCombatActionStateChanged);
-
-		CombatActionComponent->OnDisciplineSwapCommitted.AddDynamic(
-			this,
-			&UMDFEquipmentPresentationComponent::HandleDisciplineSwapCommitted);
-	}
 	
-	if (UMDFAnimationPresentationComponent* AnimationPresentationComponent = CachedAnimationPresentationComponent.Get())
-	{
-		AnimationPresentationComponent->OnCombatPresentationStateChanged.AddDynamic(
-			this,
-			&UMDFEquipmentPresentationComponent::HandleCombatPresentationStateChanged);
-	}
-
+	BindComponentDelegates();
 	RefreshEquipmentPresentationState();
+	
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimerForNextTick(
+			this,
+			&UMDFEquipmentPresentationComponent::HandleDeferredInitialPresentationRefresh);
+	}
 }
 
 void UMDFEquipmentPresentationComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	if (UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get())
-	{
-		CombatActionComponent->OnCombatActionStateChanged.RemoveDynamic(
-			this,
-			&UMDFEquipmentPresentationComponent::HandleCombatActionStateChanged);
-
-		CombatActionComponent->OnDisciplineSwapCommitted.RemoveDynamic(
-			this,
-			&UMDFEquipmentPresentationComponent::HandleDisciplineSwapCommitted);
-	}
-	
-	if (UMDFAnimationPresentationComponent* AnimationPresentationComponent = CachedAnimationPresentationComponent.Get())
-	{
-		AnimationPresentationComponent->OnCombatPresentationStateChanged.RemoveDynamic(
-			this,
-			&UMDFEquipmentPresentationComponent::HandleCombatPresentationStateChanged);
-	}
+{	
+	UnbindComponentDelegates();
 
 	ClearPendingEquipmentAttachmentRequest();
 	DestroyEquipmentVisuals();
@@ -395,11 +367,6 @@ const UMDFDisciplineVisualSet* UMDFEquipmentPresentationComponent::GetActiveVisu
 	return ActiveVisualSet.Get();
 }
 
-void UMDFEquipmentPresentationComponent::HandleCombatActionStateChanged()
-{
-	RefreshEquipmentPresentationState();
-}
-
 void UMDFEquipmentPresentationComponent::HandleDisciplineSwapCommitted(const FMDFPendingDisciplineSwapRuntime& SwapRuntime)
 {
 	RefreshEquipmentPresentationState();
@@ -413,8 +380,19 @@ void UMDFEquipmentPresentationComponent::HandleCombatPresentationStateChanged(co
 			: EMDFEquipmentAttachmentState::Sheathed);
 }
 
+void UMDFEquipmentPresentationComponent::HandleDeferredInitialPresentationRefresh()
+{
+	BindComponentDelegates();
+	RefreshEquipmentPresentationState();
+}
+
 void UMDFEquipmentPresentationComponent::CachePresentationDependencies()
 {
+	if (!CachedSkillComponent.IsValid())
+	{
+		CachedSkillComponent = ResolveSkillComponent();
+	}
+
 	if (!CachedCombatActionComponent.IsValid())
 	{
 		CachedCombatActionComponent = ResolveCombatActionComponent();
@@ -428,6 +406,64 @@ void UMDFEquipmentPresentationComponent::CachePresentationDependencies()
 	if (!CachedMeshComponent.IsValid())
 	{
 		CachedMeshComponent = ResolveMeshComponent();
+	}
+}
+
+void UMDFEquipmentPresentationComponent::BindComponentDelegates()
+{
+	CachePresentationDependencies();
+	
+	if (UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get())
+	{
+		CombatActionComponent->OnCombatActionStateChanged.AddUniqueDynamic(
+			this,
+			&UMDFEquipmentPresentationComponent::RefreshEquipmentPresentationState);
+
+		CombatActionComponent->OnDisciplineSwapCommitted.AddUniqueDynamic(
+			this,
+			&UMDFEquipmentPresentationComponent::HandleDisciplineSwapCommitted);
+	}
+	
+	if (UMDFAnimationPresentationComponent* AnimationPresentationComponent = CachedAnimationPresentationComponent.Get())
+	{
+		AnimationPresentationComponent->OnCombatPresentationStateChanged.AddUniqueDynamic(
+			this,
+			&UMDFEquipmentPresentationComponent::HandleCombatPresentationStateChanged);
+	}
+	
+	if (UMDFPlayerSkillComponent* SkillComponent = CachedSkillComponent.Get())
+	{
+		SkillComponent->OnActiveDisciplineChanged.AddUniqueDynamic(
+			this,
+			&UMDFEquipmentPresentationComponent::RefreshEquipmentPresentationState);
+	}
+}
+
+void UMDFEquipmentPresentationComponent::UnbindComponentDelegates()
+{
+	if (UMDFCombatActionComponent* CombatActionComponent = CachedCombatActionComponent.Get())
+	{
+		CombatActionComponent->OnCombatActionStateChanged.RemoveDynamic(
+			this,
+			&UMDFEquipmentPresentationComponent::RefreshEquipmentPresentationState);
+
+		CombatActionComponent->OnDisciplineSwapCommitted.RemoveDynamic(
+			this,
+			&UMDFEquipmentPresentationComponent::HandleDisciplineSwapCommitted);
+	}
+	
+	if (UMDFAnimationPresentationComponent* AnimationPresentationComponent = CachedAnimationPresentationComponent.Get())
+	{
+		AnimationPresentationComponent->OnCombatPresentationStateChanged.RemoveDynamic(
+			this,
+			&UMDFEquipmentPresentationComponent::HandleCombatPresentationStateChanged);
+	}
+	
+	if (UMDFPlayerSkillComponent* SkillComponent = CachedSkillComponent.Get())
+	{
+		SkillComponent->OnActiveDisciplineChanged.RemoveDynamic(
+			this,
+			&UMDFEquipmentPresentationComponent::RefreshEquipmentPresentationState);
 	}
 }
 
@@ -645,8 +681,9 @@ bool UMDFEquipmentPresentationComponent::IsCombatVisualPresentationActive() cons
 
 UMDFPlayerSkillComponent* UMDFEquipmentPresentationComponent::ResolveSkillComponent() const
 {
-	APawn* PawnOwner = Cast<APawn>(GetOwner());
-	return PawnOwner ? FMDFComponentHelpers::FindFromPawn<UMDFPlayerSkillComponent>(PawnOwner) : nullptr;
+	const APawn* PawnOwner = Cast<APawn>(GetOwner());
+	APlayerState* PlayerState = PawnOwner ? PawnOwner->GetPlayerState<APlayerState>() : nullptr;
+	return PlayerState ? FMDFComponentHelpers::FindOnPlayerState<UMDFPlayerSkillComponent>(PlayerState) : nullptr;
 }
 
 UMDFCombatActionComponent* UMDFEquipmentPresentationComponent::ResolveCombatActionComponent() const
@@ -666,7 +703,12 @@ USkeletalMeshComponent* UMDFEquipmentPresentationComponent::ResolveMeshComponent
 
 const UMDFDisciplineVisualSet* UMDFEquipmentPresentationComponent::ResolveActiveDisciplineVisualSet() const
 {
-	const UMDFPlayerSkillComponent* SkillComponent = ResolveSkillComponent();
+	const UMDFPlayerSkillComponent* SkillComponent = CachedSkillComponent.Get();
+	if (!SkillComponent)
+	{
+		SkillComponent = ResolveSkillComponent();
+	}
+
 	if (!SkillComponent || !SkillComponent->GetActiveDisciplineTag().IsValid())
 	{
 		return nullptr;
