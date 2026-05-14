@@ -1,232 +1,508 @@
-# Multiplayer Discipline Framework
+# MDF: Multiplayer Discipline Framework
 
-Multiplayer Discipline Framework, or MDF, is an Unreal Engine multiplayer RPG framework focused on discipline-based combat, progression, and future MMO-style gameplay foundations.
+MDF is an Unreal Engine gameplay framework for building MMO-lite RPG combat, progression, equipment, and world systems.
 
-The current development focus is **Combat + Disciplines v1**. LifeSkills, quests, narrative systems, economy systems, and broader MMO/shard architecture are intentionally deferred until the combat foundation reaches a stronger functional stopping point.
+The framework is built around a discipline-based character model where players can swap between combat archetypes, use discipline-specific skill loadouts, transition between combo chains, and carry persistent character progress across temporary shard-style worlds.
 
-## Project Goals
+This project is currently focused on reusable framework architecture, not a finished game.
 
-MDF is being built as a reusable framework for multiplayer RPG-style games that need:
+## Current Status
 
-- Server-authoritative gameplay
-- Discipline/class-style progression
-- Combat loadouts and skill decks
-- Shallow, composition-first architecture
-- Data-authored gameplay definitions
-- Clear runtime state ownership
-- Debug-first visibility
-- Optional quickstart/reference classes
+MDF currently includes a working Combat V1 and presentation foundation:
 
-The framework is designed to avoid deep inheritance trees and game-specific hard coupling. Core systems should remain modular, inspectable, and usable without requiring a sample game layer.
+- Discipline-based combat framework
+- Archetype and discipline swapping
+- Basic combo chains
+- Transition combos between disciplines
+- Identity actions such as Block and Zoom
+- Skill cost and cooldown handling
+- Skill execution handlers
+- Combat effects and timed states
+- Combat cue presentation for montage, VFX, audio, and impact visuals
+- Native animation instance foundation
+- Discipline-specific linked animation layers
+- Archer aim offset support
+- Persistent weapon visual components
+- Sheathed and unsheathed equipment socket swapping
+- Equip and unequip attach notify support
+- Modular armor visual swapping
+- Discipline swap concealment VFX
+- Client-side visual refresh on replicated discipline changes
+- Core definition registry subsystem
+- Early item definition and equipment foundation in progress
 
-## Current Focus
+## Design Goals
 
-The current working area is **Combat + Disciplines v1**.
+MDF is designed around a few core principles:
 
-Active development includes:
+- Data-driven authoring through definition assets and gameplay tags
+- Clear separation between gameplay state, presentation, debug, and authored data
+- Multiplayer-safe ownership boundaries
+- PlayerState-owned persistent state where appropriate
+- Character and Controller classes kept thin
+- Components for actor-owned state and presentation
+- Subsystems for global lookup, registry, and service-style ownership
+- Event-driven logic over ticking where possible
+- Shallow inheritance, composition-first architecture
+- Practical, production-shaped systems without unnecessary abstraction
 
-- Archetype input
-- Discipline swapping
-- Identity overlays
-- Transition swaps
-- Transitional combo skills
-- Basic attacks
-- Combat action timing
-- Targeting and skill execution flow
+## High-Level Concept
 
-The current rule is:
+MDF is intended for MMO-lite RPGs where a player owns a persistent character that can enter temporary shard-based worlds.
 
-> Input expresses intent. Gameplay systems resolve, validate, and execute.
+A future game built on this framework could support:
 
-Input should think in terms of archetype slots, not concrete discipline classes. For example, `Q`, `E`, or other swap inputs should request an archetype such as Vanguard or Striker. Runtime systems then resolve the currently equipped discipline for that archetype slot.
+- Persistent character progression
+- Per-discipline equipment loadouts
+- Temporary worlds with 20 to 30 players
+- World modifiers and difficulty spikes
+- Rogue-lite world runs
+- Loot, crafting, gathering, and meta progression
+- Combat archetype swapping and class-style gameplay identity
 
-## Combat Deck Model
+The current focus is the foundation needed to support that long-term structure.
 
-MDF combat is built around a discipline deck model instead of a single fixed class bar.
+## Combat Overview
 
-The intended combat deck contains four archetype lanes:
+Combat is built around disciplines and archetypes.
 
-| Archetype | Role |
-|---|---|
-| Vanguard | Tank, protector, guard-oriented frontliner |
-| Striker | Direct damage and offensive pressure |
-| Channeler | Healing, magic, casting, and resource flow |
-| Tactician | Utility, control, setup, buffs, and debuffs |
+An archetype represents a broad role or combat category. A discipline represents the specific equipped combat identity within that archetype.
 
-Each archetype lane has one currently equipped discipline. Each discipline owns its own skill loadout, cooldown state, and future equipment/visual loadout.
+Example archetypes:
 
-The goal is to make discipline swapping part of combat flow, not just pre-combat setup.
+- Vanguard
+- Striker
+- Channeler
+- Tactician
 
-## Current Combat Features
+Example disciplines:
 
-The current combat slice includes:
+- Guardian
+- Archer
 
-- Player-owned skill runtime on PlayerState
-- Learned skill runtime
-- Equipped discipline slot runtime
-- Active discipline runtime
-- Discipline-owned loadout save and restore
-- Runtime blocking for wrong-discipline skill equips
-- Skill activation requests
-- Skill validation
-- Per-discipline skill cooldowns
-- Cooldown persistence across swaps
-- Resource cost validation and spending
-- Attribute component support
-- Targeting context
-- Locked target runtime
-- Direct damage and healing effects
-- Combat state tags
-- Dead-state handling
-- Combat cue playback
-- Projectile, melee trace, persistent area, and self-timed-state execution families
-- Debug HUD and debug subsystem visibility
+Each discipline can define its own:
 
-## Locked Combat Direction
+- Skill loadout
+- Basic combo chain
+- Identity action
+- Transition combo behavior
+- Animation set
+- Visual set
+- Equipment presentation
+- Armor presentation
+- Swap concealment VFX
 
-The current long-term combat direction includes:
+## Implemented Combat Features
 
-- Discipline-specific basic combo chains
-- Right-click identity actions
-- Authored startup, execute, and recovery timing
-- A dedicated combat action runtime layer
-- Normal discipline swaps
-- Transition combo swaps
-- Authored swap commit timing
-- Equipment and visual swap concealment
-- Entry bonuses when transitioning into a new archetype or discipline
+### Skill Activation
 
-Animation notifies may support presentation, but authoritative gameplay timing should come from authored combat data.
+Skills are authored through definition assets and executed through combat handlers. Skill activation supports:
 
-## Architecture Principles
-
-MDF follows a strict architecture-first approach.
-
-Core rules:
-
-- Prefer components, subsystems, structs, and plain C++ helpers over deep inheritance.
-- Keep PlayerController, PlayerState, Character, GameMode, and GameState thin.
-- Use PlayerState for long-lived player-owned runtime state.
-- Use Character or Pawn for embodiment-facing state.
-- Use subsystems for orchestration, registries, services, and debug aggregation.
-- Keep authored definitions separate from runtime mutable state.
-- Keep UI presentation-only.
-- Avoid hidden magic initialization.
-- Avoid stringly typed systems when gameplay tags or typed IDs are better.
-- Build one major system deeply before spreading into the next.
-
-MDF should trend toward:
-
-- Explicit ownership
-- Shallow inheritance
-- Composition-first design
-- Subsystem/component-first architecture
-- Readable data
-- Inspectable runtime state
-- Optional quickstart layers
-- Server-authoritative multiplayer behavior
-
-## Networking Model
-
-MDF currently assumes Unreal replication first.
-
-The default networking stance is:
-
-- Server authoritative by default
-- Clients send requests
-- Server validates requests
-- Server mutates authoritative state
-- Replication informs clients
-- UI and debug react to replicated state
-
-Runtime state should replicate. Authored definition payloads should not.
-
-Prefer replicating:
-
-- Gameplay tags
-- Stable IDs
-- Compact runtime structs
-- Progression values
-- Equipped/loadout state
-- Cooldown state
-- Mutable combat state
-
-Avoid replicating:
-
-- Large Data Asset payloads
-- Static skill definitions
-- Static discipline definitions
-- Display strings that can be resolved locally
-
-## Ownership Model
-
-### PlayerController
-
-Use for:
-
-- Input
-- Local request entry
-- HUD coordination
-- Optional debug command routing
-
-Do not use PlayerController as the owner of persistent gameplay state.
-
-### PlayerState
-
-Use for:
-
-- Long-lived player runtime state
-- Progression
-- Learned skills
-- Equipped skills
-- Active discipline state
-- Saved discipline loadouts
+- Validation
+- Costs
 - Cooldowns
-- Attributes and resources
+- Execution handlers
+- Targeting modes
+- Effects
+- Timed states
+- Cues and presentation
 
-### Character / Pawn
+### Basic Combos
 
-Use for:
+Disciplines can define basic combo chains with authored timing windows.
 
-- Embodiment
-- Movement
-- Animation-facing state
-- Combat presentation
-- Targeting embodiment context
-- Cue playback
-- Future equipment visuals
+Combo state is owned by the combat action system rather than by the Character class.
 
-### GameState
+### Transition Combos
 
-Use for:
+Players can swap disciplines during specific combo windows to trigger transition skills. These transition combos can bridge into the destination discipline’s combo chain.
 
-- Shared replicated world/session state
-- Encounter summaries
-- Match or shard-level state where appropriate
-
-### Subsystems
-
-Use for:
-
-- Orchestration
-- Registries
-- Debug aggregation
-- Non-owning services
-- World-scoped coordination
-
-Subsystems should not automatically become the home of replicated truth.
-
-## Module Layout
-
-MDF uses the `MDFFramework...` module naming pattern.
-
-Current modules include:
+This allows combat flow such as:
 
 ```text
-MDFFrameworkCore
-MDFFrameworkEntity
-MDFFrameworkProgression
-MDFFrameworkCombat
-MDFFrameworkDebug
-MDFFrameworkQuickstart
-MDFFrameworkEditor
+Guardian combo step 2
+-> swap to Archer during transition window
+-> play Guardian-to-Archer transition skill
+-> continue into Archer combo flow
+```
+
+### Identity Actions
+
+Identity actions are discipline-specific held actions.
+
+Current examples:
+
+- Guardian Block
+- Archer Zoom
+
+Identity behavior supports overlay-style actions, allowing some identities to permit attacks while active and others to block attacks.
+
+For example:
+
+- Zoom allows attacks
+- Block prevents attacks
+
+## Animation Foundation
+
+MDF uses a native animation state class with minimal AnimBP logic.
+
+The recommended setup is:
+
+```text
+Base AnimBP
+-> universal locomotion
+-> linked discipline combat locomotion layer
+-> full-body action slot
+-> hit/death slots later
+```
+
+The base AnimBP remains a thin pose graph. Gameplay state is calculated in C++.
+
+Current animation features include:
+
+- Native `UMDFCharacterAnimInstance`
+- Native discipline animation layer base
+- Discipline-specific linked layers
+- Base locomotion when sheathed or out of combat
+- Discipline combat locomotion while in combat
+- Archer aim offset
+- Zoom-aware aim offset strength
+- Root-motion-friendly action flow
+
+## Equipment and Presentation
+
+The presentation layer currently supports starter/default discipline visuals.
+
+A discipline can provide a visual set containing:
+
+- Weapon visuals
+- Shield or offhand visuals
+- Sheathed and unsheathed attachment points
+- Modular armor visuals
+- Swap concealment VFX
+
+Weapon visuals are persistent components. They are not destroyed and respawned when entering or leaving combat. Instead, they reattach between sheathed and unsheathed sockets.
+
+Example:
+
+```text
+Out of combat:
+    sword attached to hip or back socket
+
+Enter combat:
+    sword reattached to hand socket
+
+Leave combat:
+    sword reattached to sheathed socket
+```
+
+Modular armor uses skeletal mesh components that follow the base character mesh through leader pose.
+
+Supported modular armor slots include:
+
+- Head
+- Chest
+- Hands
+- Legs
+- Feet
+- Back
+
+## Current Module Layout
+
+The framework is organized into plugin modules.
+
+### MDFFrameworkCore
+
+Shared foundation code.
+
+Includes:
+
+- Base definition asset
+- Native gameplay tags
+- Core definition registry subsystem
+- Shared helpers and core types
+
+### MDFFrameworkProgression
+
+Progression and authored RPG data.
+
+Currently includes:
+
+- Discipline definitions
+- Skill definitions
+- Animation sets
+- Visual sets
+- Equipment visual types
+- Early item definition work
+
+Planned expansion:
+
+- Inventory
+- Equipment loadouts
+- Loot tables
+- Crafting recipes
+- Life skills
+- Rewards
+- Meta progression
+
+### MDFFrameworkCombat
+
+Combat runtime systems.
+
+Includes:
+
+- Player skill component
+- Combat action component
+- Combatant component
+- Skill execution handlers
+- Cooldowns
+- Costs
+- Effects
+- Timed states
+- Identity actions
+- Combo logic
+- Transition combo logic
+
+### MDFFrameworkQuickstart
+
+Reference gameplay integration.
+
+Includes:
+
+- Quickstart character
+- Quickstart controller
+- Quickstart PlayerState
+- Animation presentation component
+- Equipment presentation component
+- Identity presentation component
+- Anim notifies
+- Example setup assets
+
+This module is intended as a working integration example, not the only way to use the framework.
+
+### MDFFrameworkDebug
+
+Debug and runtime inspection tools.
+
+Includes:
+
+- Debug HUD
+- Debug world subsystem
+- Debug snapshots
+- Runtime combat state display
+
+Debug logic is kept separate from core gameplay runtime where possible.
+
+### MDFFrameworkEditor
+
+Editor-side utilities and validation.
+
+Currently minimal, planned to grow as authoring workflows expand.
+
+## Definition Registry
+
+MDF includes a lightweight Core definition registry subsystem.
+
+The registry is intended for authored definition lookup, not gameplay ownership.
+
+It supports explicit registration and lookup of definitions.
+
+The framework avoids hidden content scanning for now. Definitions are expected to be registered through project settings, developer settings, or feature-specific registration systems.
+
+## Planned Phase 14: Inventory and Equipment
+
+The next major implementation area is Inventory and Equipment Loadouts.
+
+Planned structure:
+
+```text
+UMDFItemDefinition
+UMDFEquipmentItemDefinition
+UMDFItemDefinitionSubsystem
+UMDFInventoryComponent
+UMDFEquipmentLoadoutComponent
+```
+
+The current discipline visual sets will become fallback starter visuals.
+
+Final equipment flow should become:
+
+```text
+Active Discipline
++ player equipment loadout for that discipline
++ fallback discipline visual set
+-> resolved visual presentation
+```
+
+This allows each discipline to maintain its own current equipment loadout.
+
+## Future Systems
+
+Planned major systems include:
+
+### Inventory and Equipment
+
+- Item definitions
+- Item stacks
+- Equipment item definitions
+- Per-discipline equipment loadouts
+- Equipped visuals
+- Equipment stat support later
+
+### Shard and World Instances
+
+- Temporary world instances
+- 20 to 30 player shard targets
+- World definitions
+- World seeds
+- Difficulty tiers
+- World modifiers
+- Expiration and reset behavior
+
+### Rewards and Loot
+
+- Reward bundles
+- Loot tables
+- Enemy rewards
+- Objective rewards
+- World completion rewards
+
+### Objectives and Contracts
+
+- World objectives
+- Personal objectives
+- Contracts
+- Event goals
+- Daily and weekly style tasks later
+
+### Life Skills
+
+- Gathering nodes
+- Crafting recipes
+- Refining
+- Crafting stations
+- Life skill progression
+- World modifier influence
+
+### Stats and Combat V2
+
+Combat V1 is intentionally focused on action flow and framework structure.
+
+Combat V2 is expected to add:
+
+- Full stats and attributes
+- Equipment stat bonuses
+- Skill scaling
+- Enemy scaling
+- Archetype synergies
+- More advanced discipline interactions
+
+## Networking Notes
+
+MDF is being built with multiplayer ownership boundaries in mind.
+
+Current direction:
+
+- Player-owned persistent combat/progression state lives on PlayerState components
+- Character owns pawn-local presentation and runtime visuals
+- GameState should own world-instance runtime state
+- Subsystems should own global lookup and service-style behavior
+- Client presentation refreshes from replicated active discipline state
+- Runtime presentation avoids unnecessary ticking
+
+The framework is intended to support listen and dedicated server use, with future backend integration for shard/world persistence.
+
+## Shard-Based MMO-lite Direction
+
+MDF is being shaped around an MMO-lite structure rather than a traditional always-on MMO world.
+
+The intended model is:
+
+```text
+Persistent character
+-> enters temporary world shard
+-> plays with up to 20 to 30 players
+-> completes objectives, gathers resources, earns rewards
+-> exits or world expires
+-> character persists
+```
+
+This enables rogue-lite and meta progression elements while avoiding the cost and complexity of a fully persistent world simulation.
+
+## Development Philosophy
+
+MDF favors practical architecture over excessive abstraction.
+
+Preferred patterns:
+
+- Use subsystems for global registry, lookup, and service-style ownership
+- Use components for actor, PlayerState, GameState, pawn, and presentation-owned state
+- Keep Character, Controller, and PlayerState classes thin
+- Avoid needless wrapper functions
+- Avoid deep inheritance
+- Avoid ticking unless it is clearly justified
+- Keep debug code out of core runtime systems
+- Build systems in complete vertical slices before expanding breadth
+
+## Current Roadmap
+
+```text
+Combat V1
+    Complete
+
+Animation and presentation foundation
+    Complete
+
+Weapon and modular armor presentation
+    Complete
+
+Swap concealment VFX
+    Complete
+
+Phase 14
+    Inventory and equipment loadouts
+
+Phase 15
+    Shard/world instance runtime
+
+Phase 16
+    Rewards and loot
+
+Phase 17
+    Objectives and contracts
+
+Phase 18
+    Gathering
+
+Phase 19
+    Crafting
+
+Phase 20
+    Stats and Combat V2
+```
+
+## Installation
+
+This project is structured as an Unreal Engine plugin.
+
+To use it in a project:
+
+1. Copy the MDF plugin into your Unreal project’s `Plugins` folder.
+2. Enable the MDF plugin modules in Unreal.
+3. Regenerate project files.
+4. Build the project.
+5. Use the Quickstart classes or integrate the runtime components into your own PlayerState, Character, Controller, and GameState setup.
+
+## Requirements
+
+- Unreal Engine 5
+- C++ project support
+- Gameplay Tags enabled
+- Niagara enabled for presentation VFX
+- Enhanced Input recommended for quickstart player controls
+
+## License
+
+License to be determined.
+
+Copyright Kyle Cuss and Cuss Programming 2026.
