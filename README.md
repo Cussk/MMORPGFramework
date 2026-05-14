@@ -501,8 +501,4 @@ To use it in a project:
 - Niagara enabled for presentation VFX
 - Enhanced Input recommended for quickstart player controls
 
-## License
-
-License to be determined.
-
 Copyright Kyle Cuss and Cuss Programming 2026.
