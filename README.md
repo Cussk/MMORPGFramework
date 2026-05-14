@@ -220,7 +220,7 @@ Subsystems should not automatically become the home of replicated truth.
 
 MDF uses the `MDFFramework...` module naming pattern.
 
-Current or intended modules include:
+Current modules include:
 
 ```text
 MDFFrameworkCore
