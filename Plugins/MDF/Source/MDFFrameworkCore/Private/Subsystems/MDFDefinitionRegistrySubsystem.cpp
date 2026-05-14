@@ -4,7 +4,34 @@
 
 #include "Data/MDFDefinitionAsset.h"
 
-bool UMDFDefinitionRegistrySubsystem::RegisterDefinition(
+bool UMDFDefinitionRegistrySubsystem::RegisterDefinitionById(UMDFDefinitionAsset* Definition)
+{
+	if (!Definition || Definition->DefinitionId.IsNone())
+	{
+		return false;
+	}
+
+	if (TObjectPtr<UMDFDefinitionAsset>* ExistingDefinition = RegisteredDefinitionsById.Find(Definition->DefinitionId))
+	{
+		if (ExistingDefinition->Get() == Definition)
+		{
+			return true;
+		}
+
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("MDFDefinitionRegistrySubsystem: Replacing definition registered for id [%s]. Old=[%s], New=[%s]"),
+			*Definition->DefinitionId.ToString(),
+			*GetNameSafe(ExistingDefinition->Get()),
+			*GetNameSafe(Definition));
+	}
+
+	RegisteredDefinitionsById.Add(Definition->DefinitionId, Definition);
+	return true;
+}
+
+bool UMDFDefinitionRegistrySubsystem::RegisterDefinitionByTag(
 	const FGameplayTag DefinitionTag,
 	UMDFDefinitionAsset* Definition)
 {
@@ -13,7 +40,7 @@ bool UMDFDefinitionRegistrySubsystem::RegisterDefinition(
 		return false;
 	}
 
-	if (TObjectPtr<UMDFDefinitionAsset>* ExistingDefinition = RegisteredDefinitions.Find(DefinitionTag))
+	if (TObjectPtr<UMDFDefinitionAsset>* ExistingDefinition = RegisteredDefinitionsByTag.Find(DefinitionTag))
 	{
 		if (ExistingDefinition->Get() == Definition)
 		{
@@ -29,37 +56,39 @@ bool UMDFDefinitionRegistrySubsystem::RegisterDefinition(
 			*GetNameSafe(Definition));
 	}
 
-	RegisteredDefinitions.Add(DefinitionTag, Definition);
+	RegisteredDefinitionsByTag.Add(DefinitionTag, Definition);
 	return true;
-}
-
-int32 UMDFDefinitionRegistrySubsystem::RegisterDefinitions(
-	const TMap<FGameplayTag, UMDFDefinitionAsset*>& Definitions)
-{
-	int32 RegisteredCount = 0;
-
-	for (const TPair<FGameplayTag, UMDFDefinitionAsset*>& DefinitionPair : Definitions)
-	{
-		if (RegisterDefinition(DefinitionPair.Key, DefinitionPair.Value))
-		{
-			++RegisteredCount;
-		}
-	}
-
-	return RegisteredCount;
 }
 
 void UMDFDefinitionRegistrySubsystem::ClearRegisteredDefinitions()
 {
-	RegisteredDefinitions.Reset();
+	RegisteredDefinitionsById.Reset();
+	RegisteredDefinitionsByTag.Reset();
 }
 
-bool UMDFDefinitionRegistrySubsystem::HasDefinition(const FGameplayTag DefinitionTag) const
+bool UMDFDefinitionRegistrySubsystem::HasDefinitionId(const FName DefinitionId) const
 {
-	return DefinitionTag.IsValid() && RegisteredDefinitions.Contains(DefinitionTag);
+	return !DefinitionId.IsNone() && RegisteredDefinitionsById.Contains(DefinitionId);
 }
 
-const UMDFDefinitionAsset* UMDFDefinitionRegistrySubsystem::ResolveDefinition(
+bool UMDFDefinitionRegistrySubsystem::HasDefinitionTag(const FGameplayTag DefinitionTag) const
+{
+	return DefinitionTag.IsValid() && RegisteredDefinitionsByTag.Contains(DefinitionTag);
+}
+
+const UMDFDefinitionAsset* UMDFDefinitionRegistrySubsystem::ResolveDefinitionById(
+	const FName DefinitionId) const
+{
+	if (DefinitionId.IsNone())
+	{
+		return nullptr;
+	}
+
+	const TObjectPtr<UMDFDefinitionAsset>* Definition = RegisteredDefinitionsById.Find(DefinitionId);
+	return Definition ? Definition->Get() : nullptr;
+}
+
+const UMDFDefinitionAsset* UMDFDefinitionRegistrySubsystem::ResolveDefinitionByTag(
 	const FGameplayTag DefinitionTag) const
 {
 	if (!DefinitionTag.IsValid())
@@ -67,6 +96,6 @@ const UMDFDefinitionAsset* UMDFDefinitionRegistrySubsystem::ResolveDefinition(
 		return nullptr;
 	}
 
-	const TObjectPtr<UMDFDefinitionAsset>* Definition = RegisteredDefinitions.Find(DefinitionTag);
+	const TObjectPtr<UMDFDefinitionAsset>* Definition = RegisteredDefinitionsByTag.Find(DefinitionTag);
 	return Definition ? Definition->Get() : nullptr;
 }

@@ -13,8 +13,8 @@ class UMDFDefinitionAsset;
  * Lightweight runtime registry for authored MDF definitions.
  *
  * This subsystem does not scan content or own gameplay rules. Feature modules
- * explicitly register definitions using their domain tags, such as SkillTag,
- * DisciplineTag, ItemTag, RecipeTag, or WorldTag.
+ * explicitly register definitions by stable DefinitionId and, when useful, by
+ * gameplay tag identity such as SkillTag, DisciplineTag, RecipeTag, or WorldTag.
  */
 UCLASS()
 class MDFFRAMEWORKCORE_API UMDFDefinitionRegistrySubsystem : public UGameInstanceSubsystem
@@ -23,33 +23,54 @@ class MDFFRAMEWORKCORE_API UMDFDefinitionRegistrySubsystem : public UGameInstanc
 
 public:
 	UFUNCTION(BlueprintCallable, Category="MDF|Definitions")
-	bool RegisterDefinition(FGameplayTag DefinitionTag, UMDFDefinitionAsset* Definition);
+	bool RegisterDefinitionById(UMDFDefinitionAsset* Definition);
 
 	UFUNCTION(BlueprintCallable, Category="MDF|Definitions")
-	int32 RegisterDefinitions(const TMap<FGameplayTag, UMDFDefinitionAsset*>& Definitions);
+	bool RegisterDefinitionByTag(FGameplayTag DefinitionTag, UMDFDefinitionAsset* Definition);
 
 	UFUNCTION(BlueprintCallable, Category="MDF|Definitions")
 	void ClearRegisteredDefinitions();
 
 	UFUNCTION(BlueprintPure, Category="MDF|Definitions")
-	bool HasDefinition(FGameplayTag DefinitionTag) const;
+	bool HasDefinitionId(FName DefinitionId) const;
 
 	UFUNCTION(BlueprintPure, Category="MDF|Definitions")
-	const UMDFDefinitionAsset* ResolveDefinition(FGameplayTag DefinitionTag) const;
+	bool HasDefinitionTag(FGameplayTag DefinitionTag) const;
+
+	UFUNCTION(BlueprintPure, Category="MDF|Definitions")
+	const UMDFDefinitionAsset* ResolveDefinitionById(FName DefinitionId) const;
+
+	UFUNCTION(BlueprintPure, Category="MDF|Definitions")
+	const UMDFDefinitionAsset* ResolveDefinitionByTag(FGameplayTag DefinitionTag) const;
 
 	template<typename DefinitionType>
-	const DefinitionType* ResolveDefinition(FGameplayTag DefinitionTag) const
+	const DefinitionType* ResolveDefinitionById(FName DefinitionId) const
 	{
-		return Cast<DefinitionType>(ResolveDefinition(DefinitionTag));
+		return Cast<DefinitionType>(ResolveDefinitionById(DefinitionId));
+	}
+
+	template<typename DefinitionType>
+	const DefinitionType* ResolveDefinitionByTag(FGameplayTag DefinitionTag) const
+	{
+		return Cast<DefinitionType>(ResolveDefinitionByTag(DefinitionTag));
 	}
 
 	UFUNCTION(BlueprintPure, Category="MDF|Definitions")
-	int32 GetRegisteredDefinitionCount() const
+	int32 GetRegisteredDefinitionIdCount() const
 	{
-		return RegisteredDefinitions.Num();
+		return RegisteredDefinitionsById.Num();
+	}
+
+	UFUNCTION(BlueprintPure, Category="MDF|Definitions")
+	int32 GetRegisteredDefinitionTagCount() const
+	{
+		return RegisteredDefinitionsByTag.Num();
 	}
 
 protected:
 	UPROPERTY(Transient)
-	TMap<FGameplayTag, TObjectPtr<UMDFDefinitionAsset>> RegisteredDefinitions;
+	TMap<FName, TObjectPtr<UMDFDefinitionAsset>> RegisteredDefinitionsById;
+
+	UPROPERTY(Transient)
+	TMap<FGameplayTag, TObjectPtr<UMDFDefinitionAsset>> RegisteredDefinitionsByTag;
 };

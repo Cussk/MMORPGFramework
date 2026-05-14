@@ -17,7 +17,7 @@ class MDFFRAMEWORKCORE_API UMDFDefinitionAsset : public UPrimaryDataAsset
 	
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Definition")
-	FName InternalName = NAME_None;
+	FName DefinitionId = NAME_None;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Definition")
 	FText DisplayName;

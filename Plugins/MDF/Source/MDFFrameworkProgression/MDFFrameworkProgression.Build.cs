@@ -14,6 +14,7 @@ public class MDFFrameworkProgression : ModuleRules
                 "Engine",
                 "GameplayTags",
                 "Niagara",
+                "DeveloperSettings",
                 "MDFFrameworkCore"
             }
         );

@@ -225,4 +225,30 @@ namespace MDFGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Back, "Equipment.Visual.Back");
 	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Shoulders, "Equipment.Visual.Shoulders");
 	UE_DEFINE_GAMEPLAY_TAG(Equipment_Visual_Waist, "Equipment.Visual.Waist");
+	
+	// --------------------
+	// Items
+	// --------------------
+	UE_DEFINE_GAMEPLAY_TAG(Item_Category_Equipment, "Item.Category.Equipment");
+	UE_DEFINE_GAMEPLAY_TAG(Item_Category_Material, "Item.Category.Material");
+	UE_DEFINE_GAMEPLAY_TAG(Item_Category_Consumable, "Item.Category.Consumable");
+	UE_DEFINE_GAMEPLAY_TAG(Item_Category_Currency, "Item.Category.Currency");
+
+	UE_DEFINE_GAMEPLAY_TAG(Item_Rarity_Common, "Item.Rarity.Common");
+	UE_DEFINE_GAMEPLAY_TAG(Item_Rarity_Uncommon, "Item.Rarity.Uncommon");
+	UE_DEFINE_GAMEPLAY_TAG(Item_Rarity_Rare, "Item.Rarity.Rare");
+	UE_DEFINE_GAMEPLAY_TAG(Item_Rarity_Epic, "Item.Rarity.Epic");
+	UE_DEFINE_GAMEPLAY_TAG(Item_Rarity_Legendary, "Item.Rarity.Legendary");
+
+	// --------------------
+	// Equipment Slots
+	// --------------------
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Slot_MainHand, "Equipment.Slot.MainHand");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Slot_OffHand, "Equipment.Slot.OffHand");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Slot_Head, "Equipment.Slot.Head");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Slot_Chest, "Equipment.Slot.Chest");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Slot_Hands, "Equipment.Slot.Hands");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Slot_Legs, "Equipment.Slot.Legs");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Slot_Feet, "Equipment.Slot.Feet");
+	UE_DEFINE_GAMEPLAY_TAG(Equipment_Slot_Back, "Equipment.Slot.Back");
 }
